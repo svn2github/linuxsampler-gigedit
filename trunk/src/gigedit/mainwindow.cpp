@@ -1448,12 +1448,12 @@ void MainWindow::__import_queued_samples() {
     std::cout << "Starting sample import\n" << std::flush;
     Glib::ustring error_files;
     printf("Samples to import: %d\n", int(m_SampleImportQueue.size()));
-    for (std::list<SampleImportItem>::iterator iter = m_SampleImportQueue.begin();
+    for (std::map<gig::Sample*, SampleImportItem>::iterator iter = m_SampleImportQueue.begin();
          iter != m_SampleImportQueue.end(); ) {
-        printf("Importing sample %s\n",(*iter).sample_path.c_str());
+        printf("Importing sample %s\n",iter->second.sample_path.c_str());
         SF_INFO info;
         info.format = 0;
-        SNDFILE* hFile = sf_open((*iter).sample_path.c_str(), SFM_READ, &info);
+        SNDFILE* hFile = sf_open(iter->second.sample_path.c_str(), SFM_READ, &info);
         sf_command(hFile, SFC_SET_SCALE_FLOAT_INT_READ, 0, SF_TRUE);
         try {
             if (!hFile) throw std::string(_("could not open file"));
@@ -1476,6 +1476,9 @@ void MainWindow::__import_queued_samples() {
                     throw std::string(_("format not supported")); // unsupported subformat (yet?)
             }
 
+            // reset write position for sample
+            iter->first->SetPos(0);
+
             const int bufsize = 10000;
             switch (bitdepth) {
                 case 16: {
@@ -1485,7 +1488,7 @@ void MainWindow::__import_queued_samples() {
                         // libsndfile does the conversion for us (if needed)
                         int n = sf_readf_short(hFile, buffer, bufsize);
                         // write from buffer directly (physically) into .gig file
-                        iter->gig_sample->Write(buffer, n);
+                        iter->first->Write(buffer, n);
                         cnt -= n;
                     }
                     delete[] buffer;
@@ -1505,7 +1508,7 @@ void MainWindow::__import_queued_samples() {
                             dstbuf[j++] = srcbuf[i] >> 24;
                         }
                         // write from buffer directly (physically) into .gig file
-                        iter->gig_sample->Write(dstbuf, n);
+                        iter->first->Write(dstbuf, n);
                         cnt -= n;
                     }
                     delete[] srcbuf;
@@ -1516,16 +1519,16 @@ void MainWindow::__import_queued_samples() {
             // cleanup
             sf_close(hFile);
             // let the sampler re-cache the sample if needed
-            sample_changed_signal.emit(iter->gig_sample);
+            sample_changed_signal.emit(iter->first);
             // on success we remove the sample from the import queue,
             // otherwise keep it, maybe it works the next time ?
-            std::list<SampleImportItem>::iterator cur = iter;
+            std::map<gig::Sample*, SampleImportItem>::iterator cur = iter;
             ++iter;
             m_SampleImportQueue.erase(cur);
         } catch (std::string what) {
             // remember the files that made trouble (and their cause)
             if (!error_files.empty()) error_files += "\n";
-            error_files += (*iter).sample_path += " (" + what + ")";
+            error_files += iter->second.sample_path += " (" + what + ")";
             ++iter;
         }
     }
@@ -2747,7 +2750,7 @@ void MainWindow::add_or_replace_sample(bool replace) {
                 SampleImportItem sched_item;
                 sched_item.gig_sample  = sample;
                 sched_item.sample_path = *iter;
-                m_SampleImportQueue.push_back(sched_item);
+                m_SampleImportQueue[sample] = sched_item;
                 // add sample to the tree view
                 if (replace) {
                     row[m_SamplesModel.m_col_name] = gig_to_utf8(sample->pInfo->Name);
@@ -2857,7 +2860,7 @@ void MainWindow::on_action_replace_all_samples_in_all_groups()
                 SampleImportItem sched_item;
                 sched_item.gig_sample  = sample;
                 sched_item.sample_path = filename;
-                m_SampleImportQueue.push_back(sched_item);
+                m_SampleImportQueue[sample] = sched_item;
                 sf_close(hFile);
                 file_changed();
             }
@@ -2909,15 +2912,12 @@ void MainWindow::on_action_remove_sample() {
                 // if sample(s) were just previously added, remove
                 // them from the import queue
                 for (std::list<gig::Sample*>::iterator member = members.begin();
-                     member != members.end(); ++member) {
-                    for (std::list<SampleImportItem>::iterator iter = m_SampleImportQueue.begin();
-                         iter != m_SampleImportQueue.end(); ++iter) {
-                        if ((*iter).gig_sample == *member) {
-                            printf("Removing previously added sample '%s' from group '%s'\n",
-                                   (*iter).sample_path.c_str(), name.c_str());
-                            m_SampleImportQueue.erase(iter);
-                            break;
-                        }
+                     member != members.end(); ++member)
+                {
+                    if (m_SampleImportQueue.count(*member)) {
+                        printf("Removing previously added sample '%s' from group '%s'\n",
+                               m_SampleImportQueue[sample].sample_path.c_str(), name.c_str());
+                        m_SampleImportQueue.erase(*member);
                     }
                 }
                 file_changed();
@@ -2932,14 +2932,10 @@ void MainWindow::on_action_remove_sample() {
                 samples_removed_signal.emit();
                 // if sample was just previously added, remove it from
                 // the import queue
-                for (std::list<SampleImportItem>::iterator iter = m_SampleImportQueue.begin();
-                     iter != m_SampleImportQueue.end(); ++iter) {
-                    if ((*iter).gig_sample == sample) {
-                        printf("Removing previously added sample '%s'\n",
-                               (*iter).sample_path.c_str());
-                        m_SampleImportQueue.erase(iter);
-                        break;
-                    }
+                if (m_SampleImportQueue.count(sample)) {
+                    printf("Removing previously added sample '%s'\n",
+                           m_SampleImportQueue[sample].sample_path.c_str());
+                    m_SampleImportQueue.erase(sample);
                 }
                 dimreg_changed();
                 file_changed();
@@ -2995,16 +2991,11 @@ void MainWindow::on_action_remove_unused_samples() {
             gig::Sample* sample = *itSample;
             // remove sample from the .gig file
             file->DeleteSample(sample);
-            // if sample was just previously added, remove it fro the import queue
-            for (std::list<SampleImportItem>::iterator iter = m_SampleImportQueue.begin();
-                 iter != m_SampleImportQueue.end(); ++iter)
-            {
-                if ((*iter).gig_sample == sample) {
-                    printf("Removing previously added sample '%s'\n",
-                           (*iter).sample_path.c_str());
-                    m_SampleImportQueue.erase(iter);
-                    break;
-                }
+            // if sample was just previously added, remove it from the import queue
+            if (m_SampleImportQueue.count(sample)) {
+                printf("Removing previously added sample '%s'\n",
+                       m_SampleImportQueue[sample].sample_path.c_str());
+                m_SampleImportQueue.erase(sample);
             }
         }
     } catch (RIFF::Exception e) {

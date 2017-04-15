@@ -386,7 +386,7 @@ protected:
         Glib::ustring sample_path; // file name of the sample to be
                                    // imported
     };
-    std::list<SampleImportItem> m_SampleImportQueue;
+    std::map<gig::Sample*, SampleImportItem> m_SampleImportQueue;
 
 
     void on_action_file_new();

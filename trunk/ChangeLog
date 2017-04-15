@@ -57,6 +57,8 @@ Version SVN HEAD (?)
     which is controlled by checkbox "all regions".
   * Show graphical symbol on region that uses loop(s).
   * Show graphical symbol on region that misses sample reference(s).
+  * Fixed crash on saving file if a sample was requested to be replaced twice
+    by the user.
 
 Version 1.0.0 (2015-07-17)
 

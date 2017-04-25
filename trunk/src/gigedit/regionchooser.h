@@ -79,6 +79,8 @@ public:
 
     gig::Region* get_region() { return region; }
     void set_region(gig::Region* region);
+    void select_next_region();
+    void select_prev_region();
 
     void on_note_on_event(int key, int velocity);
     void on_note_off_event(int key, int velocity);

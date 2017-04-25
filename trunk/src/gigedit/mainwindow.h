@@ -433,6 +433,14 @@ protected:
     void show_intruments_tab();
     void show_scripts_tab();
 
+    void select_prev_region();
+    void select_next_region();
+
+    void select_next_dim_rgn_zone();
+    void select_prev_dim_rgn_zone();
+    void select_prev_dimension();
+    void select_next_dimension();
+
     void add_instrument(gig::Instrument* instrument);
     Gtk::RadioMenuItem* add_instrument_to_menu(const Glib::ustring& name,
                                                int position = -1);

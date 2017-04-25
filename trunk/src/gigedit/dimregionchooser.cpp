@@ -29,17 +29,9 @@
 
 #include "global.h"
 
-// taken from gdk/gdkkeysyms.h
-// (define on demand, to avoid unnecessary dev lib package build dependency)
-#ifndef GDK_KEY_Control_L
-# define GDK_KEY_Control_L 0xffe3
-#endif
-#ifndef GDK_KEY_Control_R
-# define GDK_KEY_Control_R 0xffe4
-#endif
-
-static std::map<gig::dimension_t,int> caseOfDimRegion(gig::DimensionRegion* dr, bool* isValidZone) {
-    std::map<gig::dimension_t,int> dimCase;
+//TODO: this function and dimensionCaseOf() from global.h are duplicates, eliminate either one of them!
+static DimensionCase caseOfDimRegion(gig::DimensionRegion* dr, bool* isValidZone) {
+    DimensionCase dimCase;
     if (!dr) {
         *isValidZone = false;
         return dimCase;
@@ -57,7 +49,7 @@ static std::map<gig::dimension_t,int> caseOfDimRegion(gig::DimensionRegion* dr, 
     if (drIndex == 256) {
         fprintf(stderr, "DimRegionChooser: ERROR: index of dim region not found!\n");
         *isValidZone = false;
-        return std::map<gig::dimension_t,int>();
+        return DimensionCase();
     }
 
     for (int d = 0, baseBits = 0; d < rgn->Dimensions; ++d) {
@@ -68,7 +60,7 @@ static std::map<gig::dimension_t,int> caseOfDimRegion(gig::DimensionRegion* dr, 
         // there are also DimensionRegion objects of unused zones, skip them
         if (dimCase[rgn->pDimensionDefinitions[d].dimension] >= rgn->pDimensionDefinitions[d].zones) {
             *isValidZone = false;
-            return std::map<gig::dimension_t,int>();
+            return DimensionCase();
         }
     }
 
@@ -84,6 +76,7 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
     instrument = 0;
     region = 0;
     maindimregno = -1;
+    maindimtype = gig::dimension_none; // initialize with invalid dimension type
     focus_line = 0;
     resize.active = false;
     cursor_is_resize = false;
@@ -1138,16 +1131,37 @@ void DimRegionChooser::delete_dimension_zone() {
 }
 
 bool DimRegionChooser::onKeyPressed(GdkEventKey* key) {
-    //printf("key down\n");
+    //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = true;
+    //FIXME: hmm, for some reason GDKMM does not fire arrow key down events, so we are doing those handlers in the key up handler instead for now
+    /*if (key->keyval == GDK_KEY_Left)
+        select_prev_dimzone();
+    if (key->keyval == GDK_KEY_Right)
+        select_next_dimzone();
+    if (key->keyval == GDK_KEY_Up)
+        select_prev_dimension();
+    if (key->keyval == GDK_KEY_Down)
+        select_next_dimension();*/
     return false;
 }
 
 bool DimRegionChooser::onKeyReleased(GdkEventKey* key) {
-    //printf("key up\n");
+    //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = false;
+
+    if (!has_focus()) return false;
+
+    if (key->keyval == GDK_KEY_Left)
+        select_prev_dimzone();
+    if (key->keyval == GDK_KEY_Right)
+        select_next_dimzone();
+    if (key->keyval == GDK_KEY_Up)
+        select_prev_dimension();
+    if (key->keyval == GDK_KEY_Down)
+        select_next_dimension();
+
     return false;
 }
 
@@ -1168,11 +1182,7 @@ void DimRegionChooser::resetSelectedZones() {
     gig::DimensionRegion* dimrgn = region->pDimensionRegions[maindimregno];
 
     bool isValidZone;
-    this->maindimcase = caseOfDimRegion(dimrgn, &isValidZone);
-    if (!isValidZone) {
-        queue_draw(); // redraw required parts
-        return;
-    }
+    this->maindimcase = dimensionCaseOf(dimrgn);
 
     for (std::map<gig::dimension_t,int>::const_iterator it = this->maindimcase.begin();
          it != this->maindimcase.end(); ++it)
@@ -1201,6 +1211,83 @@ bool DimRegionChooser::select_dimregion(gig::DimensionRegion* dimrgn) {
     }
 
     return false; //.selection failed
+}
+
+void DimRegionChooser::select_next_dimzone() {
+    select_dimzone_by_dir(+1);
+}
+
+void DimRegionChooser::select_prev_dimzone() {
+    select_dimzone_by_dir(-1);
+}
+
+void DimRegionChooser::select_dimzone_by_dir(int dir) {
+    if (!region) return;
+    if (!region->Dimensions) return;
+    if (focus_line < 0) focus_line = 0;
+    if (focus_line >= region->Dimensions) focus_line = region->Dimensions - 1;
+
+    maindimtype = region->pDimensionDefinitions[focus_line].dimension;
+    if (maindimtype == gig::dimension_none) {
+        printf("maindimtype -> none\n");
+        return;
+    }
+
+    if (maindimcase.empty()) {
+        maindimcase = dimensionCaseOf(region->pDimensionRegions[maindimregno]);
+        if (maindimcase.empty()) {
+            printf("caseOfDimregion(%d) -> empty\n", maindimregno);
+            return;
+        }
+    }
+
+    int z = (dir > 0) ? maindimcase[maindimtype] + 1 : maindimcase[maindimtype] - 1;
+    if (z < 0) z = 0;
+    if (z >= region->pDimensionDefinitions[focus_line].zones)
+        z = region->pDimensionDefinitions[focus_line].zones - 1;
+
+    maindimcase[maindimtype] = z;
+
+    ::gig::DimensionRegion* dr = dimensionRegionMatching(maindimcase, region);
+    if (!dr) {
+        printf("select_dimzone_by_dir(%d) -> !dr\n", dir);
+        return;
+    }
+
+    maindimregno = getDimensionRegionIndex(dr);
+
+    // reset selected dimregion zones
+    dimzones.clear();
+    for (DimensionCase::const_iterator it = maindimcase.begin();
+         it != maindimcase.end(); ++it)
+    {
+        dimzones[it->first].insert(it->second);
+    }
+
+    dimregion_selected();
+
+    // disabled: would overwrite dimregno with wrong value
+    //refresh_all();
+    // so requesting just a raw repaint instead:
+    queue_draw();
+}
+
+void DimRegionChooser::select_next_dimension() {
+    if (!region) return;
+    focus_line++;
+    if (focus_line >= region->Dimensions)
+        focus_line = region->Dimensions - 1;
+    this->maindimtype = region->pDimensionDefinitions[focus_line].dimension;
+    queue_draw();
+}
+
+void DimRegionChooser::select_prev_dimension() {
+    if (!region) return;
+    focus_line--;
+    if (focus_line < 0)
+        focus_line = 0;
+    this->maindimtype = region->pDimensionDefinitions[focus_line].dimension;
+    queue_draw();
 }
 
 gig::DimensionRegion* DimRegionChooser::get_main_dimregion() const {

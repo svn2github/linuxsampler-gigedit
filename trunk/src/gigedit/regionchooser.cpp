@@ -699,6 +699,60 @@ void RegionChooser::set_region(gig::Region* region) {
     dimensionManager.set_region(region);
 }
 
+void RegionChooser::select_next_region() {
+    if (!instrument) return;
+    if (!region) {
+        for (int i = 0; i < 128; ++i) {
+            ::gig::Region* rgn = instrument->GetRegion(i);
+            if (rgn) {
+                set_region(rgn);
+                return;
+            }
+        }
+    } else {
+        bool currentFound = false;
+        for (int i = 0; i < 128; ++i) {
+            ::gig::Region* rgn = instrument->GetRegion(i);
+            if (!rgn) continue;
+            if (currentFound) {
+                if (rgn != region) {
+                    set_region(rgn);
+                    return;
+                }
+            } else {
+                if (rgn == region) currentFound = true;
+            }
+        }
+    }
+}
+
+void RegionChooser::select_prev_region() {
+    if (!instrument) return;
+    if (!region) {
+        for (int i = 0; i < 128; ++i) {
+            ::gig::Region* rgn = instrument->GetRegion(i);
+            if (rgn) {
+                set_region(rgn);
+                return;
+            }
+        }
+    } else {
+        bool currentFound = false;
+        for (int i = 127; i >= 0; --i) {
+            ::gig::Region* rgn = instrument->GetRegion(i);
+            if (!rgn) continue;
+            if (currentFound) {
+                if (rgn != region) {
+                    set_region(rgn);
+                    return;
+                }
+            } else {
+                if (rgn == region) currentFound = true;
+            }
+        }
+    }
+}
+
 void RegionChooser::motion_resize_region(int x, int y)
 {
     const int w = get_width() - 1;

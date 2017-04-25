@@ -205,6 +205,44 @@ MainWindow::MainWindow() :
 
     actionGroup->add(Gtk::Action::create("MenuEdit", _("_Edit")));
 
+    const Gdk::ModifierType primaryModifierKey =
+#if defined(__APPLE__)
+    Gdk::META_MASK; // Cmd key on Mac
+#else
+    Gdk::CONTROL_MASK; // Ctrl key on all other OSs
+#endif
+
+    actionGroup->add(Gtk::Action::create("SelectPrevRegion",
+                                         _("Select Previous Region")),
+                     Gtk::AccelKey(GDK_KEY_Left, primaryModifierKey),
+                     sigc::mem_fun(*this, &MainWindow::select_prev_region));
+
+    actionGroup->add(Gtk::Action::create("SelectNextRegion",
+                                         _("Select Next Region")),
+                     Gtk::AccelKey(GDK_KEY_Right, primaryModifierKey),
+                     sigc::mem_fun(*this, &MainWindow::select_next_region));
+
+    actionGroup->add(Gtk::Action::create("SelectPrevDimRgnZone",
+                                         _("Select Previous Dimension Region Zone")),
+                     Gtk::AccelKey(GDK_KEY_Left, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_prev_dim_rgn_zone));
+
+    actionGroup->add(Gtk::Action::create("SelectNextDimRgnZone",
+                                         _("Select Next Dimension Region Zone")),
+                     Gtk::AccelKey(GDK_KEY_Right, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_next_dim_rgn_zone));
+
+    actionGroup->add(Gtk::Action::create("SelectPrevDimension",
+                                         _("Select Previous Dimension")),
+                     Gtk::AccelKey(GDK_KEY_Up, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_prev_dimension));
+
+    actionGroup->add(Gtk::Action::create("SelectNextDimension",
+                                         _("Select Next Dimension")),
+                     Gtk::AccelKey(GDK_KEY_Down, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_next_dimension));
+
+
     Glib::RefPtr<Gtk::ToggleAction> toggle_action =
         Gtk::ToggleAction::create("CopySampleUnity", _("Copy Sample's _Unity Note"));
     toggle_action->set_active(true);
@@ -379,6 +417,14 @@ MainWindow::MainWindow() :
         "      <menuitem action='Quit'/>"
         "    </menu>"
         "    <menu action='MenuEdit'>"
+        "      <menuitem action='SelectPrevRegion'/>"
+        "      <menuitem action='SelectNextRegion'/>"
+        "      <separator/>"
+        "      <menuitem action='SelectPrevDimRgnZone'/>"
+        "      <menuitem action='SelectNextDimRgnZone'/>"
+        "      <menuitem action='SelectPrevDimension'/>"
+        "      <menuitem action='SelectNextDimension'/>"
+        "      <separator/>"
         "      <menuitem action='CopySampleUnity'/>"
         "      <menuitem action='CopySampleTune'/>"
         "      <menuitem action='CopySampleLoop'/>"
@@ -3569,6 +3615,34 @@ void MainWindow::show_intruments_tab() {
 
 void MainWindow::show_scripts_tab() {
     m_TreeViewNotebook.set_current_page(2);
+}
+
+void MainWindow::select_prev_region() {
+    m_RegionChooser.select_prev_region();
+}
+
+void MainWindow::select_next_region() {
+    m_RegionChooser.select_next_region();
+}
+
+void MainWindow::select_next_dim_rgn_zone() {
+    if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
+    m_DimRegionChooser.select_next_dimzone();
+}
+
+void MainWindow::select_prev_dim_rgn_zone() {
+    if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
+    m_DimRegionChooser.select_prev_dimzone();
+}
+
+void MainWindow::select_prev_dimension() {
+    if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
+    m_DimRegionChooser.select_prev_dimension();
+}
+
+void MainWindow::select_next_dimension() {
+    if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
+    m_DimRegionChooser.select_next_dimension();
 }
 
 sigc::signal<void, gig::File*>& MainWindow::signal_file_structure_to_be_changed() {

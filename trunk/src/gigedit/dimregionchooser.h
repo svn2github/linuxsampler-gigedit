@@ -36,6 +36,8 @@
 #include <set>
 #include <map>
 
+#include "global.h"
+
 class DimRegionChooser : public Gtk::DrawingArea
 {
 public:
@@ -51,6 +53,10 @@ public:
     void get_dimregions(const gig::Region* region, bool stereo,
                         std::set<gig::DimensionRegion*>& dimregs) const;
     bool select_dimregion(gig::DimensionRegion* dimrgn);
+    void select_next_dimzone();
+    void select_prev_dimzone();
+    void select_next_dimension();
+    void select_prev_dimension();
 
     // those 3 are ATM only relevant when resizing custom dimension region zones
     void setModifyBothChannels(bool b);
@@ -73,6 +79,7 @@ protected:
     void split_dimension_zone();
     void delete_dimension_zone();
     void resetSelectedZones();
+    void select_dimzone_by_dir(int dir);
 
     Gdk::RGBA red, black, white;
 
@@ -87,7 +94,6 @@ protected:
     bool modifyalldimregs;
     bool modifyallregions;
 
-    //std::set<gig::DimensionRegion*> dimregs; ///< Reflects which dimension regions are currently selected.
     int focus_line;
     std::map<gig::dimension_t, std::set<int> > dimzones; ///< Reflects which zone(s) of the individual dimension are currently selected.
     int label_width;
@@ -99,7 +105,7 @@ protected:
     // i.e. keyboard arrow key navigation)
     // NOTE: these may *not* necessarily currently be selected !
     gig::dimension_t maindimtype;
-    std::map<gig::dimension_t,int> maindimcase;
+    DimensionCase maindimcase;
     int maindimregno;
 
     // information needed during a resize

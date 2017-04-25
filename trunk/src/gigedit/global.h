@@ -55,6 +55,27 @@
 #define UNICODE_RIGHT_ARROW     Glib::ustring(1, gunichar(0x2192))
 #define UNICODE_LEFT_ARROW      Glib::ustring(1, gunichar(0x2190))
 
+// taken from gdk/gdkkeysyms.h
+// (define on demand, to avoid unnecessary dev lib package build dependency)
+#ifndef GDK_KEY_Control_L
+# define GDK_KEY_Control_L 0xffe3
+#endif
+#ifndef GDK_KEY_Control_R
+# define GDK_KEY_Control_R 0xffe4
+#endif
+#ifndef GDK_KEY_Left
+# define GDK_KEY_Left 0xff51
+#endif
+#ifndef GDK_KEY_Right
+# define GDK_KEY_Right 0xff53
+#endif
+#ifndef GDK_KEY_Up
+# define GDK_KEY_Up 0xff52
+#endif
+#ifndef GDK_KEY_Down
+# define GDK_KEY_Down 0xff54
+#endif
+
 template<class T> inline std::string ToString(T o) {
     std::stringstream ss;
     ss << o;
@@ -115,8 +136,20 @@ public:
         }
         return false;
     }
+
+    // prevent passing gig::dimension_none from creating a new pair
+    // (TODO: other invalid gig::dimension_t values should be filtered here as well)
+    int& operator[](const gig::dimension_t& k) {
+        static int unused = 0;
+        if (k == gig::dimension_none) {
+            unused = 0;
+            return unused;
+        }
+        return std::map<gig::dimension_t,int>::operator[](k);
+    }
 };
 
+//TODO: this function and caseOfDimRegion() from dimregionchooser.h are duplicates, eliminate either one of them!
 inline DimensionCase dimensionCaseOf(gig::DimensionRegion* dr) {
     DimensionCase dimCase;
     int idr = getDimensionRegionIndex(dr);
@@ -140,6 +173,15 @@ inline std::vector<gig::DimensionRegion*> dimensionRegionsMatching(const Dimensi
         if (!dimCase.isViolating(c)) v.push_back(rgn->pDimensionRegions[idr]);
     }
     return v;
+}
+
+inline gig::DimensionRegion* dimensionRegionMatching(const DimensionCase& dimCase, gig::Region* rgn) {
+    for (int idr = 0; idr < 256; ++idr) {
+        if (!rgn->pDimensionRegions[idr]) continue;
+        DimensionCase c = dimensionCaseOf(rgn->pDimensionRegions[idr]);
+        if (c == dimCase) return rgn->pDimensionRegions[idr];
+    }
+    return NULL;
 }
 
 #endif // GIGEDIT_GLOBAL_H

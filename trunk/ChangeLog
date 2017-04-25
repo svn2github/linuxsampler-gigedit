@@ -59,6 +59,12 @@ Version SVN HEAD (?)
   * Show graphical symbol on region that misses sample reference(s).
   * Fixed crash on saving file if a sample was requested to be replaced twice
     by the user.
+  * Implemented fast navigation through regions by keyboard accelerator
+    Ctrl+Left and Ctrl+Right (on Mac: Cmd+Left and Cmd+Right).
+  * Implemented fast navigation through dimension region zones of currently
+    selected region by keyboard accelerator Alt+Left, Alt+Right, Alt+Up,
+    Alt+Down, as well as simply using the arrow keys alone if the dimension
+    region chooser got focus (i.e. when it was selected by mouse previously).
 
 Version 1.0.0 (2015-07-17)
 

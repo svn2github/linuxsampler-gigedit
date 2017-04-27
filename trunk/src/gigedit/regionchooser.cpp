@@ -84,7 +84,7 @@ gig::Region* SortedRegions::next() {
 
 RegionChooser::RegionChooser() :
     activeKeyColor("red"),
-    red("#8070ff"),
+    blue("#4796ff"),
     grey1("grey69"),
     white("white"),
     black("black"),
@@ -334,7 +334,7 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
                 cr->line_to(x3, h1 - 0.5);
                 cr->stroke();
 
-                Gdk::Cairo::set_source_rgba(cr, region == r ? red : white);
+                Gdk::Cairo::set_source_rgba(cr, region == r ? blue : white);
                 cr->rectangle(x3 + 1, 1, x2 - x3 - 1, h1 - 2);
                 cr->fill();
                 Gdk::Cairo::set_source_rgba(cr, black);
@@ -405,7 +405,7 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
         layout->set_width(get_width() * Pango::SCALE);
         //layout->set_height(get_height() * Pango::SCALE);
         layout->set_spacing(10);
-        Gdk::Cairo::set_source_rgba(cr, red);        
+        Gdk::Cairo::set_source_rgba(cr, blue);
         // get the text dimensions
         int text_width, text_height;
         layout->get_pixel_size(text_width, text_height);

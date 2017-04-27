@@ -99,7 +99,7 @@ protected:
 
     gig::Region* get_region(int key);
 
-    Gdk::RGBA activeKeyColor, red, grey1, white, black;
+    Gdk::RGBA activeKeyColor, blue, grey1, white, black;
 
     sigc::signal<void> region_selected;
     sigc::signal<void> instrument_changed;

@@ -81,7 +81,9 @@ protected:
     void resetSelectedZones();
     void select_dimzone_by_dir(int dir);
 
-    Gdk::RGBA red, black, white;
+    Gdk::RGBA red, blue, black, white;
+    Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;
+    Cairo::RefPtr<Cairo::SurfacePattern> blueHatchedSurfacePattern;
 
     gig::Instrument* instrument;
     gig::Region* region;
@@ -125,6 +127,8 @@ protected:
     } resize;
 
     bool multiSelectKeyDown;
+    bool primaryKeyDown; // on Mac: Cmd key, on all other OSs: Ctrl key
+    bool shiftKeyDown;
 
     bool cursor_is_resize;
     bool is_in_resize_zone(double x, double y);

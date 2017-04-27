@@ -3,16 +3,19 @@
 Glib::RefPtr<Gdk::Pixbuf> redDot;
 Glib::RefPtr<Gdk::Pixbuf> yellowDot;
 Glib::RefPtr<Gdk::Pixbuf> blackLoop;
+Glib::RefPtr<Gdk::Pixbuf> blueHatchedPattern;
 Glib::RefPtr<Gdk::Pixbuf> grayLoop;
 
 extern const unsigned char red_dot_rgba[];
 extern const unsigned char yellow_dot_rgba[];
 extern const unsigned char black_loop_rgba[];
+extern const unsigned char blue_hatched_pattern_rgba[];
 extern const unsigned char gray_loop_rgba[];
 
 extern const int red_dot_rgba_size;
 extern const int yellow_dot_rgba_size;
 extern const int black_loop_rgba_size;
+extern const int blue_hatched_pattern_rgba_size;
 extern const int gray_loop_rgba_size;
 
 static struct _BuiltInPixMap {
@@ -23,6 +26,7 @@ static struct _BuiltInPixMap {
     { &redDot, red_dot_rgba, red_dot_rgba_size },
     { &yellowDot, yellow_dot_rgba, yellow_dot_rgba_size },
     { &blackLoop, black_loop_rgba, black_loop_rgba_size },
+    { &blueHatchedPattern, blue_hatched_pattern_rgba, blue_hatched_pattern_rgba_size },
     { &grayLoop, gray_loop_rgba, gray_loop_rgba_size },
 };
 

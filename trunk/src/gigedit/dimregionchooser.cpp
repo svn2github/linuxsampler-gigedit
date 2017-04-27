@@ -20,6 +20,7 @@
 #include <gtkmm/box.h>
 #include "dimregionchooser.h"
 #include <cairomm/context.h>
+#include <cairomm/surface.h>
 #include <gdkmm/cursor.h>
 #include <gdkmm/general.h>
 #include <glibmm/stringutils.h>
@@ -28,6 +29,7 @@
 #include <assert.h>
 
 #include "global.h"
+#include "builtinpix.h"
 
 //TODO: this function and dimensionCaseOf() from global.h are duplicates, eliminate either one of them!
 static DimensionCase caseOfDimRegion(gig::DimensionRegion* dr, bool* isValidZone) {
@@ -69,10 +71,44 @@ static DimensionCase caseOfDimRegion(gig::DimensionRegion* dr, bool* isValidZone
 }
 
 DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
-    red("#8070ff"),
+    red("#ff476e"),
+    blue("#4796ff"),
     black("black"),
     white("white")
 {
+    // make sure blue hatched pattern pixmap is loaded
+    loadBuiltInPix();
+
+    // create blue hatched pattern
+    {
+        const int width = blueHatchedPattern->get_width();
+        const int height = blueHatchedPattern->get_height();
+        const int stride = blueHatchedPattern->get_rowstride();
+
+        // manually convert from RGBA to ARGB
+        this->blueHatchedPatternARGB = blueHatchedPattern->copy();
+        const int pixelSize = stride / width;
+        const int totalPixels = width * height;
+        assert(pixelSize == 4);
+        unsigned char* ptr = this->blueHatchedPatternARGB->get_pixels();
+        for (int iPixel = 0; iPixel < totalPixels; ++iPixel, ptr += pixelSize) {
+            const unsigned char r = ptr[0];
+            const unsigned char g = ptr[1];
+            const unsigned char b = ptr[2];
+            const unsigned char a = ptr[3];
+            ptr[0] = b;
+            ptr[1] = g;
+            ptr[2] = r;
+            ptr[3] = a;
+        }
+
+        Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+            this->blueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+        );
+        this->blueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+        this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+    }
+
     instrument = 0;
     region = 0;
     maindimregno = -1;
@@ -82,6 +118,8 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
     cursor_is_resize = false;
     h = 24;
     multiSelectKeyDown = false;
+    primaryKeyDown = false;
+    shiftKeyDown = false;
     modifybothchannels = modifyalldimregs = modifybothchannels = false;
     set_can_focus();
 
@@ -246,9 +284,19 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                     dstr = dstrbuf;
                     break;
                 }
-                layout->set_text(dstr);
 
+                // Since bold font yields in larger label width, we first always
+                // set the bold text variant, retrieve its dimensions (as worst
+                // case dimensions of the label) ...
+                layout->set_markup("<b>" + Glib::ustring(dstr) + "</b>");
                 Pango::Rectangle rectangle = layout->get_logical_extents();
+                // ... and then reset the label to regular font style in case
+                // the line is not selected. Otherwise the right hand side
+                // actual dimension zones would jump around on selection change.
+                bool isSelectedLine = (focus_line == i);
+                if (!isSelectedLine)
+                    layout->set_markup(dstr);
+
                 double text_w = double(rectangle.get_width()) / Pango::SCALE;
                 if (text_w > maxwidth) maxwidth = text_w;
 
@@ -355,7 +403,16 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
 
                         // draw fill for zone
                         bool isSelectedZone = this->dimzones[dimension].count(j);
-                        Gdk::Cairo::set_source_rgba(cr, isSelectedZone ? red : white);
+                        bool isMainSelection =
+                            this->maindimcase.find(dimension) != this->maindimcase.end() &&
+                            this->maindimcase[dimension] == j;
+                        if (isMainSelection)
+                            Gdk::Cairo::set_source_rgba(cr, blue);
+                        else if (isSelectedZone)
+                            cr->set_source(blueHatchedSurfacePattern);
+                        else
+                            Gdk::Cairo::set_source_rgba(cr, white);
+
                         cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);
                         cr->fill();
 
@@ -413,7 +470,15 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                         if (j != 0) {
                             // draw fill for zone
                             bool isSelectedZone = this->dimzones[dimension].count(j-1);
-                            Gdk::Cairo::set_source_rgba(cr, isSelectedZone ? red : white);
+                            bool isMainSelection =
+                                this->maindimcase.find(dimension) != this->maindimcase.end() &&
+                                this->maindimcase[dimension] == (j-1);
+                            if (isMainSelection)
+                                Gdk::Cairo::set_source_rgba(cr, blue);
+                            else if (isSelectedZone)
+                                cr->set_source(blueHatchedSurfacePattern);
+                            else
+                                Gdk::Cairo::set_source_rgba(cr, white);
                             cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);
                             cr->fill();
 
@@ -1130,10 +1195,30 @@ void DimRegionChooser::delete_dimension_zone() {
     refresh_all();
 }
 
+// Cmd key on Mac, Ctrl key on all other OSs
+static const guint primaryKeyL =
+    #if defined(__APPLE__)
+    GDK_KEY_Meta_L;
+    #else
+    GDK_KEY_Control_L;
+    #endif
+
+static const guint primaryKeyR =
+    #if defined(__APPLE__)
+    GDK_KEY_Meta_R;
+    #else
+    GDK_KEY_Control_R;
+    #endif
+
 bool DimRegionChooser::onKeyPressed(GdkEventKey* key) {
     //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = true;
+    if (key->keyval == primaryKeyL || key->keyval == primaryKeyR)
+        primaryKeyDown = true;
+    if (key->keyval == GDK_KEY_Shift_L || key->keyval == GDK_KEY_Shift_R)
+        shiftKeyDown = true;
+
     //FIXME: hmm, for some reason GDKMM does not fire arrow key down events, so we are doing those handlers in the key up handler instead for now
     /*if (key->keyval == GDK_KEY_Left)
         select_prev_dimzone();
@@ -1150,8 +1235,16 @@ bool DimRegionChooser::onKeyReleased(GdkEventKey* key) {
     //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = false;
+    if (key->keyval == primaryKeyL || key->keyval == primaryKeyR)
+        primaryKeyDown = false;
+    if (key->keyval == GDK_KEY_Shift_L || key->keyval == GDK_KEY_Shift_R)
+        shiftKeyDown = false;
 
     if (!has_focus()) return false;
+
+    // avoid conflict with Ctrl+Left and Ctrl+Right accelerators on mainwindow
+    // (which is supposed to switch between regions)
+    if (primaryKeyDown) return false;
 
     if (key->keyval == GDK_KEY_Left)
         select_prev_dimzone();

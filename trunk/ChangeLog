@@ -65,6 +65,12 @@ Version SVN HEAD (?)
     selected region by keyboard accelerator Alt+Left, Alt+Right, Alt+Up,
     Alt+Down, as well as simply using the arrow keys alone if the dimension
     region chooser got focus (i.e. when it was selected by mouse previously).
+  * Color tweaking on selected regions and selected dimension zones.
+  * Dimension Region Chooser: Show main selected case in opaque blue color
+    (like before), but all other selected dimension zones with a blue hatched
+    pattern instead.
+  * Dimension Region Chooser: Show the label of the currently selected
+    dimension in bold font.
 
 Version 1.0.0 (2015-07-17)
 

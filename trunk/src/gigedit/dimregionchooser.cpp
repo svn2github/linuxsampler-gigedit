@@ -29,7 +29,7 @@
 #include <assert.h>
 
 #include "global.h"
-#include "builtinpix.h"
+#include "gfx/builtinpix.h"
 
 //TODO: this function and dimensionCaseOf() from global.h are duplicates, eliminate either one of them!
 static DimensionCase caseOfDimRegion(gig::DimensionRegion* dr, bool* isValidZone) {

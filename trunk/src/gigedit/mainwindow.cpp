@@ -242,6 +242,15 @@ MainWindow::MainWindow() :
                      Gtk::AccelKey(GDK_KEY_Down, Gdk::MOD1_MASK),
                      sigc::mem_fun(*this, &MainWindow::select_next_dimension));
 
+    actionGroup->add(Gtk::Action::create("SelectAddPrevDimRgnZone",
+                                         _("Add Previous Dimension Region Zone to Selection")),
+                     Gtk::AccelKey(GDK_KEY_Left, Gdk::MOD1_MASK | Gdk::SHIFT_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_add_prev_dim_rgn_zone));
+
+    actionGroup->add(Gtk::Action::create("SelectAddNextDimRgnZone",
+                                         _("Add Next Dimension Region Zone to Selection")),
+                     Gtk::AccelKey(GDK_KEY_Right, Gdk::MOD1_MASK | Gdk::SHIFT_MASK),
+                     sigc::mem_fun(*this, &MainWindow::select_add_next_dim_rgn_zone));
 
     Glib::RefPtr<Gtk::ToggleAction> toggle_action =
         Gtk::ToggleAction::create("CopySampleUnity", _("Copy Sample's _Unity Note"));
@@ -420,10 +429,12 @@ MainWindow::MainWindow() :
         "      <menuitem action='SelectPrevRegion'/>"
         "      <menuitem action='SelectNextRegion'/>"
         "      <separator/>"
-        "      <menuitem action='SelectPrevDimRgnZone'/>"
-        "      <menuitem action='SelectNextDimRgnZone'/>"
         "      <menuitem action='SelectPrevDimension'/>"
         "      <menuitem action='SelectNextDimension'/>"
+        "      <menuitem action='SelectPrevDimRgnZone'/>"
+        "      <menuitem action='SelectNextDimRgnZone'/>"
+        "      <menuitem action='SelectAddPrevDimRgnZone'/>"
+        "      <menuitem action='SelectAddNextDimRgnZone'/>"
         "      <separator/>"
         "      <menuitem action='CopySampleUnity'/>"
         "      <menuitem action='CopySampleTune'/>"
@@ -3633,6 +3644,14 @@ void MainWindow::select_next_dim_rgn_zone() {
 void MainWindow::select_prev_dim_rgn_zone() {
     if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
     m_DimRegionChooser.select_prev_dimzone();
+}
+
+void MainWindow::select_add_next_dim_rgn_zone() {
+    m_DimRegionChooser.select_next_dimzone(true);
+}
+
+void MainWindow::select_add_prev_dim_rgn_zone() {
+    m_DimRegionChooser.select_prev_dimzone(true);
 }
 
 void MainWindow::select_prev_dimension() {

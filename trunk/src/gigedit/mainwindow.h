@@ -438,6 +438,8 @@ protected:
 
     void select_next_dim_rgn_zone();
     void select_prev_dim_rgn_zone();
+    void select_add_next_dim_rgn_zone();
+    void select_add_prev_dim_rgn_zone();
     void select_prev_dimension();
     void select_next_dimension();
 

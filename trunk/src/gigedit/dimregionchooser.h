@@ -53,8 +53,8 @@ public:
     void get_dimregions(const gig::Region* region, bool stereo,
                         std::set<gig::DimensionRegion*>& dimregs) const;
     bool select_dimregion(gig::DimensionRegion* dimrgn);
-    void select_next_dimzone();
-    void select_prev_dimzone();
+    void select_next_dimzone(bool add = false);
+    void select_prev_dimzone(bool add = false);
     void select_next_dimension();
     void select_prev_dimension();
 
@@ -79,7 +79,7 @@ protected:
     void split_dimension_zone();
     void delete_dimension_zone();
     void resetSelectedZones();
-    void select_dimzone_by_dir(int dir);
+    void select_dimzone_by_dir(int dir, bool add = false);
 
     Gdk::RGBA red, blue, black, white;
     Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;

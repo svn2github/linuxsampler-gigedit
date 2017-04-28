@@ -1246,6 +1246,10 @@ bool DimRegionChooser::onKeyReleased(GdkEventKey* key) {
     // (which is supposed to switch between regions)
     if (primaryKeyDown) return false;
 
+    // avoid conflict with Alt+Shift+Left and Alt+Shift+Right accelerators on
+    // mainwindow
+    if (shiftKeyDown) return false;
+
     if (key->keyval == GDK_KEY_Left)
         select_prev_dimzone();
     if (key->keyval == GDK_KEY_Right)
@@ -1306,15 +1310,15 @@ bool DimRegionChooser::select_dimregion(gig::DimensionRegion* dimrgn) {
     return false; //.selection failed
 }
 
-void DimRegionChooser::select_next_dimzone() {
-    select_dimzone_by_dir(+1);
+void DimRegionChooser::select_next_dimzone(bool add) {
+    select_dimzone_by_dir(+1, add);
 }
 
-void DimRegionChooser::select_prev_dimzone() {
-    select_dimzone_by_dir(-1);
+void DimRegionChooser::select_prev_dimzone(bool add) {
+    select_dimzone_by_dir(-1, add);
 }
 
-void DimRegionChooser::select_dimzone_by_dir(int dir) {
+void DimRegionChooser::select_dimzone_by_dir(int dir, bool add) {
     if (!region) return;
     if (!region->Dimensions) return;
     if (focus_line < 0) focus_line = 0;
@@ -1349,8 +1353,10 @@ void DimRegionChooser::select_dimzone_by_dir(int dir) {
 
     maindimregno = getDimensionRegionIndex(dr);
 
-    // reset selected dimregion zones
-    dimzones.clear();
+    if (!add) {
+        // reset selected dimregion zones
+        dimzones.clear();
+    }
     for (DimensionCase::const_iterator it = maindimcase.begin();
          it != maindimcase.end(); ++it)
     {

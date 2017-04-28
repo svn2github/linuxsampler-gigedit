@@ -71,6 +71,8 @@ Version SVN HEAD (?)
     pattern instead.
   * Dimension Region Chooser: Show the label of the currently selected
     dimension in bold font.
+  * Implemented selecting multiple dimension region zones by keyboard with
+    keyboard accelerators Alt+Shift+Left and Alt+Shift+Right.
 
 Version 1.0.0 (2015-07-17)
 

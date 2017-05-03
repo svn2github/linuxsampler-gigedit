@@ -84,6 +84,8 @@ protected:
     Gdk::RGBA red, blue, black, white;
     Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;
     Cairo::RefPtr<Cairo::SurfacePattern> blueHatchedSurfacePattern;
+    Glib::RefPtr<Gdk::Pixbuf> grayBlueHatchedPatternARGB;
+    Cairo::RefPtr<Cairo::SurfacePattern> grayBlueHatchedSurfacePattern;
 
     gig::Instrument* instrument;
     gig::Region* region;

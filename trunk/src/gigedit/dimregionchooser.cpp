@@ -109,6 +109,36 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
     }
 
+    // create gray blue hatched pattern
+    {
+        const int width = grayBlueHatchedPattern->get_width();
+        const int height = grayBlueHatchedPattern->get_height();
+        const int stride = grayBlueHatchedPattern->get_rowstride();
+
+        // manually convert from RGBA to ARGB
+        this->grayBlueHatchedPatternARGB = grayBlueHatchedPattern->copy();
+        const int pixelSize = stride / width;
+        const int totalPixels = width * height;
+        assert(pixelSize == 4);
+        unsigned char* ptr = this->grayBlueHatchedPatternARGB->get_pixels();
+        for (int iPixel = 0; iPixel < totalPixels; ++iPixel, ptr += pixelSize) {
+            const unsigned char r = ptr[0];
+            const unsigned char g = ptr[1];
+            const unsigned char b = ptr[2];
+            const unsigned char a = ptr[3];
+            ptr[0] = b;
+            ptr[1] = g;
+            ptr[2] = r;
+            ptr[3] = a;
+        }
+
+        Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+            this->grayBlueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+        );
+        this->grayBlueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+        this->grayBlueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+    }
+
     instrument = 0;
     region = 0;
     maindimregno = -1;
@@ -183,10 +213,14 @@ DimRegionChooser::~DimRegionChooser()
 
 void DimRegionChooser::setModifyBothChannels(bool b) {
     modifybothchannels = b;
+    // redraw required parts
+    queue_draw();
 }
 
 void DimRegionChooser::setModifyAllDimensionRegions(bool b) {
     modifyalldimregs = b;
+    // redraw required parts
+    queue_draw();
 }
 
 void DimRegionChooser::setModifyAllRegions(bool b) {
@@ -194,6 +228,9 @@ void DimRegionChooser::setModifyAllRegions(bool b) {
 
     actionDeleteDimZone->set_label(b ? _("Delete Dimension Zone [ALL REGIONS]") : _("Delete Dimension Zone"));
     actionSplitDimZone->set_label(b ? _("Split Dimensions Zone [ALL REGIONS]") : _("Split Dimensions Zone"));
+
+    // redraw required parts
+    queue_draw();
 }
 
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
@@ -406,10 +443,16 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                         bool isMainSelection =
                             this->maindimcase.find(dimension) != this->maindimcase.end() &&
                             this->maindimcase[dimension] == j;
+                        bool isCheckBoxSelected =
+                            modifyalldimregs ||
+                            (modifybothchannels &&
+                                dimension == gig::dimension_samplechannel);
                         if (isMainSelection)
                             Gdk::Cairo::set_source_rgba(cr, blue);
                         else if (isSelectedZone)
                             cr->set_source(blueHatchedSurfacePattern);
+                        else if (isCheckBoxSelected)
+                            cr->set_source(grayBlueHatchedSurfacePattern);
                         else
                             Gdk::Cairo::set_source_rgba(cr, white);
 
@@ -473,10 +516,16 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                             bool isMainSelection =
                                 this->maindimcase.find(dimension) != this->maindimcase.end() &&
                                 this->maindimcase[dimension] == (j-1);
+                            bool isCheckBoxSelected =
+                                modifyalldimregs ||
+                                (modifybothchannels &&
+                                    dimension == gig::dimension_samplechannel);
                             if (isMainSelection)
                                 Gdk::Cairo::set_source_rgba(cr, blue);
                             else if (isSelectedZone)
                                 cr->set_source(blueHatchedSurfacePattern);
+                            else if (isCheckBoxSelected)
+                                cr->set_source(grayBlueHatchedSurfacePattern);
                             else
                                 Gdk::Cairo::set_source_rgba(cr, white);
                             cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);

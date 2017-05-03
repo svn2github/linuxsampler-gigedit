@@ -198,7 +198,7 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::show_intruments_tab)
     );
     actionGroup->add(
-        Gtk::Action::create("MenuScript", _("S_cript")),
+        Gtk::Action::create("MenuScript", _("Scr_ipt")),
         sigc::mem_fun(*this, &MainWindow::show_scripts_tab)
     );
     actionGroup->add(Gtk::Action::create("AllInstruments", _("_Select")));
@@ -211,6 +211,16 @@ MainWindow::MainWindow() :
 #else
     Gdk::CONTROL_MASK; // Ctrl key on all other OSs
 #endif
+
+    actionGroup->add(Gtk::Action::create("CopyDimRgn",
+                                         _("Copy selected dimension region")),
+                     Gtk::AccelKey(GDK_KEY_c, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::copy_selected_dimrgn));
+
+    actionGroup->add(Gtk::Action::create("PasteDimRgn",
+                                         _("Paste dimension region")),
+                     Gtk::AccelKey(GDK_KEY_v, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::paste_copied_dimrgn));
 
     actionGroup->add(Gtk::Action::create("SelectPrevRegion",
                                          _("Select Previous Region")),
@@ -268,7 +278,7 @@ MainWindow::MainWindow() :
     actionGroup->add(toggle_action);
 
 
-    actionGroup->add(Gtk::Action::create("MenuView", _("_View")));
+    actionGroup->add(Gtk::Action::create("MenuView", _("Vie_w")));
     toggle_action =
         Gtk::ToggleAction::create("Statusbar", _("_Statusbar"));
     toggle_action->set_active(true);
@@ -426,6 +436,9 @@ MainWindow::MainWindow() :
         "      <menuitem action='Quit'/>"
         "    </menu>"
         "    <menu action='MenuEdit'>"
+        "      <menuitem action='CopyDimRgn'/>"
+        "      <menuitem action='PasteDimRgn'/>"
+        "      <separator/>"
         "      <menuitem action='SelectPrevRegion'/>"
         "      <menuitem action='SelectNextRegion'/>"
         "      <separator/>"
@@ -798,7 +811,13 @@ MainWindow::MainWindow() :
 
     // select 'Instruments' tab by default
     // (gtk allows this only if the tab childs are visible, thats why it's here)
-    m_TreeViewNotebook.set_current_page(1); 
+    m_TreeViewNotebook.set_current_page(1);
+
+    Gtk::Clipboard::get()->signal_owner_change().connect(
+        sigc::mem_fun(*this, &MainWindow::on_clipboard_owner_change)
+    );
+    updateClipboardPasteAvailable();
+    updateClipboardCopyAvailable();
 }
 
 MainWindow::~MainWindow()
@@ -873,6 +892,8 @@ void MainWindow::update_dimregs()
     m_DimRegionChooser.setModifyAllRegions(all_regions);
     m_DimRegionChooser.setModifyAllDimensionRegions(all_dimregs);
     m_DimRegionChooser.setModifyBothChannels(stereo);
+
+    updateClipboardCopyAvailable();
 }
 
 void MainWindow::dimreg_all_dimregs_toggled()
@@ -3662,6 +3683,129 @@ void MainWindow::select_prev_dimension() {
 void MainWindow::select_next_dimension() {
     if (m_DimRegionChooser.has_focus()) return; // avoid conflict with key stroke handler of DimenionRegionChooser
     m_DimRegionChooser.select_next_dimension();
+}
+
+#define CLIPBOARD_DIMENSIONREGION_TARGET \
+    ("libgig.DimensionRegion." + m_serializationArchive.rawDataFormat())
+
+void MainWindow::copy_selected_dimrgn() {
+    gig::DimensionRegion* pDimRgn = m_DimRegionChooser.get_main_dimregion();
+    if (!pDimRgn) {
+        updateClipboardPasteAvailable();
+        updateClipboardCopyAvailable();
+        return;
+    }
+
+    std::vector<Gtk::TargetEntry> targets;
+    targets.push_back( Gtk::TargetEntry(CLIPBOARD_DIMENSIONREGION_TARGET) );
+
+    Glib::RefPtr<Gtk::Clipboard> clipboard = Gtk::Clipboard::get();
+    clipboard->set(
+        targets,
+        sigc::mem_fun(*this, &MainWindow::on_clipboard_get),
+        sigc::mem_fun(*this, &MainWindow::on_clipboard_clear)
+    );
+
+    m_serializationArchive.serialize(pDimRgn);
+
+    updateClipboardPasteAvailable();
+}
+
+void MainWindow::paste_copied_dimrgn() {
+    Glib::RefPtr<Gtk::Clipboard> clipboard = Gtk::Clipboard::get();
+    clipboard->request_contents(
+        CLIPBOARD_DIMENSIONREGION_TARGET,
+        sigc::mem_fun(*this, &MainWindow::on_clipboard_received)
+    );
+    updateClipboardPasteAvailable();
+}
+
+void MainWindow::updateClipboardPasteAvailable() {
+    Glib::RefPtr<Gtk::Clipboard> clipboard = Gtk::Clipboard::get();
+    clipboard->request_targets(
+        sigc::mem_fun(*this, &MainWindow::on_clipboard_received_targets)
+    );
+}
+
+void MainWindow::updateClipboardCopyAvailable() {
+    bool bDimensionRegionCopyIsPossible = m_DimRegionChooser.get_main_dimregion();
+    static_cast<Gtk::MenuItem*>(
+        uiManager->get_widget("/MenuBar/MenuEdit/CopyDimRgn")
+    )->set_sensitive(bDimensionRegionCopyIsPossible);
+}
+
+void MainWindow::on_clipboard_owner_change(GdkEventOwnerChange* event) {
+    updateClipboardPasteAvailable();
+}
+
+void MainWindow::on_clipboard_get(Gtk::SelectionData& selection_data, guint /*info*/) {
+    const std::string target = selection_data.get_target();
+    if (target == CLIPBOARD_DIMENSIONREGION_TARGET) {
+        selection_data.set(
+            CLIPBOARD_DIMENSIONREGION_TARGET, 8 /* "format": probably unused*/,
+            &m_serializationArchive.rawData()[0],
+            m_serializationArchive.rawData().size()
+        );
+    } else {
+        std::cerr << "Clipboard: content for unknown target '" << target << "' requested\n";
+    }
+}
+
+void MainWindow::on_clipboard_clear() {
+    m_serializationArchive.clear();
+    updateClipboardPasteAvailable();
+    updateClipboardCopyAvailable();
+}
+
+void MainWindow::on_clipboard_received(const Gtk::SelectionData& selection_data) {
+    const std::string target = selection_data.get_target();
+    if (target == CLIPBOARD_DIMENSIONREGION_TARGET) {
+        gig::DimensionRegion* pDimRgn = m_DimRegionChooser.get_main_dimregion();
+        if (!pDimRgn) return;
+
+        Glib::ustring errorText;
+        try {
+            m_serializationArchive.decode(
+                selection_data.get_data(), selection_data.get_length()
+            );
+
+            for (std::set<gig::DimensionRegion*>::iterator itDimReg = dimreg_edit.dimregs.begin();
+                 itDimReg != dimreg_edit.dimregs.end(); ++itDimReg)
+            {
+                gig::DimensionRegion* pDimRgn = *itDimReg;
+
+                dimreg_to_be_changed_signal.emit(pDimRgn);
+
+                m_serializationArchive.deserialize(pDimRgn);
+
+                dimreg_changed_signal.emit(pDimRgn);
+            }
+
+            //region_changed()
+            file_changed();
+            dimreg_changed();
+
+        } catch (Serialization::Exception e) {
+            errorText = e.Message;
+        } catch (...) {
+            errorText = _("Unknown exception during deserialization decoding");
+        }
+        if (!errorText.empty()) {
+            Glib::ustring txt = _("Pasting DimensionRegion failed:\n") + errorText;
+            Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_ERROR);
+            msg.run();
+        }
+    }
+}
+
+void MainWindow::on_clipboard_received_targets(const std::vector<Glib::ustring>& targets) {
+    const bool bDimensionRegionPasteIsPossible =
+        std::find(targets.begin(), targets.end(),
+                  CLIPBOARD_DIMENSIONREGION_TARGET) != targets.end();
+
+    static_cast<Gtk::MenuItem*>(
+        uiManager->get_widget("/MenuBar/MenuEdit/PasteDimRgn")
+    )->set_sensitive(bDimensionRegionPasteIsPossible);
 }
 
 sigc::signal<void, gig::File*>& MainWindow::signal_file_structure_to_be_changed() {

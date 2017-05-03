@@ -22,8 +22,10 @@
 
 #ifdef LIBGIG_HEADER_FILE
 # include LIBGIG_HEADER_FILE(gig.h)
+# include LIBGIG_HEADER_FILE(serialization.h)
 #else
 # include <gig.h>
+# include <serialization.h>
 #endif
 
 #include <gtkmm/box.h>
@@ -442,6 +444,18 @@ protected:
     void select_add_prev_dim_rgn_zone();
     void select_prev_dimension();
     void select_next_dimension();
+
+    Serialization::Archive m_serializationArchive;
+
+    void copy_selected_dimrgn();
+    void paste_copied_dimrgn();
+    void updateClipboardCopyAvailable();
+    void updateClipboardPasteAvailable();
+    void on_clipboard_owner_change(GdkEventOwnerChange* event);
+    void on_clipboard_get(Gtk::SelectionData& selection_data, guint info);
+    void on_clipboard_clear();
+    void on_clipboard_received(const Gtk::SelectionData& selection_data);
+    void on_clipboard_received_targets(const std::vector<Glib::ustring>& targets);
 
     void add_instrument(gig::Instrument* instrument);
     Gtk::RadioMenuItem* add_instrument_to_menu(const Glib::ustring& name,

@@ -73,6 +73,7 @@ Version SVN HEAD (?)
     dimension in bold font.
   * Implemented selecting multiple dimension region zones by keyboard with
     keyboard accelerators Alt+Shift+Left and Alt+Shift+Right.
+  * Implemented copy & paste of DimensionRegion (with Alt+c and Alt+v).
 
 Version 1.0.0 (2015-07-17)
 

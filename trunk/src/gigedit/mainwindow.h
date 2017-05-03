@@ -22,10 +22,10 @@
 
 #ifdef LIBGIG_HEADER_FILE
 # include LIBGIG_HEADER_FILE(gig.h)
-# include LIBGIG_HEADER_FILE(serialization.h)
+# include LIBGIG_HEADER_FILE(Serialization.h)
 #else
 # include <gig.h>
-# include <serialization.h>
+# include <Serialization.h>
 #endif
 
 #include <gtkmm/box.h>

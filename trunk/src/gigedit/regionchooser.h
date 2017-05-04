@@ -65,6 +65,9 @@ public:
 
     void set_instrument(gig::Instrument* instrument);
 
+    // ATM only used for painting auto selected regions with gray hatched pattern
+    void setModifyAllRegions(bool b);
+
     sigc::signal<void>& signal_region_selected();
     sigc::signal<void>& signal_instrument_changed();
 
@@ -100,6 +103,8 @@ protected:
     gig::Region* get_region(int key);
 
     Gdk::RGBA activeKeyColor, blue, grey1, white, black;
+    Glib::RefPtr<Gdk::Pixbuf> grayBlueHatchedPatternARGB;
+    Cairo::RefPtr<Cairo::SurfacePattern> grayBlueHatchedSurfacePattern;
 
     sigc::signal<void> region_selected;
     sigc::signal<void> instrument_changed;
@@ -171,6 +176,9 @@ protected:
     bool is_in_resize_zone(double x, double y);
 
     int h1;
+
+    // ATM only used for painting auto selected regions with gray hatched pattern
+    bool modifyallregions;
 
     Gtk::Menu* popup_menu_inside_region;
     Gtk::Menu* popup_menu_outside_region;

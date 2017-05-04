@@ -889,6 +889,7 @@ void MainWindow::update_dimregs()
         }
     }
 
+    m_RegionChooser.setModifyAllRegions(all_regions);
     m_DimRegionChooser.setModifyAllRegions(all_regions);
     m_DimRegionChooser.setModifyAllDimensionRegions(all_dimregs);
     m_DimRegionChooser.setModifyBothChannels(stereo);

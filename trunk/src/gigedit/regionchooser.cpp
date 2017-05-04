@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2015 Andreas Persson
+ * Copyright (C) 2006-2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,6 +20,7 @@
 #include "regionchooser.h"
 
 #include <algorithm>
+#include <assert.h>
 
 #include <cairomm/context.h>
 #include <gdkmm/general.h>
@@ -89,11 +90,42 @@ RegionChooser::RegionChooser() :
     white("white"),
     black("black"),
     m_VirtKeybModeChoice(_("Virtual Keyboard Mode")),
-    currentActiveKey(-1)
+    currentActiveKey(-1),
+    modifyallregions(false)
 {
     set_size_request(500, KEYBOARD_HEIGHT + REGION_BLOCK_HEIGHT);
 
     loadBuiltInPix();
+
+    // create gray blue hatched pattern
+    {
+        const int width = grayBlueHatchedPattern->get_width();
+        const int height = grayBlueHatchedPattern->get_height();
+        const int stride = grayBlueHatchedPattern->get_rowstride();
+
+        // manually convert from RGBA to ARGB
+        this->grayBlueHatchedPatternARGB = grayBlueHatchedPattern->copy();
+        const int pixelSize = stride / width;
+        const int totalPixels = width * height;
+        assert(pixelSize == 4);
+        unsigned char* ptr = this->grayBlueHatchedPatternARGB->get_pixels();
+        for (int iPixel = 0; iPixel < totalPixels; ++iPixel, ptr += pixelSize) {
+            const unsigned char r = ptr[0];
+            const unsigned char g = ptr[1];
+            const unsigned char b = ptr[2];
+            const unsigned char a = ptr[3];
+            ptr[0] = b;
+            ptr[1] = g;
+            ptr[2] = r;
+            ptr[3] = a;
+        }
+
+        Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+            this->grayBlueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+        );
+        this->grayBlueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+        this->grayBlueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+    }
 
     instrument = 0;
     region = 0;
@@ -182,6 +214,12 @@ RegionChooser::RegionChooser() :
 
 RegionChooser::~RegionChooser()
 {
+}
+
+void RegionChooser::setModifyAllRegions(bool b) {
+    modifyallregions = b;
+    // redraw required parts
+    queue_draw();
 }
 
 void RegionChooser::invalidate_key(int key) {
@@ -334,7 +372,13 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
                 cr->line_to(x3, h1 - 0.5);
                 cr->stroke();
 
-                Gdk::Cairo::set_source_rgba(cr, region == r ? blue : white);
+                if (region == r)
+                    Gdk::Cairo::set_source_rgba(cr, blue);
+                else if (modifyallregions)
+                    cr->set_source(grayBlueHatchedSurfacePattern);
+                else
+                    Gdk::Cairo::set_source_rgba(cr, white);
+
                 cr->rectangle(x3 + 1, 1, x2 - x3 - 1, h1 - 2);
                 cr->fill();
                 Gdk::Cairo::set_source_rgba(cr, black);

@@ -59,6 +59,7 @@ public:
     void select_prev_dimension();
 
     // those 3 are ATM only relevant when resizing custom dimension region zones
+    // and for painting those auto selected zones with gray hatched pattern
     void setModifyBothChannels(bool b);
     void setModifyAllDimensionRegions(bool b);
     void setModifyAllRegions(bool b);
@@ -94,6 +95,7 @@ protected:
     sigc::signal<void> region_changed;
 
     // those 3 are ATM only relevant when resizing custom dimension region zones
+    // and for painting those auto selected zones with gray hatched pattern
     bool modifybothchannels;
     bool modifyalldimregs;
     bool modifyallregions;

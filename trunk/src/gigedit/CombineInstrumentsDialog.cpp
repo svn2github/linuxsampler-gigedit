@@ -23,7 +23,6 @@
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/label.h>
 
-Glib::ustring gig_to_utf8(const gig::String& gig_string);
 Glib::ustring dimTypeAsString(gig::dimension_t d);
 
 typedef std::vector< std::pair<gig::Instrument*, gig::Region*> > OrderedRegionGroup;

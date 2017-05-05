@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2016 Christian Schoenebeck
+    Copyright (c) 2014-2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -46,6 +46,7 @@ public:
         FILE_PROPS,
         INSTR_PROPS,
         SAMPLE_REFS,
+        MACRO_EDITOR,
     };
 
     /**
@@ -178,6 +179,12 @@ public:
     Property<int> sampleRefsWindowY;
     Property<int> sampleRefsWindowW;
     Property<int> sampleRefsWindowH;
+
+    // settings of "MacroEditor" group
+    Property<int> macroEditorWindowX;
+    Property<int> macroEditorWindowY;
+    Property<int> macroEditorWindowW;
+    Property<int> macroEditorWindowH;
 
     static Settings* singleton();
     Settings();

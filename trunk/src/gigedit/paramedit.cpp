@@ -17,16 +17,6 @@
  * 02110-1301 USA.
  */
 
-#include <cstring>
-
-#include <glibmmconfig.h>
-// threads.h must be included first to be able to build with
-// G_DISABLE_DEPRECATED
-#if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
-    (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION > 31) || GLIBMM_MAJOR_VERSION > 2
-#include <glibmm/threads.h>
-#endif
-
 #include "paramedit.h"
 
 #include "global.h"
@@ -34,17 +24,6 @@
 #include "Settings.h"
 
 #include <gtkmm/messagedialog.h>
-
-std::string gig_encoding("CP1252");
-
-Glib::ustring gig_to_utf8(const gig::String& gig_string) {
-    return Glib::convert_with_fallback(gig_string, "UTF-8", gig_encoding, "?");
-}
-
-gig::String gig_from_utf8(const Glib::ustring& utf8_string) {
-    return Glib::convert_with_fallback(utf8_string, gig_encoding, "UTF-8", "?");
-}
-
 
 namespace {
     struct CCText {

@@ -46,10 +46,6 @@
 #include <gtkmm/tooltips.h>
 #endif
 
-
-Glib::ustring gig_to_utf8(const gig::String& gig_string);
-gig::String gig_from_utf8(const Glib::ustring& utf8_string);
-
 int note_value(const Glib::ustring& note);
 Glib::ustring note_str(int note);
 

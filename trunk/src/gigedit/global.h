@@ -24,6 +24,16 @@
 # include <config.h>
 #endif
 
+#include <cstring>
+
+#include <glibmmconfig.h>
+// threads.h must be included first to be able to build with
+// G_DISABLE_DEPRECATED
+#if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
+    (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION > 31) || GLIBMM_MAJOR_VERSION > 2
+#include <glibmm/threads.h>
+#endif
+
 #if !defined(WIN32)
 # include <unistd.h>
 # include <errno.h>
@@ -75,6 +85,20 @@
 #ifndef GDK_KEY_Down
 # define GDK_KEY_Down 0xff54
 #endif
+
+#include <glibmm/convert.h>
+
+#define GIG_STR_ENCODING "CP1252"
+
+static inline
+Glib::ustring gig_to_utf8(const gig::String& gig_string) {
+    return Glib::convert_with_fallback(gig_string, "UTF-8", GIG_STR_ENCODING, "?");
+}
+
+static inline
+gig::String gig_from_utf8(const Glib::ustring& utf8_string) {
+    return Glib::convert_with_fallback(utf8_string, GIG_STR_ENCODING, "UTF-8", "?");
+}
 
 template<class T> inline std::string ToString(T o) {
     std::stringstream ss;

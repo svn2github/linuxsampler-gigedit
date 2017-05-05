@@ -115,6 +115,10 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     sampleRefsWindowY(*this, SAMPLE_REFS, "y", -1),
     sampleRefsWindowW(*this, SAMPLE_REFS, "w", -1),
     sampleRefsWindowH(*this, SAMPLE_REFS, "h", -1),
+    macroEditorWindowX(*this, MACRO_EDITOR, "x", -1),
+    macroEditorWindowY(*this, MACRO_EDITOR, "y", -1),
+    macroEditorWindowW(*this, MACRO_EDITOR, "w", -1),
+    macroEditorWindowH(*this, MACRO_EDITOR, "h", -1),
     m_ignoreNotifies(false)
 {
     m_boolProps.push_back(&warnUserOnExtensions);
@@ -159,6 +163,10 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     m_intProps.push_back(&sampleRefsWindowY);
     m_intProps.push_back(&sampleRefsWindowW);
     m_intProps.push_back(&sampleRefsWindowH);
+    m_intProps.push_back(&macroEditorWindowX);
+    m_intProps.push_back(&macroEditorWindowY);
+    m_intProps.push_back(&macroEditorWindowW);
+    m_intProps.push_back(&macroEditorWindowH);
 }
 
 void Settings::onPropertyChanged(Glib::PropertyBase* pProperty, RawValueType_t type, Group_t group) {

@@ -449,6 +449,7 @@ protected:
 
     void copy_selected_dimrgn();
     void paste_copied_dimrgn();
+    void adjust_clipboard_content();
     void updateClipboardCopyAvailable();
     void updateClipboardPasteAvailable();
     void on_clipboard_owner_change(GdkEventOwnerChange* event);

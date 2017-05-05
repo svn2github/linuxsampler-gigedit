@@ -58,6 +58,7 @@
 #include "../../gfx/status_attached.xpm"
 #include "../../gfx/status_detached.xpm"
 #include "gfx/builtinpix.h"
+#include "MacroEditor.h"
 
 MainWindow::MainWindow() :
     m_DimRegionChooser(*this),
@@ -221,6 +222,11 @@ MainWindow::MainWindow() :
                                          _("Paste dimension region")),
                      Gtk::AccelKey(GDK_KEY_v, Gdk::MOD1_MASK),
                      sigc::mem_fun(*this, &MainWindow::paste_copied_dimrgn));
+
+    actionGroup->add(Gtk::Action::create("AdjustClipboard",
+                                         _("Adjust Clipboard Content")),
+                     Gtk::AccelKey(GDK_KEY_x, Gdk::MOD1_MASK),
+                     sigc::mem_fun(*this, &MainWindow::adjust_clipboard_content));
 
     actionGroup->add(Gtk::Action::create("SelectPrevRegion",
                                          _("Select Previous Region")),
@@ -437,6 +443,7 @@ MainWindow::MainWindow() :
         "    </menu>"
         "    <menu action='MenuEdit'>"
         "      <menuitem action='CopyDimRgn'/>"
+        "      <menuitem action='AdjustClipboard'/>"
         "      <menuitem action='PasteDimRgn'/>"
         "      <separator/>"
         "      <menuitem action='SelectPrevRegion'/>"
@@ -3721,6 +3728,12 @@ void MainWindow::paste_copied_dimrgn() {
     updateClipboardPasteAvailable();
 }
 
+void MainWindow::adjust_clipboard_content() {
+    MacroEditor* editor = new MacroEditor;
+    editor->setMacro(&m_serializationArchive);
+    editor->show();
+}
+
 void MainWindow::updateClipboardPasteAvailable() {
     Glib::RefPtr<Gtk::Clipboard> clipboard = Gtk::Clipboard::get();
     clipboard->request_targets(
@@ -3806,6 +3819,10 @@ void MainWindow::on_clipboard_received_targets(const std::vector<Glib::ustring>&
 
     static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuEdit/PasteDimRgn")
+    )->set_sensitive(bDimensionRegionPasteIsPossible);
+
+    static_cast<Gtk::MenuItem*>(
+        uiManager->get_widget("/MenuBar/MenuEdit/AdjustClipboard")
     )->set_sensitive(bDimensionRegionPasteIsPossible);
 }
 

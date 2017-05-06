@@ -78,6 +78,8 @@ Version SVN HEAD (?)
     with gray hatched pattern.
   * Region Chooser: Mark all regions which are auto selected by check box
     "All Regions" with gray hatched pattern.
+  * Introduced "Macro Editor" for adjusting clipboard content before applying
+    it (accessible via Alt+x).
 
 Version 1.0.0 (2015-07-17)
 

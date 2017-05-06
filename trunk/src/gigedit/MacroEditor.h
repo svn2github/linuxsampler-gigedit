@@ -44,6 +44,7 @@ protected:
     Gtk::VBox m_vbox;
     Gtk::HBox m_footerHBox;
     Gtk::HBox m_statusHBox;
+    Gtk::HButtonBox m_buttonBoxL;
     Gtk::HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
 
@@ -73,8 +74,11 @@ protected:
 
     Gtk::TreeView m_treeViewMacro;
     Glib::RefPtr<MacroTreeStore> m_treeStoreMacro;
+    bool m_ignoreTreeViewValueChange;
 
     Gtk::Label m_statusLabel;
+    Gtk::Button m_deleteButton;
+    Gtk::Button m_inverseDeleteButton;
     Gtk::Button m_applyButton;
     Gtk::Button m_cancelButton;
 
@@ -87,6 +91,12 @@ protected:
     void updateStatusBar();
     void reloadTreeView();
     void buildTreeView(const Gtk::TreeModel::Row& parentRow, const Serialization::Object& parentObject);
+    void onTreeViewSelectionChanged();
+    void onMacroTreeViewKeyRelease(GdkEventKey* button);
+    void onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
+                                        const Gtk::TreeModel::iterator& iter);
+    void deleteSelectedRows();
+    void inverseDeleteSelectedRows();
 };
 
 #endif // GIGEDIT_MACROEDITOR_H

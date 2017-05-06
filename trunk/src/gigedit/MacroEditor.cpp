@@ -12,6 +12,8 @@
 MacroEditor::MacroEditor() :
     m_macroOriginal(NULL),
     m_statusLabel("",  Gtk::ALIGN_START),
+    m_deleteButton(_("Delete")),
+    m_inverseDeleteButton(_("Inverse Delete")),
     m_applyButton(_("_Apply"), true),
     m_cancelButton(_("_Cancel"), true)
 {
@@ -27,6 +29,12 @@ MacroEditor::MacroEditor() :
     m_treeViewMacro.append_column(_("Key"), m_treeModelMacro.m_col_name);
     m_treeViewMacro.append_column(_("Type"), m_treeModelMacro.m_col_type);
     m_treeViewMacro.append_column_editable(_("Value"), m_treeModelMacro.m_col_value);
+    {
+        Gtk::TreeViewColumn* column = m_treeViewMacro.get_column(1);
+        Gtk::CellRendererText* cellrenderer =
+            dynamic_cast<Gtk::CellRendererText*>(column->get_first_cell());
+        cellrenderer->property_foreground().set_value("#bababa");
+    }
     /*{
         Gtk::TreeViewColumn* column = m_treeViewMacro.get_column(0);
         Gtk::CellRendererText* cellrenderer =
@@ -44,16 +52,26 @@ MacroEditor::MacroEditor() :
         );
     }*/
     m_treeViewMacro.set_headers_visible(true);
-    /*m_treeViewMacro.signal_button_press_event().connect_notify(
-        sigc::mem_fun(*this, &MainWindow::on_sample_treeview_button_release)
-    );*/
-    /*m_refSamplesTreeModel->signal_row_changed().connect(
-        sigc::mem_fun(*this, &MainWindow::sample_name_changed)
-    );*/
+    m_treeViewMacro.get_selection()->signal_changed().connect(
+        sigc::mem_fun(*this, &MacroEditor::onTreeViewSelectionChanged)
+    );
+    m_treeViewMacro.signal_key_release_event().connect_notify(
+        sigc::mem_fun(*this, &MacroEditor::onMacroTreeViewKeyRelease)
+    );
+    m_treeStoreMacro->signal_row_changed().connect(
+        sigc::mem_fun(*this, &MacroEditor::onMacroTreeViewRowValueChanged)
+    );
+    m_ignoreTreeViewValueChange = false;
 
     m_scrolledWindow.add(m_treeViewMacro);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
     m_vbox.pack_start(m_scrolledWindow);
+
+    m_buttonBoxL.set_layout(Gtk::BUTTONBOX_START);
+    m_buttonBoxL.pack_start(m_deleteButton);
+    m_buttonBoxL.pack_start(m_inverseDeleteButton);
+    m_deleteButton.set_sensitive(false);
+    m_inverseDeleteButton.set_sensitive(false);
 
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
     m_buttonBox.pack_start(m_applyButton);
@@ -72,6 +90,7 @@ MacroEditor::MacroEditor() :
     m_statusHBox.pack_start(m_statusLabel);
     m_statusHBox.show_all_children();
 
+    m_footerHBox.pack_start(m_buttonBoxL, Gtk::PACK_SHRINK);
     m_footerHBox.pack_start(m_statusHBox);
     m_footerHBox.pack_start(m_buttonBox, Gtk::PACK_SHRINK);
 
@@ -83,6 +102,14 @@ MacroEditor::MacroEditor() :
 
     m_cancelButton.signal_clicked().connect(
         sigc::mem_fun(*this, &MacroEditor::onButtonCancel)
+    );
+
+    m_deleteButton.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacroEditor::deleteSelectedRows)
+    );
+
+    m_inverseDeleteButton.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacroEditor::inverseDeleteSelectedRows)
     );
 
     signal_hide().connect(
@@ -136,6 +163,8 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
 }
 
 void MacroEditor::reloadTreeView() {
+    m_ignoreTreeViewValueChange = true;
+
     m_treeStoreMacro->clear();
 
     const Serialization::Object& rootObject = m_macro.rootObject();
@@ -152,6 +181,70 @@ void MacroEditor::reloadTreeView() {
     m_treeViewMacro.expand_all();
 
     updateStatus();
+
+    m_ignoreTreeViewValueChange = false;
+}
+
+void MacroEditor::onTreeViewSelectionChanged() {
+    std::vector<Gtk::TreeModel::Path> v = m_treeViewMacro.get_selection()->get_selected_rows();
+    const bool bValidSelection = !v.empty();
+    m_deleteButton.set_sensitive(bValidSelection);
+    m_inverseDeleteButton.set_sensitive(bValidSelection);
+}
+
+void MacroEditor::onMacroTreeViewKeyRelease(GdkEventKey* key) {
+    if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete)
+        deleteSelectedRows();
+}
+
+void MacroEditor::onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
+                                                 const Gtk::TreeModel::iterator& iter)
+{
+    if (m_ignoreTreeViewValueChange) return;
+    if (!iter) return;
+    Gtk::TreeModel::Row row = *iter;
+    Glib::ustring value    = row[m_treeModelMacro.m_col_value];
+    Serialization::UID uid = row[m_treeModelMacro.m_col_uid];
+    Serialization::String gigvalue(gig_from_utf8(value));
+    Serialization::Object& object = m_macro.objectByUID(uid);
+    std::string errorText;
+    try {
+        m_macro.setAutoValue(object, gigvalue);
+    } catch (Serialization::Exception e) {
+        errorText = e.Message;
+    } catch (...) {
+        errorText = _("Unknown exception during object value change");
+    }
+    if (!errorText.empty()) {
+        Glib::ustring txt = _("Couldn't change value:\n") + errorText;
+        Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_ERROR);
+        msg.run();
+    }
+}
+
+void MacroEditor::deleteSelectedRows() {
+    Glib::RefPtr<Gtk::TreeSelection> sel = m_treeViewMacro.get_selection();
+    std::vector<Gtk::TreeModel::Path> rows = sel->get_selected_rows();
+    for (int r = rows.size() - 1; r >= 0; --r) {
+        Gtk::TreeModel::iterator it = m_treeStoreMacro->get_iter(rows[r]);
+        if (!it) continue;
+        Gtk::TreeModel::Row row = *it;
+        Serialization::UID uid = row[m_treeModelMacro.m_col_uid];
+        if (uid == m_macro.rootObject().uid()) continue; // prohibit deleting root object
+        Gtk::TreeModel::iterator itParent = row.parent();
+        if (!itParent) continue;
+        Gtk::TreeModel::Row rowParent = *itParent;
+        Serialization::UID uidParent = rowParent[m_treeModelMacro.m_col_uid];
+        //Serialization::Object& object = m_macro.objectByUID(uid);
+        Serialization::Object& parentObject = m_macro.objectByUID(uidParent);
+        const Serialization::Member& member = parentObject.memberByUID(uid);
+        m_macro.removeMember(parentObject, member);
+        //m_macro.remove(object);
+    }
+    reloadTreeView();
+}
+
+void MacroEditor::inverseDeleteSelectedRows() {
 }
 
 void MacroEditor::updateStatus() {

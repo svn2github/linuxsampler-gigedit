@@ -3729,7 +3729,7 @@ void MainWindow::paste_copied_dimrgn() {
 }
 
 void MainWindow::adjust_clipboard_content() {
-    MacroEditor* editor = new MacroEditor;
+    MacroEditor* editor = new MacroEditor();
     editor->setMacro(&m_serializationArchive);
     editor->show();
 }

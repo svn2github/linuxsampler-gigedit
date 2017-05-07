@@ -82,6 +82,8 @@ protected:
     Gtk::Button m_applyButton;
     Gtk::Button m_cancelButton;
 
+    bool m_altKeyDown;
+
     bool isModified() const;
     void onButtonCancel();
     void onButtonApply();
@@ -97,6 +99,9 @@ protected:
                                         const Gtk::TreeModel::iterator& iter);
     void deleteSelectedRows();
     void inverseDeleteSelectedRows();
+    void deleteRows(const std::vector<Gtk::TreeModel::Path>& rows);
+    bool onKeyPressed(GdkEventKey* key);
+    bool onKeyReleased(GdkEventKey* key);
 };
 
 #endif // GIGEDIT_MACROEDITOR_H

@@ -12,10 +12,11 @@
 MacroEditor::MacroEditor() :
     m_macroOriginal(NULL),
     m_statusLabel("",  Gtk::ALIGN_START),
-    m_deleteButton(_("Delete")),
-    m_inverseDeleteButton(_("Inverse Delete")),
+    m_deleteButton(Glib::ustring(_("Delete")) + " " + UNICODE_PRIMARY_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
+    m_inverseDeleteButton(Glib::ustring(_("Inverse Delete")) + " " + UNICODE_ALT_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
     m_applyButton(_("_Apply"), true),
-    m_cancelButton(_("_Cancel"), true)
+    m_cancelButton(_("_Cancel"), true),
+    m_altKeyDown(false)
 {
     add(m_vbox);
 
@@ -120,6 +121,13 @@ MacroEditor::MacroEditor() :
         sigc::mem_fun(*this, &MacroEditor::onWindowDelete)
     );
 
+    signal_key_press_event().connect(
+        sigc::mem_fun(*this, &MacroEditor::onKeyPressed)
+    );
+    signal_key_release_event().connect(
+        sigc::mem_fun(*this, &MacroEditor::onKeyReleased)
+    );
+
     show_all_children();
     updateStatus();
 }
@@ -192,9 +200,27 @@ void MacroEditor::onTreeViewSelectionChanged() {
     m_inverseDeleteButton.set_sensitive(bValidSelection);
 }
 
+bool MacroEditor::onKeyPressed(GdkEventKey* key) {
+    //printf("key down 0x%x\n", key->keyval);
+    if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
+        m_altKeyDown = true;
+    return false;
+}
+
+bool MacroEditor::onKeyReleased(GdkEventKey* key) {
+    //printf("key up 0x%x\n", key->keyval);
+    if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
+        m_altKeyDown = false;
+    return false;
+}
+
 void MacroEditor::onMacroTreeViewKeyRelease(GdkEventKey* key) {
-    if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete)
-        deleteSelectedRows();
+    if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete) {
+        if (m_altKeyDown)
+            inverseDeleteSelectedRows();
+        else
+            deleteSelectedRows();
+    }
 }
 
 void MacroEditor::onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
@@ -225,6 +251,10 @@ void MacroEditor::onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& pat
 void MacroEditor::deleteSelectedRows() {
     Glib::RefPtr<Gtk::TreeSelection> sel = m_treeViewMacro.get_selection();
     std::vector<Gtk::TreeModel::Path> rows = sel->get_selected_rows();
+    deleteRows(rows);
+}
+
+void MacroEditor::deleteRows(const std::vector<Gtk::TreeModel::Path>& rows) {
     for (int r = rows.size() - 1; r >= 0; --r) {
         Gtk::TreeModel::iterator it = m_treeStoreMacro->get_iter(rows[r]);
         if (!it) continue;
@@ -244,7 +274,32 @@ void MacroEditor::deleteSelectedRows() {
     reloadTreeView();
 }
 
+static bool _onEachTreeRow(const Gtk::TreeModel::Path& input, std::vector<Gtk::TreeModel::Path>* output) {
+    output->push_back(input);
+    return false; // continue walking the tree
+}
+
 void MacroEditor::inverseDeleteSelectedRows() {
+    // get all rows of tree view
+    std::vector<Gtk::TreeModel::Path> rows;
+    m_treeViewMacro.get_model()->foreach_path(
+        sigc::bind(
+            sigc::ptr_fun(&_onEachTreeRow),
+            &rows
+        )
+    );
+
+    // erase all entries from "rows" which are currently selected
+    std::vector<Gtk::TreeModel::Path> vSelected = m_treeViewMacro.get_selection()->get_selected_rows();
+    for (int i = rows.size() - 1; i >= 0; --i) {
+        bool bIsSelected = std::find(vSelected.begin(), vSelected.end(),
+                                     rows[i]) != vSelected.end();
+        if (bIsSelected)
+            rows.erase(rows.begin() + i);
+    }
+
+    // delete those 'inverse' selected rows
+    deleteRows(rows);
 }
 
 void MacroEditor::updateStatus() {
@@ -307,8 +362,25 @@ void MacroEditor::onButtonCancel() {
 }
 
 void MacroEditor::onButtonApply() {
-    //m_macro.encode();
-    *m_macroOriginal = m_macro;
+    std::string errorText;
+    try {
+        // enforce re-encoding the abstract object model and resetting the
+        // 'modified' state
+        m_macro.rawData();
+        // replace actual effective Archive object which is effectively used
+        // for macro apply operations
+        *m_macroOriginal = m_macro;
+    } catch (Serialization::Exception e) {
+        errorText = e.Message;
+    } catch (...) {
+        errorText = _("Unknown exception while applying macro changes");
+    }
+    if (!errorText.empty()) {
+        Glib::ustring txt = _("Couldn't apply macro changes:\n") + errorText;
+        Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_ERROR);
+        msg.run();
+    }
+    updateStatus();
 }
 
 void MacroEditor::onWindowHide() {

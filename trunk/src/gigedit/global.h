@@ -64,6 +64,20 @@
 
 #define UNICODE_RIGHT_ARROW     Glib::ustring(1, gunichar(0x2192))
 #define UNICODE_LEFT_ARROW      Glib::ustring(1, gunichar(0x2190))
+#define UNICODE_SHIFT_KEY_SYMBOL    Glib::ustring("\xe2\x87\xa7")
+#if defined(__APPLE__)
+# define UNICODE_ALT_KEY_SYMBOL     Glib::ustring("\xe2\x8c\xa5")
+#else
+# define UNICODE_ALT_KEY_SYMBOL     Glib::ustring("Alt")
+#endif
+#define UNICODE_ERASE_KEY_SYMBOL    Glib::ustring("\xe2\x8c\xab")
+#define UNICODE_CTRL_KEY_SYMBOL     Glib::ustring("Ctrl")
+#define UNICODE_CMD_KEY_SYMBOL      Glib::ustring(1, gunichar(0x2318))
+#if defined(__APPLE__)
+# define UNICODE_PRIMARY_KEY_SYMBOL     UNICODE_CMD_KEY_SYMBOL
+#else
+# define UNICODE_PRIMARY_KEY_SYMBOL     UNICODE_CTRL_KEY_SYMBOL
+#endif
 
 // taken from gdk/gdkkeysyms.h
 // (define on demand, to avoid unnecessary dev lib package build dependency)

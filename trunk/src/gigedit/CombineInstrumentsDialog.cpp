@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <glibmm/ustring.h>
+#include <gtkmm/stock.h>
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/label.h>
 
@@ -780,7 +781,7 @@ static void combineInstruments(std::vector<gig::Instrument*>& instruments, gig::
 CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::File* gig)
     : ManagedDialog(_("Combine Instruments"), parent, true),
       m_gig(gig), m_fileWasChanged(false), m_newCombinedInstrument(NULL),
-      m_cancelButton(_("_Cancel"), true), m_OKButton(_("_OK"), true),
+      m_cancelButton(Gtk::Stock::CANCEL), m_OKButton(Gtk::Stock::OK),
       m_descriptionLabel(), m_tableDimCombo(2, 2), m_comboDimType(),
       m_labelDimType(Glib::ustring(_("Combine by Dimension:")) + "  ", Gtk::ALIGN_END)
 {

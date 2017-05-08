@@ -25,6 +25,7 @@
 #include <cairomm/context.h>
 #include <gdkmm/general.h>
 #include <gdkmm/cursor.h>
+#include <gtkmm/stock.h>
 #include <gdkmm/pixbuf.h>
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/dialog.h>
@@ -159,12 +160,13 @@ RegionChooser::RegionChooser() :
     for (int i = 0 ; i < 128 ; i++) key_pressed[i] = false;
 
     actionGroup = Gtk::ActionGroup::create();
-    actionGroup->add(Gtk::Action::create("Properties", _("_Properties")),
+    actionGroup->add(Gtk::Action::create("Properties",
+                                         Gtk::Stock::PROPERTIES),
                      sigc::mem_fun(*this,
                                    &RegionChooser::show_region_properties));
-    actionGroup->add(Gtk::Action::create("Remove", _("_Remove")),
+    actionGroup->add(Gtk::Action::create("Remove", Gtk::Stock::REMOVE),
                      sigc::mem_fun(*this, &RegionChooser::delete_region));
-    actionGroup->add(Gtk::Action::create("Add", _("_Add")),
+    actionGroup->add(Gtk::Action::create("Add", Gtk::Stock::ADD),
                      sigc::mem_fun(*this, &RegionChooser::add_region));
     actionGroup->add(Gtk::Action::create("Dimensions", _("Dimensions...")),
                      sigc::mem_fun(*this, &RegionChooser::manage_dimensions));
@@ -1060,8 +1062,8 @@ void RegionChooser::show_region_properties()
     dialog.get_vbox()->pack_start(spinBox);
     spinBox.show();
     // add OK and CANCEL buttons to the dialog
-    dialog.add_button(_("_OK"), 0);
-    dialog.add_button(_("_Cancel"), 1);
+    dialog.add_button(Gtk::Stock::OK, 0);
+    dialog.add_button(Gtk::Stock::CANCEL, 1);
     dialog.show_all_children();
     if (!dialog.run()) { // OK selected ...
         region->KeyGroup =

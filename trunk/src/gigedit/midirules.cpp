@@ -19,15 +19,13 @@
 
 #include "midirules.h"
 
-#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
 #include <gtkmm/stock.h>
-#endif
 
 #include "global.h"
 
 MidiRules::MidiRules() :
     label(_("Midi rule:")),
-    quit_button(_("_Close"), true),
+    quit_button(Gtk::Stock::CLOSE),
     unknown(_("unknown"))
 {
     set_title(_("Midi Rules"));

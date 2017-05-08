@@ -35,6 +35,7 @@
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/filechooserdialog.h>
 #include <gtkmm/messagedialog.h>
+#include <gtkmm/stock.h>
 #include <gtkmm/targetentry.h>
 #include <gtkmm/main.h>
 #include <gtkmm/toggleaction.h>
@@ -156,28 +157,30 @@ MainWindow::MainWindow() :
     actionGroup = Gtk::ActionGroup::create();
 
     actionGroup->add(Gtk::Action::create("MenuFile", _("_File")));
-    actionGroup->add(Gtk::Action::create("New", _("_New")),
-                     Gtk::AccelKey("<control>n"),
+    actionGroup->add(Gtk::Action::create("New", Gtk::Stock::NEW),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_file_new));
-    actionGroup->add(Gtk::Action::create("Open", _("_Open...")),
-                     Gtk::AccelKey("<control>o"),
+    Glib::RefPtr<Gtk::Action> action =
+        Gtk::Action::create("Open", Gtk::Stock::OPEN);
+    action->property_label() = action->property_label() + "...";
+    actionGroup->add(action,
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_file_open));
-    actionGroup->add(Gtk::Action::create("Save", _("_Save")),
-                     Gtk::AccelKey("<control>s"),
+    actionGroup->add(Gtk::Action::create("Save", Gtk::Stock::SAVE),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_file_save));
-    actionGroup->add(Gtk::Action::create("SaveAs", _("Save _As...")),
+    action = Gtk::Action::create("SaveAs", Gtk::Stock::SAVE_AS);
+    action->property_label() = action->property_label() + "...";
+    actionGroup->add(action,
                      Gtk::AccelKey("<shift><control>s"),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_file_save_as));
     actionGroup->add(Gtk::Action::create("Properties",
-                                         _("_Properties")),
+                                         Gtk::Stock::PROPERTIES),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_file_properties));
     actionGroup->add(Gtk::Action::create("InstrProperties",
-                                         _("_Properties")),
+                                         Gtk::Stock::PROPERTIES),
                      sigc::mem_fun(
                          *this, &MainWindow::show_instr_props));
     actionGroup->add(Gtk::Action::create("MidiRules",
@@ -188,8 +191,7 @@ MainWindow::MainWindow() :
                                          _("_Script Slots...")),
                      sigc::mem_fun(
                          *this, &MainWindow::show_script_slots));
-    actionGroup->add(Gtk::Action::create("Quit", _("_Quit")),
-                     Gtk::AccelKey("<control>q"),
+    actionGroup->add(Gtk::Action::create("Quit", Gtk::Stock::QUIT),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_quit));
     actionGroup->add(
@@ -316,8 +318,10 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::on_action_refresh_all)
     );                 
 
-    actionGroup->add(Gtk::Action::create("MenuHelp", _("_Help")));
-    actionGroup->add(Gtk::Action::create("About", _("_About")),
+    action = Gtk::Action::create("MenuHelp", Gtk::Stock::HELP);
+    actionGroup->add(Gtk::Action::create("MenuHelp",
+                                         action->property_label()));
+    actionGroup->add(Gtk::Action::create("About", Gtk::Stock::ABOUT),
                      sigc::mem_fun(
                          *this, &MainWindow::on_action_help_about));
     actionGroup->add(
@@ -329,7 +333,7 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::on_action_duplicate_instrument)
     );
     actionGroup->add(
-        Gtk::Action::create("RemoveInstrument", _("_Remove")),
+        Gtk::Action::create("RemoveInstrument", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_instrument)
     );
 
@@ -376,7 +380,7 @@ MainWindow::MainWindow() :
 
     // sample right-click popup actions
     actionGroup->add(
-        Gtk::Action::create("SampleProperties", _("_Properties")),
+        Gtk::Action::create("SampleProperties", Gtk::Stock::PROPERTIES),
         sigc::mem_fun(*this, &MainWindow::on_action_sample_properties)
     );
     actionGroup->add(
@@ -388,7 +392,7 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::on_action_add_sample)
     );
     actionGroup->add(
-        Gtk::Action::create("RemoveSample", _("_Remove")),
+        Gtk::Action::create("RemoveSample", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_sample)
     );
     actionGroup->add(
@@ -424,7 +428,7 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::on_action_edit_script)
     );
     actionGroup->add(
-        Gtk::Action::create("RemoveScript", _("_Remove")),
+        Gtk::Action::create("RemoveScript", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_script)
     );
 
@@ -1339,8 +1343,8 @@ bool MainWindow::close_confirmation_dialog()
     g_free(msg);
     dialog.set_secondary_text(_("If you close without saving, your changes will be lost."));
     dialog.add_button(_("Close _Without Saving"), Gtk::RESPONSE_NO);
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
-    dialog.add_button(file_has_name ? _("_Save") : _("Save _As"), Gtk::RESPONSE_YES);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+    dialog.add_button(file_has_name ? Gtk::Stock::SAVE : Gtk::Stock::SAVE_AS, Gtk::RESPONSE_YES);
     dialog.set_default_response(Gtk::RESPONSE_YES);
     int response = dialog.run();
     dialog.hide();
@@ -1371,7 +1375,7 @@ bool MainWindow::leaving_shared_mode_dialog() {
           "used by the sampler until you tell the sampler explicitly to "
           "load it."));
     dialog.add_button(_("_Yes, Detach"), Gtk::RESPONSE_YES);
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.set_default_response(Gtk::RESPONSE_CANCEL);
     int response = dialog.run();
     dialog.hide();
@@ -1385,8 +1389,8 @@ void MainWindow::on_action_file_open()
     if (file_is_shared && !leaving_shared_mode_dialog()) return;
 
     Gtk::FileChooserDialog dialog(*this, _("Open file"));
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
-    dialog.add_button(_("_Open"), Gtk::RESPONSE_OK);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
     dialog.set_default_response(Gtk::RESPONSE_OK);
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
     Gtk::FileFilter filter;
@@ -1581,9 +1585,9 @@ void MainWindow::on_action_file_save_as()
 
 bool MainWindow::file_save_as()
 {
-    Gtk::FileChooserDialog dialog(*this, _("Save As"), Gtk::FILE_CHOOSER_ACTION_SAVE);
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
-    dialog.add_button(_("_Save"), Gtk::RESPONSE_OK);
+    Gtk::FileChooserDialog dialog(*this, _("Save as"), Gtk::FILE_CHOOSER_ACTION_SAVE);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::SAVE, Gtk::RESPONSE_OK);
     dialog.set_default_response(Gtk::RESPONSE_OK);
     dialog.set_do_overwrite_confirmation();
 
@@ -1828,7 +1832,7 @@ PropDialog::PropDialog()
       eSourceForm(_("Source form")),
       eCommissioned(_("Commissioned")),
       eSubject(_("Subject")),
-      quitButton(_("_Close"), true),
+      quitButton(Gtk::Stock::CLOSE),
       table(2, 1),
       m_file(NULL)
 {
@@ -1951,7 +1955,7 @@ void InstrumentProps::set_MIDIProgram(uint32_t value)
 }
 
 InstrumentProps::InstrumentProps() :
-    quitButton(_("_Close"), true),
+    quitButton(Gtk::Stock::CLOSE),
     table(2,1),
     eName(_("Name")),
     eIsDrum(_("Is drum")),
@@ -2840,8 +2844,8 @@ void MainWindow::add_or_replace_sample(bool replace) {
 
     // show 'browse for file' dialog
     Gtk::FileChooserDialog dialog(*this, replace ? _("Replace Sample with") : _("Add Sample(s)"));
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
-    dialog.add_button(_("_Open"), Gtk::RESPONSE_OK);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
     dialog.set_select_multiple(!replace); // allow multi audio file selection only when adding new samples, does not make sense when replacing a specific sample
 
     // matches all file types supported by libsndfile
@@ -3041,7 +3045,7 @@ void MainWindow::on_action_replace_all_samples_in_all_groups()
     dialog.get_vbox()->pack_start(entryArea, Gtk::PACK_SHRINK);
     description.show();
     entryArea.show_all();
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(_("Select"), Gtk::RESPONSE_OK);
     dialog.set_select_multiple(false);
     if (current_sample_dir != "") {
@@ -3665,7 +3669,7 @@ void MainWindow::on_action_merge_files() {
     }
 
     Gtk::FileChooserDialog dialog(*this, _("Merge .gig files"));
-    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(_("Merge"), Gtk::RESPONSE_OK);
     dialog.set_default_response(Gtk::RESPONSE_CANCEL);
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2

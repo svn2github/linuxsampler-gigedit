@@ -60,8 +60,8 @@ static Glib::RefPtr<Gdk::Pixbuf> createIcon(std::vector<std::string> alternative
 
 ScriptEditor::ScriptEditor() :
     m_statusLabel("",  Gtk::ALIGN_START),
-    m_applyButton(_("_Apply"), true),
-    m_cancelButton(_("_Cancel"), true)
+    m_applyButton(Gtk::Stock::APPLY),
+    m_cancelButton(Gtk::Stock::CANCEL)
 {
     m_script = NULL;
 #if USE_LS_SCRIPTVM

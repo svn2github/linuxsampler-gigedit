@@ -35,7 +35,9 @@ class MacrosSetup : public ManagedWindow {
 public:
     MacrosSetup();
    ~MacrosSetup();
-    void setMacros(const std::vector<Serialization::Archive>& macros);
+    void setMacros(const std::vector<Serialization::Archive>& macros,
+                   Serialization::Archive* pClipboardContent,
+                   gig::DimensionRegion* pSelectedDimRgn);
 
     sigc::signal<void, const std::vector<Serialization::Archive>& >& signal_macros_changed();
 
@@ -46,11 +48,15 @@ public:
     virtual Settings::Property<int>* windowSettingHeight() { return &Settings::singleton()->macrosSetupWindowH; }
 
 protected:
+    bool m_modified;
     std::vector<Serialization::Archive> m_macros;
+    Serialization::Archive* m_clipboardContent;
+    gig::DimensionRegion* m_selectedDimRgn;
 
     sigc::signal<void, const std::vector<Serialization::Archive>& > m_macros_changed;
 
     Gtk::VBox m_vbox;
+    Gtk::HBox m_addHBox;
     Gtk::HBox m_footerHBox;
     Gtk::HBox m_statusHBox;
     Gtk::HButtonBox m_buttonBoxL;
@@ -89,6 +95,8 @@ protected:
     Glib::RefPtr<MacroListTreeStore> m_treeStoreMacros;
     bool m_ignoreTreeViewValueChange;
 
+    Gtk::Button m_addFromClipboardButton;
+    Gtk::Button m_addFromSelectionButton;
     Gtk::Label m_statusLabel;
     Gtk::Button m_deleteButton;
     Gtk::Button m_inverseDeleteButton;
@@ -96,8 +104,11 @@ protected:
     Gtk::Button m_cancelButton;
 
     bool m_altKeyDown;
+    bool m_primaryKeyDown; // on Mac: Cmd key, on all other OSs: Ctrl key
 
     bool isModified() const;
+    void onButtonAddFromClipboard();
+    void onButtonAddFromSelection();
     void onButtonCancel();
     void onButtonApply();
     void onWindowHide();

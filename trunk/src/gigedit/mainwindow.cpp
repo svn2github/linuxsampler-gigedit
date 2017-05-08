@@ -957,7 +957,8 @@ void MainWindow::onMacroSelected(int iMacro) {
 
 void MainWindow::setupMacros() {
     MacrosSetup* setup = new MacrosSetup();
-    setup->setMacros(m_macros);
+    gig::DimensionRegion* pDimRgn = m_DimRegionChooser.get_main_dimregion();
+    setup->setMacros(m_macros, &m_serializationArchive, pDimRgn);
     setup->signal_macros_changed().connect(
         sigc::mem_fun(*this, &MainWindow::onMacrosSetupChanged)
     );
@@ -3920,7 +3921,7 @@ void MainWindow::applyMacro(Serialization::Archive& macro) {
     {
         gig::DimensionRegion* pDimRgn = *itDimReg;
         dimreg_to_be_changed_signal.emit(pDimRgn);
-        m_serializationArchive.deserialize(pDimRgn);
+        macro.deserialize(pDimRgn);
         dimreg_changed_signal.emit(pDimRgn);
     }
     //region_changed()

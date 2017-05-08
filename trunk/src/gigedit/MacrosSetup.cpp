@@ -229,7 +229,7 @@ static int daysAgo(const tm& t) {
         pNow->tm_mon  == t.tm_mon &&
         pNow->tm_mday == t.tm_mday) return 0;
     time_t past = mktime((tm*)&t);
-    return ceil(difftime(now, past));
+    return ceil(difftime(now, past) / 60.0 / 60.0 / 24.0);
 }
 
 static Glib::ustring humanShortStr(const tm& t) {

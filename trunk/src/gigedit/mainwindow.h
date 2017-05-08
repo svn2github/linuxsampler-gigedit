@@ -273,6 +273,11 @@ protected:
     void on_saver_progress();
     void on_saver_error();
     void on_saver_finished();
+    void updateMacroMenu();
+    void onMacroSelected(int iMacro);
+    void setupMacros();
+    void onMacrosSetupChanged(const std::vector<Serialization::Archive>& macros);
+    void applyMacro(Serialization::Archive& macro);
 
     void dimreg_all_dimregs_toggled();
     gig::Instrument* get_instrument();
@@ -445,7 +450,8 @@ protected:
     void select_prev_dimension();
     void select_next_dimension();
 
-    Serialization::Archive m_serializationArchive;
+    Serialization::Archive m_serializationArchive; ///< Clipboard content.
+    std::vector<Serialization::Archive> m_macros; ///< User configured list of macros.
 
     void copy_selected_dimrgn();
     void paste_copied_dimrgn();

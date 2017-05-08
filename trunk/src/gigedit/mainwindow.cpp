@@ -38,6 +38,7 @@
 #include <gtkmm/targetentry.h>
 #include <gtkmm/main.h>
 #include <gtkmm/toggleaction.h>
+#include <gtkmm/accelmap.h>
 #if GTKMM_MAJOR_VERSION < 3
 #include "wrapLabel.hh"
 #endif
@@ -59,6 +60,7 @@
 #include "../../gfx/status_detached.xpm"
 #include "gfx/builtinpix.h"
 #include "MacroEditor.h"
+#include "MacrosSetup.h"
 
 MainWindow::MainWindow() :
     m_DimRegionChooser(*this),
@@ -284,6 +286,9 @@ MainWindow::MainWindow() :
     actionGroup->add(toggle_action);
 
 
+    actionGroup->add(Gtk::Action::create("MenuMacro", _("_Macro")));
+
+
     actionGroup->add(Gtk::Action::create("MenuView", _("Vie_w")));
     toggle_action =
         Gtk::ToggleAction::create("Statusbar", _("_Statusbar"));
@@ -459,6 +464,8 @@ MainWindow::MainWindow() :
         "      <menuitem action='CopySampleUnity'/>"
         "      <menuitem action='CopySampleTune'/>"
         "      <menuitem action='CopySampleLoop'/>"
+        "    </menu>"
+        "    <menu action='MenuMacro'>"
         "    </menu>"
         "    <menu action='MenuSample'>"
         "      <menuitem action='SampleProperties'/>"
@@ -825,10 +832,138 @@ MainWindow::MainWindow() :
     );
     updateClipboardPasteAvailable();
     updateClipboardCopyAvailable();
+
+    // setup macros and their keyboard accelerators
+    {
+        Gtk::Menu* menuMacro = dynamic_cast<Gtk::MenuItem*>(
+            uiManager->get_widget("/MenuBar/MenuMacro")
+        )->get_submenu();
+
+        const Gdk::ModifierType primaryModifierKey =
+#if defined(__APPLE__)
+            Gdk::META_MASK; // Cmd key on Mac
+#else
+            Gdk::CONTROL_MASK; // Ctrl key on all other OSs
+#endif
+
+        const Gdk::ModifierType noModifier = (Gdk::ModifierType)0;
+        Gtk::AccelMap::add_entry("<Macros>/macro_0", GDK_KEY_F1, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_1", GDK_KEY_F2, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_2", GDK_KEY_F3, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_3", GDK_KEY_F4, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_4", GDK_KEY_F5, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_5", GDK_KEY_F6, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_6", GDK_KEY_F7, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_7", GDK_KEY_F8, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_8", GDK_KEY_F9, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_9", GDK_KEY_F10, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_10", GDK_KEY_F11, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_11", GDK_KEY_F12, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/SetupMacros", 'm', primaryModifierKey);
+
+        Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
+        menuMacro->set_accel_group(accelGroup);
+
+        updateMacroMenu();
+    }
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::updateMacroMenu() {
+    Gtk::Menu* menuMacro = dynamic_cast<Gtk::MenuItem*>(
+        uiManager->get_widget("/MenuBar/MenuMacro")
+    )->get_submenu();
+
+    // remove all entries from "Macro" menu
+    {
+        const std::vector<Gtk::Widget*> children = menuMacro->get_children();
+        for (int i = 0; i < children.size(); ++i) {
+            Gtk::Widget* child = children[i];
+            menuMacro->remove(*child);
+            delete child;
+        }
+    }
+
+    // (re)load all macros from config file
+    try {
+        Settings::singleton()->loadMacros(m_macros);
+    } catch (Serialization::Exception e) {
+        std::cerr << "Exception while loading macros: " << e.Message << std::endl;
+    } catch (...) {
+        std::cerr << "Unknown exception while loading macros!" << std::endl;
+    }
+
+    // add all configured macros as menu items to the "Macro" menu
+    for (int iMacro = 0; iMacro < m_macros.size(); ++iMacro) {
+        const Serialization::Archive& macro = m_macros[iMacro];
+        std::string name =
+            macro.name().empty() ?
+                (std::string(_("Unnamed Macro")) + " " + ToString(iMacro+1)) : macro.name();
+        Gtk::MenuItem* item = new Gtk::MenuItem(name);
+        item->signal_activate().connect(
+            sigc::bind(
+                sigc::mem_fun(*this, &MainWindow::onMacroSelected), iMacro
+            )
+        );
+        menuMacro->append(*item);
+        item->set_accel_path("<Macros>/macro_" + ToString(iMacro));
+    }
+    // if there are no macros configured at all, then show a dummy entry instead
+    if (m_macros.empty()) {
+        Gtk::MenuItem* item = new Gtk::MenuItem(_("No Macros"));
+        item->set_sensitive(false);
+        menuMacro->append(*item);
+    }
+
+    // add separator line to menu
+    menuMacro->append(*new Gtk::SeparatorMenuItem);
+
+    {
+        Gtk::MenuItem* item = new Gtk::MenuItem(_("Setup Macros ..."));
+        item->signal_activate().connect(
+            sigc::mem_fun(*this, &MainWindow::setupMacros)
+        );
+        menuMacro->append(*item);
+        item->set_accel_path("<Macros>/SetupMacros");
+    }
+
+    menuMacro->show_all_children();
+}
+
+void MainWindow::onMacroSelected(int iMacro) {
+    printf("onMacroSelected(%d)\n", iMacro);
+    if (iMacro < 0 || iMacro >= m_macros.size()) return;
+    Glib::ustring errorText;
+    try {
+        applyMacro(m_macros[iMacro]);
+    } catch (Serialization::Exception e) {
+        errorText = e.Message;
+    } catch (...) {
+        errorText = _("Unknown exception while applying macro");
+    }
+    if (!errorText.empty()) {
+        Glib::ustring txt = _("Applying macro failed:\n") + errorText;
+        Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_ERROR);
+        msg.run();
+    }
+}
+
+void MainWindow::setupMacros() {
+    MacrosSetup* setup = new MacrosSetup();
+    setup->setMacros(m_macros);
+    setup->signal_macros_changed().connect(
+        sigc::mem_fun(*this, &MainWindow::onMacrosSetupChanged)
+    );
+    setup->show();
+}
+
+void MainWindow::onMacrosSetupChanged(const std::vector<Serialization::Archive>& macros) {
+    m_macros = macros;
+    Settings::singleton()->saveMacros(m_macros);
+    updateMacroMenu();
 }
 
 bool MainWindow::on_delete_event(GdkEventAny* event)
@@ -3771,38 +3906,37 @@ void MainWindow::on_clipboard_clear() {
     updateClipboardCopyAvailable();
 }
 
+//NOTE: Might throw exception !!!
+void MainWindow::applyMacro(Serialization::Archive& macro) {
+    gig::DimensionRegion* pDimRgn = m_DimRegionChooser.get_main_dimregion();
+    if (!pDimRgn) return;
+
+    for (std::set<gig::DimensionRegion*>::iterator itDimReg = dimreg_edit.dimregs.begin();
+         itDimReg != dimreg_edit.dimregs.end(); ++itDimReg)
+    {
+        gig::DimensionRegion* pDimRgn = *itDimReg;
+        dimreg_to_be_changed_signal.emit(pDimRgn);
+        m_serializationArchive.deserialize(pDimRgn);
+        dimreg_changed_signal.emit(pDimRgn);
+    }
+    //region_changed()
+    file_changed();
+    dimreg_changed();
+}
+
 void MainWindow::on_clipboard_received(const Gtk::SelectionData& selection_data) {
     const std::string target = selection_data.get_target();
     if (target == CLIPBOARD_DIMENSIONREGION_TARGET) {
-        gig::DimensionRegion* pDimRgn = m_DimRegionChooser.get_main_dimregion();
-        if (!pDimRgn) return;
-
         Glib::ustring errorText;
         try {
             m_serializationArchive.decode(
                 selection_data.get_data(), selection_data.get_length()
             );
-
-            for (std::set<gig::DimensionRegion*>::iterator itDimReg = dimreg_edit.dimregs.begin();
-                 itDimReg != dimreg_edit.dimregs.end(); ++itDimReg)
-            {
-                gig::DimensionRegion* pDimRgn = *itDimReg;
-
-                dimreg_to_be_changed_signal.emit(pDimRgn);
-
-                m_serializationArchive.deserialize(pDimRgn);
-
-                dimreg_changed_signal.emit(pDimRgn);
-            }
-
-            //region_changed()
-            file_changed();
-            dimreg_changed();
-
+            applyMacro(m_serializationArchive);
         } catch (Serialization::Exception e) {
             errorText = e.Message;
         } catch (...) {
-            errorText = _("Unknown exception during deserialization decoding");
+            errorText = _("Unknown exception while pasting DimensionRegion");
         }
         if (!errorText.empty()) {
             Glib::ustring txt = _("Pasting DimensionRegion failed:\n") + errorText;

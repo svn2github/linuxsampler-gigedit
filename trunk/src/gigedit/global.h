@@ -44,8 +44,10 @@
 
 #ifdef LIBGIG_HEADER_FILE
 # include LIBGIG_HEADER_FILE(gig.h)
+# include LIBGIG_HEADER_FILE(Serialization.h)
 #else
 # include <gig.h>
+# include <Serialization.h>
 #endif
 
 //FIXME: for some reason AC GETTEXT check fails on the Mac cross compiler?

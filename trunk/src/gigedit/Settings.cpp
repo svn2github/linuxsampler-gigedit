@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2016 Christian Schoenebeck
+    Copyright (c) 2014-2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -12,6 +12,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
+#include <string.h>
 
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 40) || GTKMM_MAJOR_VERSION < 2
 # define HAS_GLIB_KEYFILE_SAVE_TO_FILE 0
@@ -45,6 +46,9 @@ static std::string groupName(Settings::Group_t group) {
         case Settings::FILE_PROPS: return "FileProps";
         case Settings::INSTR_PROPS: return "InstrProps";
         case Settings::SAMPLE_REFS: return "SampleRefs";
+        case Settings::MACRO_EDITOR: return "MacroEditor";
+        case Settings::MACROS_SETUP: return "MacrosSetup";
+        case Settings::MACROS: return "Macros";
     }
     return "Global";
 }
@@ -119,6 +123,10 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     macroEditorWindowY(*this, MACRO_EDITOR, "y", -1),
     macroEditorWindowW(*this, MACRO_EDITOR, "w", -1),
     macroEditorWindowH(*this, MACRO_EDITOR, "h", -1),
+    macrosSetupWindowX(*this, MACROS_SETUP, "x", -1),
+    macrosSetupWindowY(*this, MACROS_SETUP, "y", -1),
+    macrosSetupWindowW(*this, MACROS_SETUP, "w", -1),
+    macrosSetupWindowH(*this, MACROS_SETUP, "h", -1),
     m_ignoreNotifies(false)
 {
     m_boolProps.push_back(&warnUserOnExtensions);
@@ -167,6 +175,10 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     m_intProps.push_back(&macroEditorWindowY);
     m_intProps.push_back(&macroEditorWindowW);
     m_intProps.push_back(&macroEditorWindowH);
+    m_intProps.push_back(&macrosSetupWindowX);
+    m_intProps.push_back(&macrosSetupWindowY);
+    m_intProps.push_back(&macrosSetupWindowW);
+    m_intProps.push_back(&macrosSetupWindowH);
 }
 
 void Settings::onPropertyChanged(Glib::PropertyBase* pProperty, RawValueType_t type, Group_t group) {
@@ -235,6 +247,7 @@ void Settings::load() {
         Property<bool>* prop = static_cast<Property<bool>*>(m_boolProps[i]);
         try {
             const std::string group = groupName(prop->group());
+            if (!file.has_group(group)) continue;
             if (!file.has_key(group, prop->get_name())) continue;
             const bool value = file.get_boolean(group, prop->get_name());
             prop->set_value(value);
@@ -247,6 +260,7 @@ void Settings::load() {
         Property<int>* prop = static_cast<Property<int>*>(m_intProps[i]);
         try {
             const std::string group = groupName(prop->group());
+            if (!file.has_group(group)) continue;
             if (!file.has_key(group, prop->get_name())) continue;
             const int value = file.get_integer(group, prop->get_name());
             prop->set_value(value);
@@ -258,3 +272,65 @@ void Settings::load() {
     m_ignoreNotifies = false;
 }
 
+#define MACRO_LIST_NAME "srlzl"
+
+void Settings::loadMacros(std::vector<Serialization::Archive>& macros) {
+    const std::string group = groupName(MACROS);
+    macros.clear();
+    Glib::KeyFile file;
+    try {
+        bool ok = file.load_from_file(configFile());
+        if (!ok) return;
+    } catch (...) {
+        std::cerr << "Could not load gigedit config file '" << configFile() << "'\n" << std::flush;
+        return;
+    }
+    if (!file.has_group(group)) return;
+    if (!file.has_key(group, MACRO_LIST_NAME))
+        return;
+    std::vector<Glib::ustring> v = file.get_string_list(group, MACRO_LIST_NAME);
+    for (int i = 0; i < v.size(); ++i) {
+        Serialization::Archive macro;
+        macro.decode((const uint8_t*)v[i].c_str(), v[i].length());
+        macros.push_back(macro);
+    }
+}
+
+void Settings::saveMacros(const std::vector<Serialization::Archive>& macros) {
+    const std::string group = groupName(MACROS);
+    Glib::KeyFile file;
+    try {
+        bool ok = file.load_from_file(configFile());
+        if (!ok) {
+            std::cerr << "Could not load '" << configFile() << "'\n" << std::flush;
+        }
+    } catch (...) {
+        std::cerr << "Could not load '" << configFile() << "'\n" << std::flush;
+        return;
+    }
+
+    std::vector<Glib::ustring> v;
+    for (int i = 0; i < macros.size(); ++i) {
+        const Serialization::RawData& rawData = const_cast<Serialization::Archive&>(macros[i]).rawData();
+        std::string s((const char*)&rawData[0], rawData.size());
+        v.push_back(s);
+    }
+
+    file.set_string_list(group, MACRO_LIST_NAME, v);
+
+    try {
+#if HAS_GLIB_KEYFILE_SAVE_TO_FILE
+        bool ok = file.save_to_file(configFile());
+#else
+        bool ok = saveToFile(&file, configFile());
+#endif
+        if (!ok) {
+            std::cerr << "Failed saving gigedit config to '" << configFile() << "'\n" << std::flush;
+        } else {
+            //std::cout <<"gigedit CONFIG SAVED\n";
+        }
+    } catch (...) {
+        std::cerr << "Failed saving gigedit config to '" << configFile() << "'\n" << std::flush;
+    }
+
+}

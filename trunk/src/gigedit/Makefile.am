@@ -35,6 +35,7 @@ libgigedit_la_SOURCES = \
 	scriptslots.cpp scriptslots.h \
 	ReferencesView.cpp ReferencesView.h \
 	MacroEditor.cpp MacroEditor.h \
+	MacrosSetup.cpp MacrosSetup.h \
 	ManagedWindow.cpp ManagedWindow.h \
 	$(wraplabel) $(mac_src)
 libgigedit_la_LIBADD = \

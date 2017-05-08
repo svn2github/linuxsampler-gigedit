@@ -25,6 +25,11 @@
 #include <gtkmm/actiongroup.h>
 #include "ManagedWindow.h"
 
+/** @brief Editor for gigedit macros.
+ *
+ * Implements a window which allows to edit the abstract tree of one macro
+ * that may be applied with gigedit.
+ */
 class MacroEditor : public ManagedWindow {
 public:
     MacroEditor();

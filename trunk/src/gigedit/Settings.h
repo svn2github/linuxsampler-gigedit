@@ -12,6 +12,7 @@
 #include <glibmm/object.h>
 #include <glibmm/property.h>
 #include <vector>
+#include "global.h"
 
 /**
  * Reflects, saves and restores all settings for the gigedit application.
@@ -47,6 +48,8 @@ public:
         INSTR_PROPS,
         SAMPLE_REFS,
         MACRO_EDITOR,
+        MACROS_SETUP,
+        MACROS,
     };
 
     /**
@@ -186,9 +189,17 @@ public:
     Property<int> macroEditorWindowW;
     Property<int> macroEditorWindowH;
 
+    // settings of "MacrosSetup" group
+    Property<int> macrosSetupWindowX;
+    Property<int> macrosSetupWindowY;
+    Property<int> macrosSetupWindowW;
+    Property<int> macrosSetupWindowH;
+
     static Settings* singleton();
     Settings();
     void load();
+    void loadMacros(std::vector<Serialization::Archive>& macros);
+    void saveMacros(const std::vector<Serialization::Archive>& macros);
 
 protected:
     void onPropertyChanged(Glib::PropertyBase* pProperty, RawValueType_t type, Group_t group);

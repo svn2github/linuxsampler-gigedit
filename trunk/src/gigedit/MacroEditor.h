@@ -34,7 +34,9 @@ class MacroEditor : public ManagedWindow {
 public:
     MacroEditor();
    ~MacroEditor();
-    void setMacro(Serialization::Archive* macro);
+    void setMacro(Serialization::Archive* macro, bool isClipboard);
+
+    sigc::signal<void>& signal_changes_applied();
 
     // implementation for abstract methods of interface class "ManagedWindow"
     virtual Settings::Property<int>* windowSettingX() { return &Settings::singleton()->macroEditorWindowX; }
@@ -46,12 +48,15 @@ protected:
     Serialization::Archive* m_macroOriginal;
     Serialization::Archive  m_macro;
 
+    sigc::signal<void> m_changes_applied;
+
     Gtk::VBox m_vbox;
     Gtk::HBox m_footerHBox;
     Gtk::HBox m_statusHBox;
     Gtk::HButtonBox m_buttonBoxL;
     Gtk::HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
+    //Gtk::Label m_labelIntro;
 
     class MacroModel : public Gtk::TreeModel::ColumnRecord {
     public:

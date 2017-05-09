@@ -11,17 +11,22 @@
 #include <set>
 #include <math.h>
 #include <gtkmm/stock.h>
+#include "MacroEditor.h"
 
 MacrosSetup::MacrosSetup() :
     m_modified(false),
     m_clipboardContent(NULL),
     m_addFromClipboardButton("  " + Glib::ustring(_("From Clipboard")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + "B"),
     m_addFromSelectionButton("  " + Glib::ustring(_("From Selection")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + "S"),
+    m_buttonUp(Gtk::Stock::GO_UP),
+    m_buttonDown(Gtk::Stock::GO_DOWN),
+    m_buttonEdit(Gtk::Stock::EDIT),
     m_statusLabel("",  Gtk::ALIGN_START),
-    m_deleteButton(Glib::ustring(_("Delete")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
-    m_inverseDeleteButton(Glib::ustring(_("Inverse Delete")) + "  " + UNICODE_ALT_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
-    m_applyButton(_("_Apply"), true),
-    m_cancelButton(_("_Cancel"), true),
+    m_labelComment(_("Comment"), Gtk::ALIGN_START),
+    m_deleteButton("  " + Glib::ustring(_("Delete")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
+    m_inverseDeleteButton("  " + Glib::ustring(_("Inverse Delete")) + "  " + UNICODE_ALT_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
+    m_applyButton(Gtk::Stock::APPLY),
+    m_cancelButton(Gtk::Stock::CANCEL),
     m_altKeyDown(false),
     m_primaryKeyDown(false)
 {
@@ -29,7 +34,7 @@ MacrosSetup::MacrosSetup() :
 
     set_title(_("Setup Macros"));
 
-    set_default_size(800, 600);
+    set_default_size(680, 500);
 
     m_addFromClipboardButton.set_image(
         *new Gtk::Image(Gtk::Stock::ADD, Gtk::ICON_SIZE_BUTTON)
@@ -37,11 +42,20 @@ MacrosSetup::MacrosSetup() :
     m_addFromSelectionButton.set_image(
         *new Gtk::Image(Gtk::Stock::ADD, Gtk::ICON_SIZE_BUTTON)
     );
+    m_deleteButton.set_image(
+        *new Gtk::Image(Gtk::Stock::DELETE, Gtk::ICON_SIZE_BUTTON)
+    );
+    m_inverseDeleteButton.set_image(
+        *new Gtk::Image(Gtk::Stock::DELETE, Gtk::ICON_SIZE_BUTTON)
+    );
     m_addFromClipboardButton.set_tooltip_text(_("Create a new macro from the content currently available on the clipboard."));
     m_addFromSelectionButton.set_tooltip_text(_("Create a new macro from the currently selected dimension region's parameters currently shown on the main window."));
-    m_addHBox.pack_start(m_addFromClipboardButton);
-    m_addHBox.pack_start(m_addFromSelectionButton);
+    m_addHBox.pack_start(m_addFromClipboardButton, Gtk::PACK_EXPAND_WIDGET/*, 15*/);
+    m_addHBox.pack_start(m_addFromSelectionButton, Gtk::PACK_EXPAND_WIDGET/*, 15*/);
     m_vbox.pack_start(m_addHBox, Gtk::PACK_SHRINK);
+
+    m_vbox.pack_start(m_mainHBox);
+    m_vbox.set_spacing(5);
 
     // create Macro list treeview (including its data model)
     m_treeStoreMacros = MacroListTreeStore::create(m_treeModelMacros);
@@ -49,7 +63,7 @@ MacrosSetup::MacrosSetup() :
     m_treeViewMacros.get_selection()->set_mode(Gtk::SELECTION_MULTIPLE);
     //m_treeViewMacro.set_tooltip_text(_(""));
     m_treeViewMacros.append_column(_("Key"), m_treeModelMacros.m_col_key);
-    m_treeViewMacros.append_column_editable(_("Name"), m_treeModelMacros.m_col_name);
+    m_treeViewMacros.append_column_editable(_("Macro Name"), m_treeModelMacros.m_col_name);
     m_treeViewMacros.append_column(_("Created"), m_treeModelMacros.m_col_created);
     m_treeViewMacros.append_column(_("Modified"), m_treeModelMacros.m_col_modified);
     m_treeViewMacros.set_tooltip_column(m_treeModelMacros.m_col_comment.index());
@@ -89,10 +103,33 @@ MacrosSetup::MacrosSetup() :
         sigc::mem_fun(*this, &MacrosSetup::onMacroTreeViewRowValueChanged)
     );
     m_ignoreTreeViewValueChange = false;
+    m_ignoreCommentTextViewChange = false;
 
     m_scrolledWindow.add(m_treeViewMacros);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
-    m_vbox.pack_start(m_scrolledWindow);
+    m_mainHBox.pack_start(m_scrolledWindow);
+
+    m_rvbox.set_spacing(5);
+
+    m_mainHBox.pack_start(m_rvbox, Gtk::PACK_SHRINK);
+    m_mainHBox.set_spacing(5),
+    m_rvbox.set_spacing(5);
+    m_rvbox.pack_start(m_detailsButtonBox, Gtk::PACK_SHRINK);
+
+    //m_textViewComment.set_left_margin(3);
+    //m_textViewComment.set_right_margin(3);
+    m_textViewComment.set_indent(2);
+    m_scrolledWindowComment.add(m_textViewComment);
+    m_scrolledWindowComment.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+    m_labelComment.set_markup(
+        "<b>" + m_labelComment.get_text() + "</b>"
+    );
+    m_rvbox.pack_start(m_labelComment, Gtk::PACK_SHRINK);
+    m_rvbox.pack_start(m_scrolledWindowComment);
+
+    m_detailsButtonBox.pack_start(m_buttonUp);
+    m_detailsButtonBox.pack_start(m_buttonDown);
+    m_detailsButtonBox.pack_start(m_buttonEdit);
 
     m_buttonBoxL.set_layout(Gtk::BUTTONBOX_START);
     m_buttonBoxL.pack_start(m_deleteButton);
@@ -129,6 +166,22 @@ MacrosSetup::MacrosSetup() :
 
     m_addFromSelectionButton.signal_clicked().connect(
         sigc::mem_fun(*this, &MacrosSetup::onButtonAddFromSelection)
+    );
+
+    m_buttonUp.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onButtonUp)
+    );
+
+    m_buttonDown.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onButtonDown)
+    );
+
+    m_buttonEdit.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onButtonEdit)
+    );
+
+    m_textViewComment.get_buffer()->signal_changed().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onCommentTextViewChanged)
     );
 
     m_applyButton.signal_clicked().connect(
@@ -215,6 +268,91 @@ void MacrosSetup::onButtonAddFromSelection() {
     }
 }
 
+void MacrosSetup::moveByDir(int d) {
+    if (d < -1 || d > 1) return;
+    int index = getSelectedMacroIndex();
+    if (index < 0) return;
+    if (d == -1 && index == 0) return;
+    if (d == +1 && index >= m_macros.size() - 1) return;
+
+    // swap macros
+    std::swap(m_macros[index + d], m_macros[index]);
+
+    // swap tree view rows
+    Gtk::TreePath p1(ToString(index + d));
+    Gtk::TreePath p2(ToString(index));
+    Gtk::TreeModel::iterator it1 = m_treeStoreMacros->get_iter(p1);
+    Gtk::TreeModel::iterator it2 = m_treeStoreMacros->get_iter(p2);
+    m_treeStoreMacros->iter_swap(it1, it2);
+    int idx1 = (*it1)[m_treeModelMacros.m_col_index];
+    int idx2 = (*it2)[m_treeModelMacros.m_col_index];
+    (*it1)[m_treeModelMacros.m_col_index] = idx2;
+    (*it2)[m_treeModelMacros.m_col_index] = idx1;
+    Glib::ustring s1 = (*it1)[m_treeModelMacros.m_col_key];
+    Glib::ustring s2 = (*it2)[m_treeModelMacros.m_col_key];
+    (*it1)[m_treeModelMacros.m_col_key] = s2;
+    (*it2)[m_treeModelMacros.m_col_key] = s1;
+
+    m_modified = true;
+}
+
+void MacrosSetup::onButtonUp() {
+    moveByDir(-1);
+}
+
+void MacrosSetup::onButtonDown() {
+    moveByDir(+1);
+}
+
+void MacrosSetup::onButtonEdit() {
+    Serialization::Archive* macro = getSelectedMacro();
+    if (!macro) return;
+
+    m_modifiedBeforeMacroEditor = isModified();
+
+    MacroEditor* editor = new MacroEditor();
+    editor->setMacro(macro, false);
+    editor->signal_changes_applied().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onMacroEditorAppliedChanges)
+    );
+    editor->show();
+}
+
+void MacrosSetup::onMacroEditorAppliedChanges() {
+    // so that the user does not need to click on a Apply buttons twice
+    if (!m_modifiedBeforeMacroEditor)
+        onButtonApply();
+    updateStatus();
+}
+
+void MacrosSetup::onCommentTextViewChanged() {
+    if (m_ignoreCommentTextViewChange) return;
+    //printf("textChanged\n");
+    Serialization::Archive* macro = getSelectedMacro();
+    if (!macro) return;
+    macro->setComment(
+        m_textViewComment.get_buffer()->get_text()
+    );
+    updateStatus();
+}
+
+int MacrosSetup::getSelectedMacroIndex() const {
+    std::vector<Gtk::TreeModel::Path> v = m_treeViewMacros.get_selection()->get_selected_rows();
+    if (v.empty()) return -1;
+    Gtk::TreeModel::iterator it = m_treeStoreMacros->get_iter(v[0]);
+    if (!it) return -1;
+    const Gtk::TreeModel::Row& row = *it;
+    int index = row[m_treeModelMacros.m_col_index];
+    if (index < 0 || index >= m_macros.size()) return -1;
+    return index;
+}
+
+Serialization::Archive* MacrosSetup::getSelectedMacro() {
+    int index = getSelectedMacroIndex();
+    if (index < 0) return NULL;
+    return &m_macros[index];
+}
+
 static Glib::ustring indexToAccKey(uint index) {
     if (index >= 12) return "";
     return "F" + ToString(index+1);
@@ -285,6 +423,17 @@ void MacrosSetup::onTreeViewSelectionChanged() {
     const bool bValidSelection = !v.empty();
     m_deleteButton.set_sensitive(bValidSelection);
     m_inverseDeleteButton.set_sensitive(bValidSelection);
+    m_buttonEdit.set_sensitive(bValidSelection);
+
+    // update comment text view
+    std::string sComment;
+    Serialization::Archive* macro = getSelectedMacro();
+    if (macro)
+        sComment = macro->comment();
+    m_ignoreCommentTextViewChange = true;
+    m_textViewComment.get_buffer()->set_text(sComment);
+    m_ignoreCommentTextViewChange = false;
+    m_textViewComment.set_sensitive(bValidSelection);
 }
 
 // Cmd key on Mac, Ctrl key on all other OSs
@@ -401,11 +550,14 @@ void MacrosSetup::inverseDeleteSelectedRows() {
 }
 
 void MacrosSetup::updateStatus() {
+    bool bValidSelection = !m_treeViewMacros.get_selection()->get_selected_rows().empty();
     m_addFromClipboardButton.set_sensitive(
         m_clipboardContent && m_clipboardContent->rootObject()
     );
     m_addFromSelectionButton.set_sensitive(m_selectedDimRgn);
+    m_buttonEdit.set_sensitive(bValidSelection);
     m_applyButton.set_sensitive(isModified());
+    m_textViewComment.set_sensitive(bValidSelection);
     updateStatusBar();
 }
 

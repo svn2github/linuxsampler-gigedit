@@ -22,6 +22,17 @@ MacroEditor::MacroEditor() :
 
     set_default_size(800, 600);
 
+    //FIXME: Commented out since Gtk::Label is a disaster when it comes to multi line content.
+    /*m_labelIntro.set_text(
+        _("A macro is a list of parameters and corresponding values which "
+          "should be applied to the instrument editor when the macro is "
+          "triggered by the user. A macro is triggered either by selecting "
+          "the macro from the \"Macro\" menu, or by hitting the macro's "
+          "respective keyboard accelerator (F1 to F12).")
+    );
+    m_labelIntro.set_line_wrap();
+    m_vbox.pack_start(m_labelIntro, Gtk::PACK_SHRINK);*/
+
     // create Macro treeview (including its data model)
     m_treeStoreMacro = MacroTreeStore::create(m_treeModelMacro);
     m_treeViewMacro.set_model(m_treeStoreMacro);
@@ -136,20 +147,30 @@ MacroEditor::~MacroEditor() {
     printf("MacroEditor destruct\n");
 }
 
-void MacroEditor::setMacro(Serialization::Archive* macro) {
+void MacroEditor::setMacro(Serialization::Archive* macro, bool isClipboard) {
     m_macroOriginal = macro;
     if (!macro) {
         set_title(_("No Macro"));
         return;
     }
 
-    //set_title(std::string(_("Macro Editor:")) + " \"" + macro->name() + "\"");
-    set_title(std::string(_("Macro Editor:")));
+    if (isClipboard)
+        set_title(std::string(_("Macro Editor:")) + " " + _("Clipboard Content"));
+    else {
+        if (macro->name().empty())
+            set_title(std::string(_("Macro Editor:")) + " " + _("Unnamed Macro"));
+        else
+            set_title(std::string(_("Macro Editor:")) + " \"" + macro->name() + "\"");
+    }
 
     // copy for non-destructive editing
     m_macro = *macro;
 
     reloadTreeView();
+}
+
+sigc::signal<void>& MacroEditor::signal_changes_applied() {
+    return m_changes_applied;
 }
 
 void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Serialization::Object& parentObject) {
@@ -381,6 +402,7 @@ void MacroEditor::onButtonApply() {
         msg.run();
     }
     updateStatus();
+    m_changes_applied.emit();
 }
 
 void MacroEditor::onWindowHide() {

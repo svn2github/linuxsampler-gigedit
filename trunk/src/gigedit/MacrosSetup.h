@@ -57,6 +57,9 @@ protected:
 
     Gtk::VBox m_vbox;
     Gtk::HBox m_addHBox;
+    Gtk::HBox m_mainHBox;
+    Gtk::VBox m_rvbox;
+    Gtk::HButtonBox m_detailsButtonBox;
     Gtk::HBox m_footerHBox;
     Gtk::HBox m_statusHBox;
     Gtk::HButtonBox m_buttonBoxL;
@@ -94,21 +97,36 @@ protected:
     Gtk::TreeView m_treeViewMacros;
     Glib::RefPtr<MacroListTreeStore> m_treeStoreMacros;
     bool m_ignoreTreeViewValueChange;
+    bool m_ignoreCommentTextViewChange;
+    bool m_modifiedBeforeMacroEditor;
 
     Gtk::Button m_addFromClipboardButton;
     Gtk::Button m_addFromSelectionButton;
+    Gtk::Button m_buttonUp;
+    Gtk::Button m_buttonDown;
+    Gtk::Button m_buttonEdit;
     Gtk::Label m_statusLabel;
     Gtk::Button m_deleteButton;
     Gtk::Button m_inverseDeleteButton;
     Gtk::Button m_applyButton;
     Gtk::Button m_cancelButton;
+    Gtk::Label m_labelComment;
+    Gtk::ScrolledWindow m_scrolledWindowComment;
+    Gtk::TextView m_textViewComment;
 
     bool m_altKeyDown;
     bool m_primaryKeyDown; // on Mac: Cmd key, on all other OSs: Ctrl key
 
+    int getSelectedMacroIndex() const;
+    Serialization::Archive* getSelectedMacro();
     bool isModified() const;
     void onButtonAddFromClipboard();
     void onButtonAddFromSelection();
+    void onButtonUp();
+    void onButtonDown();
+    void moveByDir(int d);
+    void onButtonEdit();
+    void onCommentTextViewChanged();
     void onButtonCancel();
     void onButtonApply();
     void onWindowHide();
@@ -120,6 +138,7 @@ protected:
     void onMacroTreeViewKeyRelease(GdkEventKey* button);
     void onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
                                         const Gtk::TreeModel::iterator& iter);
+    void onMacroEditorAppliedChanges();
     void deleteSelectedRows();
     void inverseDeleteSelectedRows();
     void deleteRows(const std::vector<Gtk::TreeModel::Path>& rows);

@@ -58,6 +58,15 @@ protected:
     Gtk::ScrolledWindow m_scrolledWindow;
     //Gtk::Label m_labelIntro;
 
+    class ComboOptionsModel : public Gtk::TreeModel::ColumnRecord {
+    public:
+        ComboOptionsModel() {
+            add(m_col_choice);
+        }
+
+        Gtk::TreeModelColumn<Glib::ustring> m_col_choice;
+    } m_comboOptionsModel;
+
     class MacroModel : public Gtk::TreeModel::ColumnRecord {
     public:
         MacroModel() {
@@ -65,12 +74,18 @@ protected:
             add(m_col_type);
             add(m_col_value);
             add(m_col_uid);
+            add(m_col_allowTextEntry);
+            add(m_col_editable);
+            add(m_col_options);
         }
 
         Gtk::TreeModelColumn<Glib::ustring> m_col_name;
         Gtk::TreeModelColumn<Glib::ustring> m_col_type;
         Gtk::TreeModelColumn<Glib::ustring> m_col_value;
         Gtk::TreeModelColumn<Serialization::UID> m_col_uid;
+        Gtk::TreeModelColumn<bool> m_col_allowTextEntry;
+        Gtk::TreeModelColumn<bool> m_col_editable;
+        Gtk::TreeModelColumn<Glib::RefPtr<Gtk::ListStore> > m_col_options;
     } m_treeModelMacro;
 
     class MacroTreeStore : public Gtk::TreeStore {
@@ -84,6 +99,8 @@ protected:
 
     Gtk::TreeView m_treeViewMacro;
     Glib::RefPtr<MacroTreeStore> m_treeStoreMacro;
+    Gtk::CellRendererCombo m_valueCellRenderer;
+    Glib::RefPtr<Gtk::ListStore> m_comboBoxModel;
     bool m_ignoreTreeViewValueChange;
 
     Gtk::Label m_statusLabel;
@@ -93,6 +110,7 @@ protected:
     Gtk::Button m_cancelButton;
 
     bool m_altKeyDown;
+    bool m_primaryKeyDown; // on Mac: Cmd key, on all other OSs: Ctrl key
 
     bool isModified() const;
     void onButtonCancel();
@@ -107,11 +125,16 @@ protected:
     void onMacroTreeViewKeyRelease(GdkEventKey* button);
     void onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
                                         const Gtk::TreeModel::iterator& iter);
+    void onMacroTreeViewRowValueChangedImpl(const Gtk::TreeModel::Path& path,
+                                            const Gtk::TreeModel::iterator& iter,
+                                            const Glib::ustring& value);
+    void onValueCellEdited(const Glib::ustring& sPath, const Glib::ustring& text);
     void deleteSelectedRows();
     void inverseDeleteSelectedRows();
     void deleteRows(const std::vector<Gtk::TreeModel::Path>& rows);
     bool onKeyPressed(GdkEventKey* key);
     bool onKeyReleased(GdkEventKey* key);
+    Glib::RefPtr<Gtk::ListStore> createComboOptions(const char** options);
 };
 
 #endif // GIGEDIT_MACROEDITOR_H

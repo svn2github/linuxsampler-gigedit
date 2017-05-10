@@ -16,7 +16,8 @@ MacroEditor::MacroEditor() :
     m_inverseDeleteButton(Glib::ustring(_("Inverse Delete")) + " " + UNICODE_ALT_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
     m_applyButton(_("_Apply"), true),
     m_cancelButton(_("_Cancel"), true),
-    m_altKeyDown(false)
+    m_altKeyDown(false),
+    m_primaryKeyDown(false)
 {
     add(m_vbox);
 
@@ -40,29 +41,37 @@ MacroEditor::MacroEditor() :
     //m_treeViewMacro.set_tooltip_text(_(""));
     m_treeViewMacro.append_column(_("Key"), m_treeModelMacro.m_col_name);
     m_treeViewMacro.append_column(_("Type"), m_treeModelMacro.m_col_type);
-    m_treeViewMacro.append_column_editable(_("Value"), m_treeModelMacro.m_col_value);
+    //m_treeViewMacro.append_column_editable(_("Value"), m_treeModelMacro.m_col_value);
+    //m_treeViewMacro.append_column(_("Value"), m_valueCellRenderer);
+    Gtk::TreeViewColumn* valueColumn = new Gtk::TreeViewColumn(_("Value"));
+    valueColumn->pack_start(m_valueCellRenderer);
+    m_treeViewMacro.append_column(*valueColumn);
+    // m_valueCellRenderer.property_model() = m_comboBoxModel;
+    // m_valueCellRenderer.property_text_column() = 0;
+    //m_valueCellRenderer.property_editable() = true;
+    {
+        Gtk::TreeView::Column* column = valueColumn;// m_treeViewMacro.get_column(2);
+        //column->set_renderer(m_valueCellRenderer, m_treeModelMacro.m_col_value);
+        column->add_attribute(m_valueCellRenderer.property_text(),
+                              m_treeModelMacro.m_col_value);
+        //column->add_attribute(m_valueCellRenderer.property_has_entry(),
+        //                      m_treeModelMacro.m_col_allowTextEntry);
+        column->add_attribute(m_valueCellRenderer.property_editable(),
+                              m_treeModelMacro.m_col_editable);
+        column->add_attribute(m_valueCellRenderer.property_model(),
+                              m_treeModelMacro.m_col_options);
+    }
+    m_valueCellRenderer.property_text_column() = 0;
+    m_valueCellRenderer.signal_edited().connect(
+        sigc::mem_fun(*this, &MacroEditor::onValueCellEdited)
+    );
+
     {
         Gtk::TreeViewColumn* column = m_treeViewMacro.get_column(1);
         Gtk::CellRendererText* cellrenderer =
             dynamic_cast<Gtk::CellRendererText*>(column->get_first_cell());
         cellrenderer->property_foreground().set_value("#bababa");
     }
-    /*{
-        Gtk::TreeViewColumn* column = m_treeViewMacro.get_column(0);
-        Gtk::CellRendererText* cellrenderer =
-            dynamic_cast<Gtk::CellRendererText*>(column->get_first_cell());
-        column->add_attribute(
-            cellrenderer->property_foreground(), m_SamplesModel.m_color
-        );
-    }*/
-    /*{
-        Gtk::TreeViewColumn* column = m_treeViewMacro.get_column(1);
-        Gtk::CellRendererText* cellrenderer =
-            dynamic_cast<Gtk::CellRendererText*>(column->get_first_cell());
-        column->add_attribute(
-            cellrenderer->property_foreground(), m_SamplesModel.m_color
-        );
-    }*/
     m_treeViewMacro.set_headers_visible(true);
     m_treeViewMacro.get_selection()->signal_changed().connect(
         sigc::mem_fun(*this, &MacroEditor::onTreeViewSelectionChanged)
@@ -173,6 +182,13 @@ sigc::signal<void>& MacroEditor::signal_changes_applied() {
     return m_changes_applied;
 }
 
+Glib::RefPtr<Gtk::ListStore> MacroEditor::createComboOptions(const char** options) {
+    Glib::RefPtr<Gtk::ListStore> refOptions = Gtk::ListStore::create(m_comboOptionsModel);
+    for (size_t i = 0; options[i]; ++i)
+        (*refOptions->append())[m_comboOptionsModel.m_col_choice] = options[i];
+    return refOptions;
+}
+
 void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Serialization::Object& parentObject) {
     for (int iMember = 0; iMember < parentObject.members().size(); ++iMember) {
         const Serialization::Member& member = parentObject.members()[iMember];
@@ -182,11 +198,26 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
         row[m_treeModelMacro.m_col_name] = gig_to_utf8(member.name());
         row[m_treeModelMacro.m_col_type] = gig_to_utf8(member.type().asLongDescr());
         row[m_treeModelMacro.m_col_uid]  = object.uid();
+        row[m_treeModelMacro.m_col_allowTextEntry] = false;
+
         if (object.type().isClass()) {
             row[m_treeModelMacro.m_col_value] = "(class)";
+            row[m_treeModelMacro.m_col_editable] = false;
             buildTreeView(row, object);
+        } else if (object.type().isEnum()) {
+            const char* key = gig::enumKey(
+                object.type().customTypeName(), m_macro.valueAsInt(object)
+            );
+            row[m_treeModelMacro.m_col_value] = key ? key : m_macro.valueAsString(object);
+            row[m_treeModelMacro.m_col_editable] = true;
+            const char** allKeys = gig::enumKeys(object.type().customTypeName());
+            if (allKeys) {
+                Glib::RefPtr<Gtk::ListStore> refOptions = createComboOptions(allKeys);
+                row[m_treeModelMacro.m_col_options] = refOptions;
+            }
         } else {
             row[m_treeModelMacro.m_col_value] = m_macro.valueAsString(object);
+            row[m_treeModelMacro.m_col_editable] = true;
         }
     }
 }
@@ -204,6 +235,8 @@ void MacroEditor::reloadTreeView() {
     rowRoot[m_treeModelMacro.m_col_type]  = gig_to_utf8(rootObject.type().asLongDescr());
     rowRoot[m_treeModelMacro.m_col_value] = "";
     rowRoot[m_treeModelMacro.m_col_uid]   = rootObject.uid();
+    rowRoot[m_treeModelMacro.m_col_allowTextEntry] = false;
+    rowRoot[m_treeModelMacro.m_col_editable] = false;
 
     buildTreeView(rowRoot, rootObject);
 
@@ -221,10 +254,27 @@ void MacroEditor::onTreeViewSelectionChanged() {
     m_inverseDeleteButton.set_sensitive(bValidSelection);
 }
 
+// Cmd key on Mac, Ctrl key on all other OSs
+static const guint primaryKeyL =
+    #if defined(__APPLE__)
+    GDK_KEY_Meta_L;
+    #else
+    GDK_KEY_Control_L;
+    #endif
+
+static const guint primaryKeyR =
+    #if defined(__APPLE__)
+    GDK_KEY_Meta_R;
+    #else
+    GDK_KEY_Control_R;
+    #endif
+
 bool MacroEditor::onKeyPressed(GdkEventKey* key) {
     //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = true;
+    if (key->keyval == primaryKeyL || key->keyval == primaryKeyR)
+        m_primaryKeyDown = true;
     return false;
 }
 
@@ -232,6 +282,8 @@ bool MacroEditor::onKeyReleased(GdkEventKey* key) {
     //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = false;
+    if (key->keyval == primaryKeyL || key->keyval == primaryKeyR)
+        m_primaryKeyDown = false;
     return false;
 }
 
@@ -239,24 +291,54 @@ void MacroEditor::onMacroTreeViewKeyRelease(GdkEventKey* key) {
     if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete) {
         if (m_altKeyDown)
             inverseDeleteSelectedRows();
-        else
+        else if (m_primaryKeyDown)
             deleteSelectedRows();
     }
+}
+
+void MacroEditor::onValueCellEdited(const Glib::ustring& sPath, const Glib::ustring& text) {
+    printf("asdf\n");
+    Gtk::TreePath path(sPath);
+    Gtk::TreeModel::iterator iter = m_treeStoreMacro->get_iter(path);
+    onMacroTreeViewRowValueChangedImpl(path, iter, text);
 }
 
 void MacroEditor::onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
                                                  const Gtk::TreeModel::iterator& iter)
 {
+    if (!iter) return;
+    Gtk::TreeModel::Row row = *iter;
+    Glib::ustring value = row[m_treeModelMacro.m_col_value];
+    onMacroTreeViewRowValueChangedImpl(path, iter, value);
+}
+
+void MacroEditor::onMacroTreeViewRowValueChangedImpl(const Gtk::TreeModel::Path& path,
+                                                     const Gtk::TreeModel::iterator& iter,
+                                                     const Glib::ustring& value)
+{
     if (m_ignoreTreeViewValueChange) return;
     if (!iter) return;
     Gtk::TreeModel::Row row = *iter;
-    Glib::ustring value    = row[m_treeModelMacro.m_col_value];
     Serialization::UID uid = row[m_treeModelMacro.m_col_uid];
     Serialization::String gigvalue(gig_from_utf8(value));
     Serialization::Object& object = m_macro.objectByUID(uid);
     std::string errorText;
     try {
-        m_macro.setAutoValue(object, gigvalue);
+        if (object.type().isEnum() &&
+            gig::enumKey(object.type().customTypeName(), gigvalue))
+        {
+            size_t iValue = gig::enumValue(gigvalue);
+            m_macro.setAutoValue(object, ToString(iValue));
+            // no auto correct here yet (due to numeric vs. textual values)
+            if (row[m_treeModelMacro.m_col_value] != value)
+                row[m_treeModelMacro.m_col_value] = value;
+        } else {
+            m_macro.setAutoValue(object, gigvalue);
+            // potentially auto correct (i.e. when type is bool, user entered 5 -> yields 1)
+            if (row[m_treeModelMacro.m_col_value] != m_macro.valueAsString(object))
+                row[m_treeModelMacro.m_col_value] = m_macro.valueAsString(object);
+        }
+        updateStatus();
     } catch (Serialization::Exception e) {
         errorText = e.Message;
     } catch (...) {

@@ -81,6 +81,9 @@ Version SVN HEAD (?)
     it (accessible via Alt+x).
   * Introduced configurable list of macros which are auto assigned to keyboard
     accelerators (F1 ... F12) and saved along with the app's config file.
+  * Macro Editor: Fixed deleting rows when delete button was hit without Ctrl
+    being pressed.
+  * Macro Editor: Show combo box with textual options for enum types.
 
 Version 1.0.0 (2015-07-17)
 

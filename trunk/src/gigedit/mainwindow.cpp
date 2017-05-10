@@ -914,6 +914,9 @@ void MainWindow::updateMacroMenu() {
         );
         menuMacro->append(*item);
         item->set_accel_path("<Macros>/macro_" + ToString(iMacro));
+        Glib::ustring comment = macro.comment();
+        if (!comment.empty())
+            item->set_tooltip_text(comment);
     }
     // if there are no macros configured at all, then show a dummy entry instead
     if (m_macros.empty()) {

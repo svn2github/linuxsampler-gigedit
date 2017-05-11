@@ -230,4 +230,21 @@ inline gig::DimensionRegion* dimensionRegionMatching(const DimensionCase& dimCas
     return NULL;
 }
 
+template<typename T_Message>
+class SignalGuard {
+public:
+    SignalGuard(sigc::signal<void, T_Message>& start, sigc::signal<void, T_Message>& end, T_Message message)
+        : m_end(end), m_message(message)
+    {
+        if (message) start.emit(message);
+    }
+
+    virtual ~SignalGuard() {
+        if (m_message) m_end.emit(m_message);
+    }
+protected:
+    sigc::signal<void, T_Message>& m_end;
+    T_Message m_message;
+};
+
 #endif // GIGEDIT_GLOBAL_H

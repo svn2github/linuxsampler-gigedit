@@ -49,12 +49,16 @@ class LinuxSamplerPlugin : public LinuxSampler::InstrumentEditor {
 
     private:
         void* pApp;
+        class LSPluginPrivate* priv;
 
         void __onSamplesToBeRemoved(std::list<gig::Sample*> lSamples);
         void __onVirtualKeyboardKeyHit(int Key, int Velocity);
         void __onVirtualKeyboardKeyReleased(int Key, int Velocity);
         void __requestSamplerToSwitchInstrument(gig::Instrument* pInstrument);
         bool __onPollPeriod();
+        void __onDimRegionToBeChanged(gig::DimensionRegion* pDimRgn);
+        void __onDimRegionChanged(gig::DimensionRegion* pDimRgn);
+        void __onDimRegionChangedDebounced();
 };
 
 #endif // GIGEDIT_LINUXSAMPLER_PLUGIN_H

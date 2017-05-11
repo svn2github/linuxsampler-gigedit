@@ -244,6 +244,19 @@ protected:
     InstrumentProps instrumentProps;
     MidiRules midiRules;
 
+    /**
+     * Ensures that the 2 signals MainWindow::dimreg_to_be_changed_signal and
+     * MainWindowv::dimreg_changed_signal are always triggered correctly as a
+     * pair. It behaves similar to a "mutex lock guard" design pattern.
+     */
+    class DimRegionChangeGuard : public SignalGuard<gig::DimensionRegion*> {
+    public:
+        DimRegionChangeGuard(MainWindow* w, gig::DimensionRegion* pDimReg) :
+        SignalGuard<gig::DimensionRegion*>(w->dimreg_to_be_changed_signal, w->dimreg_changed_signal, pDimReg)
+        {
+        }
+    };
+
     sigc::signal<void, gig::File*> file_structure_to_be_changed_signal;
     sigc::signal<void, gig::File*> file_structure_changed_signal;
     sigc::signal<void, std::list<gig::Sample*> > samples_to_be_removed_signal;

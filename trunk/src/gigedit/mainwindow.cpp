@@ -3923,9 +3923,8 @@ void MainWindow::applyMacro(Serialization::Archive& macro) {
          itDimReg != dimreg_edit.dimregs.end(); ++itDimReg)
     {
         gig::DimensionRegion* pDimRgn = *itDimReg;
-        dimreg_to_be_changed_signal.emit(pDimRgn);
+        DimRegionChangeGuard(this, pDimRgn);
         macro.deserialize(pDimRgn);
-        dimreg_changed_signal.emit(pDimRgn);
     }
     //region_changed()
     file_changed();

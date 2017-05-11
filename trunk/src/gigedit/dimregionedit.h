@@ -37,6 +37,7 @@
 #include <set>
 
 #include "paramedit.h"
+#include "global.h"
 
 class VelocityCurve : public Gtk::DrawingArea {
 public:
@@ -97,6 +98,19 @@ protected:
     sigc::signal<void, gig::Sample*/*old*/, gig::Sample*/*new*/> sample_ref_changed_signal;
     sigc::signal<void> instrument_changed;
     sigc::signal<void, gig::Sample*> select_sample_signal;
+
+    /**
+     * Ensures that the 2 signals DimRegionEdit::dimreg_to_be_changed_signal and
+     * DimRegionEdit::dimreg_changed_signal are always triggered correctly as a
+     * pair. It behaves similar to a "mutex lock guard" design pattern.
+     */
+    class DimRegionChangeGuard : public SignalGuard<gig::DimensionRegion*> {
+    public:
+        DimRegionChangeGuard(DimRegionEdit* edit, gig::DimensionRegion* pDimReg) :
+            SignalGuard<gig::DimensionRegion*>(edit->dimreg_to_be_changed_signal, edit->dimreg_changed_signal, pDimReg)
+        {
+        }
+    };
 
     gig::DimensionRegion* dimregion;
 
@@ -290,7 +304,7 @@ protected:
             for (std::set<gig::DimensionRegion*>::iterator i = dimregs.begin() ;
                  i != dimregs.end() ; ++i)
             {
-                dimreg_changed_signal(*i);
+                DimRegionChangeGuard(this, *i);
                 setter(this, *i, value);
             }
         }

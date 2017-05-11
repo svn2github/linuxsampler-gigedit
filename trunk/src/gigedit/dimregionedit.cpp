@@ -1330,7 +1330,7 @@ bool DimRegionEdit::set_sample(gig::DimensionRegion* dimreg, gig::Sample* sample
         //TODO: we should better move the code from MainWindow::on_sample_label_drop_drag_data_received() here
 
         // currently commented because we're sending a similar signal in MainWindow::on_sample_label_drop_drag_data_received()
-        //dimreg_to_be_changed_signal.emit(dimregion);
+        //DimRegionChangeGuard(this, dimregion);
 
         // make sure stereo samples always are the same in both
         // dimregs in the samplechannel dimension
@@ -1400,8 +1400,6 @@ bool DimRegionEdit::set_sample(gig::DimensionRegion* dimreg, gig::Sample* sample
         update_model--;
 
         sample_ref_changed_signal.emit(oldref, sample);
-        // currently commented because we're sending a similar signal in MainWindow::on_sample_label_drop_drag_data_received()
-        //dimreg_changed_signal.emit(dimreg);
         return true;
     }
     return false;
@@ -1470,24 +1468,24 @@ void DimRegionEdit::set_LoopEnabled(gig::DimensionRegion* d, bool value)
     if (value) {
         // create a new sample loop in case there is none yet
         if (!d->SampleLoops) {
+            DimRegionChangeGuard(this, d);
+
             DLS::sample_loop_t loop;
             loop.LoopType = gig::loop_type_normal;
             // loop the whole sample by default
             loop.LoopStart  = 0;
             loop.LoopLength =
                 (d->pSample) ? d->pSample->SamplesTotal : 0;
-            dimreg_to_be_changed_signal.emit(d);
             d->AddSampleLoop(&loop);
-            dimreg_changed_signal.emit(d);
         }
     } else {
         if (d->SampleLoops) {
-            dimreg_to_be_changed_signal.emit(d);
+            DimRegionChangeGuard(this, d);
+
             // delete ALL existing sample loops
             while (d->SampleLoops) {
                 d->DeleteSampleLoop(&d->pSampleLoops[0]);
             }
-            dimreg_changed_signal.emit(d);
         }
     }
 }
@@ -1537,7 +1535,7 @@ void DimRegionEdit::nullOutSampleReference() {
     gig::Sample* oldref = dimregion->pSample;
     if (!oldref) return;
 
-    dimreg_to_be_changed_signal.emit(dimregion);
+    DimRegionChangeGuard(this, dimregion);
 
     // in case currently assigned sample is a stereo one, then remove both
     // references (expected to be due to a "stereo dimension")
@@ -1575,7 +1573,6 @@ void DimRegionEdit::nullOutSampleReference() {
     set_dim_region(dimregion);
 
     sample_ref_changed_signal.emit(oldref, NULL);
-    dimreg_changed_signal.emit(dimregion);
 }
 
 void DimRegionEdit::onButtonSelectSamplePressed() {

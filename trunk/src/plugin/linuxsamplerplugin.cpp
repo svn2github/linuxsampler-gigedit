@@ -35,15 +35,27 @@
 #include <iostream>
 #include <sigc++/bind.h>
 #include <glibmm/main.h>
+#include <set>
 
 REGISTER_INSTRUMENT_EDITOR(LinuxSamplerPlugin)
 
+struct LSPluginPrivate {
+    std::set<gig::Region*> debounceRegionChange;
+    bool debounceRegionChangedScheduled;
+
+    LSPluginPrivate() {
+        debounceRegionChangedScheduled = false;
+    }
+};
+
 LinuxSamplerPlugin::LinuxSamplerPlugin() {
     pApp = new GigEdit;
+    priv = new LSPluginPrivate;
 }
 
 LinuxSamplerPlugin::~LinuxSamplerPlugin() {
     if (pApp) delete static_cast<GigEdit*>(pApp);
+    if (priv) delete priv;
 }
 
 int LinuxSamplerPlugin::Main(void* pInstrument, String sTypeName, String sTypeVersion, void* /*pUserData*/) {
@@ -95,20 +107,26 @@ int LinuxSamplerPlugin::Main(void* pInstrument, String sTypeName, String sTypeVe
         )
     );
     app->signal_dimreg_to_be_changed().connect(
-        sigc::bind(
+        // not connected directly anymore ...
+        /*sigc::bind(
             sigc::mem_fun(
                 *this, &LinuxSamplerPlugin::NotifyDataStructureToBeChanged
             ),
             "gig::DimensionRegion"
-        )
+        )*/
+        // ... because we are doing some event debouncing here :
+        sigc::mem_fun(*this, &LinuxSamplerPlugin::__onDimRegionToBeChanged)
     );
     app->signal_dimreg_changed().connect(
-        sigc::bind(
+        // not connected directly anymore ...
+        /*sigc::bind(
             sigc::mem_fun(
                 *this, &LinuxSamplerPlugin::NotifyDataStructureChanged
             ),
             "gig::DimensionRegion"
-        )
+        )*/
+        // ... because we are doing some event debouncing here :
+        sigc::mem_fun(*this, &LinuxSamplerPlugin::__onDimRegionChanged)
     );
     app->signal_sample_changed().connect(
         sigc::bind(
@@ -161,6 +179,60 @@ int LinuxSamplerPlugin::Main(void* pInstrument, String sTypeName, String sTypeVe
 
     // run gigedit application
     return app->run(pGigInstr);
+}
+
+void LinuxSamplerPlugin::__onDimRegionToBeChanged(gig::DimensionRegion* pDimRgn) {
+    // instead of sending this signal per dimregion ...
+    //NotifyDataStructureToBeChanged(pDimRgn, "gig::DimensionRegion");
+
+    // ... we are rather debouncing those dimregion to be changed events, and
+    // instead only send a region to be changed event, which is much faster when
+    // changing a very large amount of dimregions.
+    if (!pDimRgn) return;
+    gig::Region* pRegion = (gig::Region*) pDimRgn->GetParent();
+    const bool bIdle = priv->debounceRegionChange.empty();
+    bool bRegionLocked = priv->debounceRegionChange.count(pRegion);
+    if (!bRegionLocked) {
+        if (bIdle)
+            printf("DimRgn change event debounce BEGIN (%p)\n", pRegion);
+        priv->debounceRegionChange.insert(pRegion);
+        NotifyDataStructureToBeChanged(pRegion, "gig::Region");
+    }
+}
+
+void LinuxSamplerPlugin::__onDimRegionChanged(gig::DimensionRegion* pDimRgn) {
+    // like above, not sending this ...
+    //NotifyDataStructureChanged(pDimRgn, "gig::DimensionRegion");
+
+    // ... but rather aggressively debounce those dim region changed events and
+    // sending a debounced region changed event instead.
+    if (!pDimRgn) return;
+    if (!priv->debounceRegionChangedScheduled) {
+        priv->debounceRegionChangedScheduled = true;
+        Glib::signal_idle().connect_once(
+            sigc::mem_fun(*this, &LinuxSamplerPlugin::__onDimRegionChangedDebounced),
+            Glib::PRIORITY_HIGH_IDLE
+        );
+    }
+}
+
+void LinuxSamplerPlugin::__onDimRegionChangedDebounced() {
+    // Note that we are really aggressively unlocking the region here: we are
+    // not even bothering whether the amount "changed" events match with the
+    // previously sent amount of "to be changed" events, because this handler
+    // here is only called when the app's event loop is already idle for a
+    // while, which is not the case if the app is still changing instrument
+    // parameters (except if the app is i.e. currently showing an error dialog
+    // to the user).
+    priv->debounceRegionChangedScheduled = false;
+    for (std::set<gig::Region*>::const_iterator it = priv->debounceRegionChange.begin();
+         it != priv->debounceRegionChange.end(); ++it)
+    {
+        gig::Region* pRegion = *it;
+        NotifyDataStructureChanged(pRegion, "gig::Region");
+    }
+    priv->debounceRegionChange.clear();
+    printf("DimRgn change event debounce END\n");
 }
 
 bool LinuxSamplerPlugin::__onPollPeriod() {

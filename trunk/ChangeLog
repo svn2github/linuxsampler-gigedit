@@ -87,6 +87,9 @@ Version SVN HEAD (?)
   * "Macro" main menu section: show macro comments as tooltip.
   * Macro Editor: Display demangled C++ type names.
   * Macros Setup: Implemented cloning of macros.
+  * Live mode performance optimization: fixed the editor to be non-responsive
+    for a very long time, which happened if changing instrument parameters of a
+    very large amount of dimension regions was requested.
 
 Version 1.0.0 (2015-07-17)
 

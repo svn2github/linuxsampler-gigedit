@@ -21,6 +21,7 @@ MacrosSetup::MacrosSetup() :
     m_buttonUp(Gtk::Stock::GO_UP),
     m_buttonDown(Gtk::Stock::GO_DOWN),
     m_buttonEdit(Gtk::Stock::EDIT),
+    m_buttonDuplicate(_("Duplicate")),
     m_statusLabel("",  Gtk::ALIGN_START),
     m_labelComment(_("Comment"), Gtk::ALIGN_START),
     m_deleteButton("  " + Glib::ustring(_("Delete")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
@@ -41,6 +42,9 @@ MacrosSetup::MacrosSetup() :
     );
     m_addFromSelectionButton.set_image(
         *new Gtk::Image(Gtk::Stock::ADD, Gtk::ICON_SIZE_BUTTON)
+    );
+    m_buttonDuplicate.set_image(
+        *new Gtk::Image(Gtk::Stock::COPY, Gtk::ICON_SIZE_BUTTON)
     );
     m_deleteButton.set_image(
         *new Gtk::Image(Gtk::Stock::DELETE, Gtk::ICON_SIZE_BUTTON)
@@ -114,6 +118,7 @@ MacrosSetup::MacrosSetup() :
     m_mainHBox.pack_start(m_rvbox, Gtk::PACK_SHRINK);
     m_mainHBox.set_spacing(5),
     m_rvbox.set_spacing(5);
+    m_rvbox.pack_start(m_buttonDuplicate, Gtk::PACK_SHRINK);
     m_rvbox.pack_start(m_detailsButtonBox, Gtk::PACK_SHRINK);
 
     //m_textViewComment.set_left_margin(3);
@@ -136,6 +141,9 @@ MacrosSetup::MacrosSetup() :
     m_buttonBoxL.pack_start(m_inverseDeleteButton);
     m_deleteButton.set_sensitive(false);
     m_inverseDeleteButton.set_sensitive(false);
+    m_buttonDuplicate.set_sensitive(false);
+    m_buttonUp.set_sensitive(false);
+    m_buttonDown.set_sensitive(false);
 
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
     m_buttonBox.pack_start(m_applyButton);
@@ -178,6 +186,10 @@ MacrosSetup::MacrosSetup() :
 
     m_buttonEdit.signal_clicked().connect(
         sigc::mem_fun(*this, &MacrosSetup::onButtonEdit)
+    );
+
+    m_buttonDuplicate.signal_clicked().connect(
+        sigc::mem_fun(*this, &MacrosSetup::onButtonDuplicate)
     );
 
     m_textViewComment.get_buffer()->signal_changed().connect(
@@ -304,6 +316,12 @@ void MacrosSetup::onButtonDown() {
     moveByDir(+1);
 }
 
+void MacrosSetup::onButtonDuplicate() {
+    Glib::RefPtr<Gtk::TreeSelection> sel = m_treeViewMacros.get_selection();
+    std::vector<Gtk::TreeModel::Path> rows = sel->get_selected_rows();
+    duplicateRows(rows);
+}
+
 void MacrosSetup::onButtonEdit() {
     Serialization::Archive* macro = getSelectedMacro();
     if (!macro) return;
@@ -424,6 +442,9 @@ void MacrosSetup::onTreeViewSelectionChanged() {
     m_deleteButton.set_sensitive(bValidSelection);
     m_inverseDeleteButton.set_sensitive(bValidSelection);
     m_buttonEdit.set_sensitive(bValidSelection);
+    m_buttonDuplicate.set_sensitive(bValidSelection);
+    m_buttonUp.set_sensitive(bValidSelection);
+    m_buttonDown.set_sensitive(bValidSelection);
 
     // update comment text view
     std::string sComment;
@@ -502,8 +523,48 @@ void MacrosSetup::deleteSelectedRows() {
     deleteRows(rows);
 }
 
+void MacrosSetup::duplicateRows(const std::vector<Gtk::TreeModel::Path>& rows) {
+    if (!rows.empty()) m_modified = true;
+    bool bError = false;
+    for (int r = 0; r < rows.size(); ++r) {
+        Gtk::TreeModel::iterator it = m_treeStoreMacros->get_iter(rows[r]);
+        if (!it) continue;
+        Gtk::TreeModel::Row row = *it;
+        int index = row[m_treeModelMacros.m_col_index];
+        if (index < 0 || index >= m_macros.size()) continue;
+
+        Serialization::Archive clone = m_macros[index];
+        if (!endsWith(clone.name(), "COPY", true)) {
+            clone.setName(
+                (clone.name().empty()) ? "Unnamed COPY" : (clone.name() + " COPY")
+            );
+        }
+        try {
+            // enforce re-encoding the abstract object model and resetting the
+            // 'modified' state
+            clone.rawData();
+        } catch (Serialization::Exception e) {
+            bError = true;
+            e.PrintMessage();
+            continue;
+        } catch (...) {
+            bError = true;
+            std::cerr << "Unknown exception while cloning macro." << std::endl;
+            continue;
+        }
+        // finally add new cloned macro
+        m_macros.push_back(clone);
+    }
+    reloadTreeView();
+    if (bError) {
+        Glib::ustring txt = _("At least one of the macros could not be cloned due to an error (check console output).");
+        Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_ERROR);
+        msg.run();
+    }
+}
+
 void MacrosSetup::deleteRows(const std::vector<Gtk::TreeModel::Path>& rows) {
-    m_modified = !rows.empty();
+    if (!rows.empty()) m_modified = true;
     std::set<int> macros;
     for (int r = rows.size() - 1; r >= 0; --r) {
         Gtk::TreeModel::iterator it = m_treeStoreMacros->get_iter(rows[r]);
@@ -556,6 +617,9 @@ void MacrosSetup::updateStatus() {
     );
     m_addFromSelectionButton.set_sensitive(m_selectedDimRgn);
     m_buttonEdit.set_sensitive(bValidSelection);
+    m_buttonDuplicate.set_sensitive(bValidSelection);
+    m_buttonUp.set_sensitive(bValidSelection);
+    m_buttonDown.set_sensitive(bValidSelection);
     m_applyButton.set_sensitive(isModified());
     m_textViewComment.set_sensitive(bValidSelection);
     updateStatusBar();

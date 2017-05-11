@@ -122,6 +122,12 @@ template<class T> inline std::string ToString(T o) {
     return ss.str();
 }
 
+inline static bool endsWith(const std::string& haystack, const std::string& needle, bool caseSensitive) {
+    if (haystack.size() < needle.size()) return false;
+    const std::string sub = haystack.substr(haystack.size() - needle.size(), needle.size());
+    return (caseSensitive) ? (sub == needle) : (!strcasecmp(sub.c_str(), needle.c_str()));
+}
+
 inline int getDimensionIndex(gig::dimension_t type, gig::Region* rgn) {
     for (uint i = 0; i < rgn->Dimensions; ++i)
         if (rgn->pDimensionDefinitions[i].dimension == type)

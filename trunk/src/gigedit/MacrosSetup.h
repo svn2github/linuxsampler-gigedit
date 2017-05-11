@@ -105,6 +105,7 @@ protected:
     Gtk::Button m_buttonUp;
     Gtk::Button m_buttonDown;
     Gtk::Button m_buttonEdit;
+    Gtk::Button m_buttonDuplicate;
     Gtk::Label m_statusLabel;
     Gtk::Button m_deleteButton;
     Gtk::Button m_inverseDeleteButton;
@@ -126,6 +127,7 @@ protected:
     void onButtonDown();
     void moveByDir(int d);
     void onButtonEdit();
+    void onButtonDuplicate();
     void onCommentTextViewChanged();
     void onButtonCancel();
     void onButtonApply();
@@ -142,6 +144,7 @@ protected:
     void deleteSelectedRows();
     void inverseDeleteSelectedRows();
     void deleteRows(const std::vector<Gtk::TreeModel::Path>& rows);
+    void duplicateRows(const std::vector<Gtk::TreeModel::Path>& rows);
     bool onKeyPressed(GdkEventKey* key);
     bool onKeyReleased(GdkEventKey* key);
 };

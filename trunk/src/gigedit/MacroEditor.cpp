@@ -297,7 +297,6 @@ void MacroEditor::onMacroTreeViewKeyRelease(GdkEventKey* key) {
 }
 
 void MacroEditor::onValueCellEdited(const Glib::ustring& sPath, const Glib::ustring& text) {
-    printf("asdf\n");
     Gtk::TreePath path(sPath);
     Gtk::TreeModel::iterator iter = m_treeStoreMacro->get_iter(path);
     onMacroTreeViewRowValueChangedImpl(path, iter, text);

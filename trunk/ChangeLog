@@ -86,6 +86,7 @@ Version SVN HEAD (?)
   * Macro Editor: Show combo box with textual options for enum types.
   * "Macro" main menu section: show macro comments as tooltip.
   * Macro Editor: Display demangled C++ type names.
+  * Macros Setup: Implemented cloning of macros.
 
 Version 1.0.0 (2015-07-17)
 

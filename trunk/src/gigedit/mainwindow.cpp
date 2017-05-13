@@ -1204,7 +1204,7 @@ void Saver::thread_function()
                 // save the file as separate temporary file first,
                 // then move the saved file over the old file
                 // (may result in performance speedup during save)
-                String tmpname = filename + ".TMP";
+                gig::String tmpname = filename + ".TMP";
                 gig->Save(tmpname, &progress);
                 #if defined(WIN32)
                 if (!DeleteFile(filename.c_str())) {

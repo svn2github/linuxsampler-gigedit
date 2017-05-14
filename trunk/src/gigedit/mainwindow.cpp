@@ -1212,14 +1212,14 @@ void Saver::thread_function()
                 }
                 #else // POSIX ...
                 if (unlink(filename.c_str())) {
-                    throw RIFF::Exception("Could not replace original file with temporary file (unable to remove original file): " + String(strerror(errno)));
+                    throw RIFF::Exception("Could not replace original file with temporary file (unable to remove original file): " + gig::String(strerror(errno)));
                 }
                 #endif
                 if (rename(tmpname.c_str(), filename.c_str())) {
                     #if defined(WIN32)
                     throw RIFF::Exception("Could not replace original file with temporary file (unable to rename temp file).");
                     #else
-                    throw RIFF::Exception("Could not replace original file with temporary file (unable to rename temp file): " + String(strerror(errno)));
+                    throw RIFF::Exception("Could not replace original file with temporary file (unable to rename temp file): " + gig::String(strerror(errno)));
                     #endif
                 }
             }

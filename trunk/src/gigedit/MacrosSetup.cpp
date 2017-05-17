@@ -37,6 +37,20 @@ MacrosSetup::MacrosSetup() :
 
     set_default_size(680, 500);
 
+    m_labelIntro.set_padding(10, 10);
+#if GTKMM_MAJOR_VERSION >= 3
+    m_labelIntro.set_line_wrap();
+#endif
+    m_labelIntro.set_text(
+        _("A macro is a list of parameters and corresponding values which "
+          "should be applied to the instrument editor when the macro is "
+          "triggered by the user. A macro is triggered either by selecting "
+          "the macro from the \"Macro\" menu, or by hitting the macro's "
+          "respective keyboard accelerator (F1 to F12), or by applying a "
+          "previously copied macro from the clipboard.")
+    );
+    m_vbox.pack_start(m_labelIntro, Gtk::PACK_SHRINK);
+
     m_addFromClipboardButton.set_image(
         *new Gtk::Image(Gtk::Stock::ADD, Gtk::ICON_SIZE_BUTTON)
     );
@@ -54,6 +68,18 @@ MacrosSetup::MacrosSetup() :
     );
     m_addFromClipboardButton.set_tooltip_text(_("Create a new macro from the content currently available on the clipboard."));
     m_addFromSelectionButton.set_tooltip_text(_("Create a new macro from the currently selected dimension region's parameters currently shown on the main window."));
+    m_buttonDuplicate.set_tooltip_text(_("Duplicate the selected macro(s). The new macro(s) will be appended to the end of the list."));
+    m_buttonUp.set_tooltip_text(
+        _("Move the selected macro up in the list, which changes its order of "
+          "appearance in the main window's \"Macro\" menu and changes to which "
+          "keyboard accelerator key (F1 to F12) the macro is assigned to."));
+    m_buttonDown.set_tooltip_text(
+        _("Move the selected macro down in the list, which changes its order of "
+          "appearance in the main window's \"Macro\" menu and changes to which "
+          "keyboard accelerator key (F1 to F12) the macro is assigned to."));
+    m_buttonEdit.set_tooltip_text(_("Open the Macro Editor for the selected macro."));
+    m_deleteButton.set_tooltip_text(_("Delete the selected macros."));
+    m_inverseDeleteButton.set_tooltip_text(_("Delete all macros except the selected ones."));
     m_addHBox.pack_start(m_addFromClipboardButton, Gtk::PACK_EXPAND_WIDGET/*, 15*/);
     m_addHBox.pack_start(m_addFromSelectionButton, Gtk::PACK_EXPAND_WIDGET/*, 15*/);
     m_vbox.pack_start(m_addHBox, Gtk::PACK_SHRINK);
@@ -124,6 +150,11 @@ MacrosSetup::MacrosSetup() :
     //m_textViewComment.set_left_margin(3);
     //m_textViewComment.set_right_margin(3);
     m_textViewComment.set_indent(2);
+    m_textViewComment.set_tooltip_text(
+        _("Write arbitrary comments for the selected macro which help you to "
+          "remember the purpose of your macro. The comment will be shown as "
+          "tooltip in the main window's \"Macro\" menu for example.")
+    );
     m_scrolledWindowComment.add(m_textViewComment);
     m_scrolledWindowComment.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
     m_labelComment.set_markup(
@@ -423,7 +454,7 @@ void MacrosSetup::reloadTreeView() {
         Gtk::TreeModel::Row row = *iter;
         row[m_treeModelMacros.m_col_key] = indexToAccKey(iMacro);
         row[m_treeModelMacros.m_col_name] = macro.name().empty() ? _("Unnamed Macro") : gig_to_utf8(macro.name());
-        row[m_treeModelMacros.m_col_comment] = macro.comment().empty() ? _("No comment assigned yet.") : gig_to_utf8(macro.comment());
+        row[m_treeModelMacros.m_col_comment] = macro.comment().empty() ? _("No comment assigned to this macro yet.") : gig_to_utf8(macro.comment());
         row[m_treeModelMacros.m_col_created] = humanShortStr(macro.dateTimeCreated());
         row[m_treeModelMacros.m_col_modified] = humanShortStr(macro.dateTimeModified());
         row[m_treeModelMacros.m_col_index] = iMacro;

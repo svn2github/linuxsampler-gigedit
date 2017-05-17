@@ -23,16 +23,20 @@ MacroEditor::MacroEditor() :
 
     set_default_size(800, 600);
 
-    //FIXME: Commented out since Gtk::Label is a disaster when it comes to multi line content.
-    /*m_labelIntro.set_text(
+    m_labelIntro.set_padding(10, 10);
+#if GTKMM_MAJOR_VERSION >= 3
+    m_labelIntro.set_line_wrap();
+#endif
+    m_labelIntro.set_text(
         _("A macro is a list of parameters and corresponding values which "
           "should be applied to the instrument editor when the macro is "
-          "triggered by the user. A macro is triggered either by selecting "
-          "the macro from the \"Macro\" menu, or by hitting the macro's "
-          "respective keyboard accelerator (F1 to F12).")
+          "triggered by the user. Only the parameters listed here will be "
+          "applied to the instrument editor when this macro is triggered, all "
+          "other ones remain untouched. So simply delete parameters here which "
+          "you don't want to be modified by this macro. Double click on a "
+          "value to change it.")
     );
-    m_labelIntro.set_line_wrap();
-    m_vbox.pack_start(m_labelIntro, Gtk::PACK_SHRINK);*/
+    m_vbox.pack_start(m_labelIntro, Gtk::PACK_SHRINK);
 
     // create Macro treeview (including its data model)
     m_treeStoreMacro = MacroTreeStore::create(m_treeModelMacro);
@@ -147,6 +151,9 @@ MacroEditor::MacroEditor() :
     signal_key_release_event().connect(
         sigc::mem_fun(*this, &MacroEditor::onKeyReleased)
     );
+
+    m_deleteButton.set_tooltip_text(_("Delete the selected parameters from this macro."));
+    m_inverseDeleteButton.set_tooltip_text(_("Delete all parameters from this macro except the selected ones."));
 
     show_all_children();
     updateStatus();

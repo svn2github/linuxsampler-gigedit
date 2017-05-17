@@ -23,6 +23,7 @@
 #include "compat.h"
 #include <gtkmm/uimanager.h>
 #include <gtkmm/actiongroup.h>
+#include "wrapLabel.hh"
 #include "ManagedWindow.h"
 
 /** @brief Setup all gigedit macros.
@@ -65,6 +66,11 @@ protected:
     Gtk::HButtonBox m_buttonBoxL;
     Gtk::HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
+#if GTKMM_MAJOR_VERSION < 3
+    view::WrapLabel m_labelIntro;
+#else
+    Gtk::Label m_labelIntro;
+#endif
 
     class MacroListModel : public Gtk::TreeModel::ColumnRecord {
     public:

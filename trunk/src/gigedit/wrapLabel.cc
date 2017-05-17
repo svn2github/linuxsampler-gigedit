@@ -1,5 +1,6 @@
 /* *************************************************************************
  * Copyright (c) 2005 VMware, Inc.
+ * Copyright (c) 2011 - 2017 Andreas Persson
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -187,6 +188,11 @@ WrapLabel::SetWrapWidth(int width) // IN: The wrap width
       return;
    }
 
+   int xPadding, yPadding;
+   get_padding(xPadding, yPadding);
+
+   width -= 2 * xPadding;
+
    /*
     * We may need to reset the wrap width, so do this regardless of whether
     * or not we've changed the width.
@@ -195,6 +201,7 @@ WrapLabel::SetWrapWidth(int width) // IN: The wrap width
 
    int unused;
    get_layout()->get_pixel_size(unused, mWrapHeight);
+   mWrapHeight += 2 * yPadding;
 
    if (mWrapWidth != width) {
       mWrapWidth = width;

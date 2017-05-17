@@ -90,6 +90,8 @@ Version SVN HEAD (?)
   * Live mode performance optimization: fixed the editor to be non-responsive
     for a very long time, which happened if changing instrument parameters of a
     very large amount of dimension regions was requested.
+  * Macro Editor: Handle boolean parameter types appropriately, i.e. show
+    'Yes' or 'NO' instead of '1' or '0'.
 
 Version 1.0.0 (2015-07-17)
 

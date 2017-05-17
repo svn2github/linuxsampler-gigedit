@@ -58,8 +58,8 @@ MacroEditor::MacroEditor() :
         //column->set_renderer(m_valueCellRenderer, m_treeModelMacro.m_col_value);
         column->add_attribute(m_valueCellRenderer.property_text(),
                               m_treeModelMacro.m_col_value);
-        //column->add_attribute(m_valueCellRenderer.property_has_entry(),
-        //                      m_treeModelMacro.m_col_allowTextEntry);
+        column->add_attribute(m_valueCellRenderer.property_has_entry(),
+                              m_treeModelMacro.m_col_allowTextEntry);
         column->add_attribute(m_valueCellRenderer.property_editable(),
                               m_treeModelMacro.m_col_editable);
         column->add_attribute(m_valueCellRenderer.property_model(),
@@ -196,6 +196,14 @@ Glib::RefPtr<Gtk::ListStore> MacroEditor::createComboOptions(const char** option
     return refOptions;
 }
 
+inline static Serialization::String _boolToStr(bool b) {
+    // 'NO' intentional all uper case in contrast to 'Yes', simply because I
+    // find them easier distinguishable that way on quick readings
+    return b ? "Yes" : "NO";
+}
+
+static const char* _boolOptions[] = { "Yes", "NO", NULL };
+
 void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Serialization::Object& parentObject) {
     for (int iMember = 0; iMember < parentObject.members().size(); ++iMember) {
         const Serialization::Member& member = parentObject.members()[iMember];
@@ -205,7 +213,7 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
         row[m_treeModelMacro.m_col_name] = gig_to_utf8(member.name());
         row[m_treeModelMacro.m_col_type] = gig_to_utf8(member.type().asLongDescr());
         row[m_treeModelMacro.m_col_uid]  = object.uid();
-        row[m_treeModelMacro.m_col_allowTextEntry] = false;
+        row[m_treeModelMacro.m_col_allowTextEntry] = true;
 
         if (object.type().isClass()) {
             row[m_treeModelMacro.m_col_value] = "(class)";
@@ -222,6 +230,12 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
                 Glib::RefPtr<Gtk::ListStore> refOptions = createComboOptions(allKeys);
                 row[m_treeModelMacro.m_col_options] = refOptions;
             }
+        } else if (object.type().isBool()) {
+            row[m_treeModelMacro.m_col_value] =  _boolToStr( m_macro.valueAsBool(object) );
+            row[m_treeModelMacro.m_col_editable] = true;
+            Glib::RefPtr<Gtk::ListStore> refOptions = createComboOptions(_boolOptions);
+            row[m_treeModelMacro.m_col_options] = refOptions;
+            row[m_treeModelMacro.m_col_allowTextEntry] = false;
         } else {
             row[m_treeModelMacro.m_col_value] = m_macro.valueAsString(object);
             row[m_treeModelMacro.m_col_editable] = true;
@@ -338,6 +352,12 @@ void MacroEditor::onMacroTreeViewRowValueChangedImpl(const Gtk::TreeModel::Path&
             // no auto correct here yet (due to numeric vs. textual values)
             if (row[m_treeModelMacro.m_col_value] != value)
                 row[m_treeModelMacro.m_col_value] = value;
+        } else if (object.type().isBool()) {
+            m_macro.setAutoValue(object, gigvalue);
+            Serialization::String sBoolean = _boolToStr( m_macro.valueAsBool(object) );
+            // potentially auto correct (i.e. when type is bool, user entered '5' -> yields 'Yes')
+            if (row[m_treeModelMacro.m_col_value] != sBoolean)
+                row[m_treeModelMacro.m_col_value] = sBoolean;
         } else {
             m_macro.setAutoValue(object, gigvalue);
             // potentially auto correct (i.e. when type is bool, user entered 5 -> yields 1)

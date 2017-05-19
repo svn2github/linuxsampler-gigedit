@@ -1,4 +1,4 @@
-AM_CPPFLAGS = $(GTKMM_CFLAGS) $(GIG_CFLAGS)
+AM_CPPFLAGS = $(GTKMM_CFLAGS) $(GTK_CFLAGS) $(GIG_CFLAGS)
 
 pkglibdir = $(LINUXSAMPLER_PLUGIN_DIR)
 
@@ -9,7 +9,7 @@ libgigeditlinuxsamplerplugin_la_SOURCES = \
 	linuxsamplerplugin.h
 libgigeditlinuxsamplerplugin_la_LIBADD = \
 	$(top_builddir)/src/gigedit/libgigedit.la \
-	$(GTKMM_LIBS) $(GIG_LIBS)
+	$(GTKMM_LIBS) $(GTK_LIBS) $(GIG_LIBS)
 libgigeditlinuxsamplerplugin_la_CXXFLAGS = \
 	$(LINUXSAMPLER_CFLAGS)
 libgigeditlinuxsamplerplugin_la_LDFLAGS = \

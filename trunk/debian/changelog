@@ -1,3 +1,11 @@
+gigedit (1.0.0-1+svn48) unreleased; urgency=low
+
+  * Added dependency to either gnome-icon-theme or hicolor-icon-theme,
+    which contain icons required by gigedit.
+  * Added build dependency to either libgtk2.0-dev or libgtk-3-dev.
+
+ -- Christian Schoenebeck <cuse@users.sourceforge.net>  Fri, 19 May 2017 19:53:53 +0200
+
 gigedit (1.0.0-1+svn1) unreleased; urgency=low
 
   * Adjusted build dependency requiring now either libgtkmm-2.4-dev or

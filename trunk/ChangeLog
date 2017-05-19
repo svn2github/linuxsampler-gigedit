@@ -92,6 +92,11 @@ Version SVN HEAD (?)
     very large amount of dimension regions was requested.
   * Macro Editor: Handle boolean parameter types appropriately, i.e. show
     'Yes' or 'NO' instead of '1' or '0'.
+  * GTK3: Bringing back icons and keyboard accelerators / mnemonics for menus
+    and buttons with GTK3; Cudos to those GTK heros who thought it might be
+    a clever idea to simply remove such features for all users, all devices
+    and all apps by default with GTK3!
+  * Autoconf: check for presence of at least gtk+-2.0-dev.
 
 Version 1.0.0 (2015-07-17)
 

@@ -1,4 +1,4 @@
-AM_CPPFLAGS = $(GTKMM_CFLAGS) $(GIG_CFLAGS)
+AM_CPPFLAGS = $(GTKMM_CFLAGS) $(GTK_CFLAGS) $(GIG_CFLAGS)
 DEFS = -DLOCALEDIR=\"$(datadir)/locale\" @DEFS@
 
 if HAVE_GTK3
@@ -39,7 +39,7 @@ libgigedit_la_SOURCES = \
 	ManagedWindow.cpp ManagedWindow.h \
 	$(wraplabel) $(mac_src)
 libgigedit_la_LIBADD = \
-	$(GTKMM_LIBS) $(GIG_LIBS) $(SNDFILE_LIBS) gfx/libgigeditgfx.la
+	$(GTKMM_LIBS) $(GTK_LIBS) $(GIG_LIBS) $(SNDFILE_LIBS) gfx/libgigeditgfx.la
 libgigedit_la_CXXFLAGS = \
 	$(SNDFILE_CFLAGS)
 libgigedit_la_LDFLAGS = \
@@ -48,7 +48,7 @@ libgigedit_la_LDFLAGS = \
 
 bin_PROGRAMS = gigedit
 gigedit_SOURCES = main.cpp
-gigedit_LDADD = libgigedit.la $(SIGC_LIBS)
+gigedit_LDADD = libgigedit.la $(SIGC_LIBS) $(GTK_LIBS) $(GTKMM_LIBS)
 if WINDOWS
 gigedit_LDFLAGS = -mwindows
 endif

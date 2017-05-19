@@ -5,7 +5,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 m4_define(gigedit_ver_major, 1)
 m4_define(gigedit_ver_minor, 0)
-m4_define(gigedit_ver_release, 0.svn47)
+m4_define(gigedit_ver_release, 0.svn48)
 
 AC_INIT([gigedit], [gigedit_ver_major.gigedit_ver_minor.gigedit_ver_release])
 AC_CONFIG_SRCDIR([configure.ac])
@@ -78,6 +78,10 @@ AM_CONDITIONAL(MAC, test "$mac" = "yes")
 # libtool errors on non-Mac systems due to this.
 AC_PROG_OBJC
 AC_PROG_OBJCXX
+
+PKG_CHECK_EXISTS(gtk+-3.0 >= 2.99,
+        [PKG_CHECK_MODULES([GTK], [gtk+-3.0])],
+        [PKG_CHECK_MODULES([GTK], [gtk+-2.0])])
 
 PKG_PROG_PKG_CONFIG
 have_gtk3=no

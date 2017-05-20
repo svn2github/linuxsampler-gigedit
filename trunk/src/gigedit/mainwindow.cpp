@@ -654,6 +654,7 @@ MainWindow::MainWindow() :
     // Add the TreeView's view columns:
     m_TreeView.append_column(_("Nr"), m_Columns.m_col_nr);
     m_TreeView.append_column_editable(_("Instrument"), m_Columns.m_col_name);
+    m_TreeView.append_column(_("Scripts"), m_Columns.m_col_scripts);
     m_TreeView.set_headers_visible(true);
     
     // establish drag&drop within the instrument tree view, allowing to reorder
@@ -2098,12 +2099,14 @@ void MainWindow::load_gig(gig::File* gig, const char* filename, bool isSharedIns
     for (gig::Instrument* instrument = gig->GetFirstInstrument() ; instrument ;
          instrument = gig->GetNextInstrument(), ++index) {
         Glib::ustring name(gig_to_utf8(instrument->pInfo->Name));
+        const int iScriptSlots = instrument->ScriptSlotCount();
 
         Gtk::TreeModel::iterator iter = m_refTreeModel->append();
         Gtk::TreeModel::Row row = *iter;
         row[m_Columns.m_col_nr] = index;
         row[m_Columns.m_col_name] = name;
         row[m_Columns.m_col_instr] = instrument;
+        row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
 
         add_instrument_to_menu(name);
     }
@@ -2242,8 +2245,24 @@ void MainWindow::show_script_slots() {
 
     ScriptSlots* window = new ScriptSlots;
     window->setInstrument(instrument);
+    window->signal_script_slots_changed().connect(
+        sigc::mem_fun(*this, &MainWindow::onScriptSlotsModified)
+    );
     //window->reparent(*this);
     window->show();
+}
+
+void MainWindow::onScriptSlotsModified(gig::Instrument* pInstrument) {
+    if (!pInstrument) return;
+    const int iScriptSlots = pInstrument->ScriptSlotCount();
+
+    Glib::RefPtr<Gtk::TreeModel> model = m_TreeView.get_model();
+    for (int i = 0; i < model->children().size(); ++i) {
+        Gtk::TreeModel::Row row = model->children()[i];
+        if (row[m_Columns.m_col_instr] != pInstrument) continue;
+        row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
+        break;
+    }
 }
 
 void MainWindow::on_action_refresh_all() {
@@ -2560,6 +2579,7 @@ void MainWindow::add_instrument(gig::Instrument* instrument) {
     rowInstr[m_Columns.m_col_nr] = m_refTreeModel->children().size() - 1;
     rowInstr[m_Columns.m_col_name] = name;
     rowInstr[m_Columns.m_col_instr] = instrument;
+    rowInstr[m_Columns.m_col_scripts] = "";
     instrument_name_connection.unblock();
 
     add_instrument_to_menu(name);

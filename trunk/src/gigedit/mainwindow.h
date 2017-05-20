@@ -291,6 +291,7 @@ protected:
     void setupMacros();
     void onMacrosSetupChanged(const std::vector<Serialization::Archive>& macros);
     void applyMacro(Serialization::Archive& macro);
+    void onScriptSlotsModified(gig::Instrument* pInstrument);
 
     void dimreg_all_dimregs_toggled();
     gig::Instrument* get_instrument();
@@ -303,11 +304,13 @@ protected:
           add(m_col_nr);
           add(m_col_name);
           add(m_col_instr);
+          add(m_col_scripts);
         }
 
         Gtk::TreeModelColumn<int> m_col_nr;
         Gtk::TreeModelColumn<Glib::ustring> m_col_name;
         Gtk::TreeModelColumn<gig::Instrument*> m_col_instr;
+        Gtk::TreeModelColumn<Glib::ustring> m_col_scripts;
     } m_Columns;
 
     Gtk::VBox m_VBox;

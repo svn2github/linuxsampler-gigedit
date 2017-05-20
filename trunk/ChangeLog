@@ -97,6 +97,8 @@ Version SVN HEAD (?)
     a clever idea to simply remove such features for all users, all devices
     and all apps by default with GTK3!
   * Autoconf: check for presence of at least gtk+-2.0-dev.
+  * Instruments list view: show amount of real-time instruments scripts used
+    by instrument.
 
 Version 1.0.0 (2015-07-17)
 

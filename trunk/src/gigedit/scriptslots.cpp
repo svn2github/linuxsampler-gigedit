@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014 Christian Schoenebeck
+    Copyright (c) 2014 - 2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -111,6 +111,8 @@ void ScriptSlots::onScriptDragNDropDataReceived(
         appendNewSlot(script);
         // drop success
         context->drop_reply(true, time);
+        // inform i.e. main window
+        script_slots_changed_signal.emit(m_instrument);
     } else {
         // drop failed
         context->drop_reply(false, time);
@@ -165,6 +167,7 @@ void ScriptSlots::moveSlotUp(int slotID) {
             if (i != 0) {
                 m_instrument->SwapScriptSlots(i, i-1);
                 refreshSlots();
+                script_slots_changed_signal.emit(m_instrument);
             }
             break;
         }
@@ -177,6 +180,7 @@ void ScriptSlots::moveSlotDown(int slotID) {
             if (i < m_instrument->ScriptSlotCount() - 1) {
                 m_instrument->SwapScriptSlots(i, i+1);
                 refreshSlots();
+                script_slots_changed_signal.emit(m_instrument);
             }
             break;
         }
@@ -188,9 +192,14 @@ void ScriptSlots::deleteSlot(int slotID) {
         if (m_slots[i].id == slotID) {
             m_instrument->RemoveScriptSlot(i);
             refreshSlots();
+            script_slots_changed_signal.emit(m_instrument);
             break;
         }
     }
+}
+
+sigc::signal<void, gig::Instrument*>& ScriptSlots::signal_script_slots_changed() {
+    return script_slots_changed_signal;
 }
 
 void ScriptSlots::onButtonClose() {

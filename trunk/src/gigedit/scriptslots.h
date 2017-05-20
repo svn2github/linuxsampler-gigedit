@@ -26,6 +26,8 @@ public:
    ~ScriptSlots();
     void setInstrument(gig::Instrument* instrument);
 
+    sigc::signal<void, gig::Instrument*>& signal_script_slots_changed();
+
     // implementation for abstract methods of interface class "ManagedWindow"
     virtual Settings::Property<int>* windowSettingX() { return &Settings::singleton()->scriptSlotsWindowX; }
     virtual Settings::Property<int>* windowSettingY() { return &Settings::singleton()->scriptSlotsWindowY; }
@@ -42,6 +44,8 @@ protected:
         Gtk::Button* deleteButton;
         gig::Script* script;
     };
+
+    sigc::signal<void, gig::Instrument*> script_slots_changed_signal;
 
     Gtk::VBox m_vbox;
     Gtk::Label m_generalInfoLabel;

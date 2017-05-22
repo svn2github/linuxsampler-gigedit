@@ -5,9 +5,9 @@
     GNU General Public License version 2.
 */
 
+#include "global.h"
 #include "Settings.h"
 #include <glib.h>
-#include "global.h"
 #include <glibmm/keyfile.h>
 #include <iostream>
 #include <stdio.h>

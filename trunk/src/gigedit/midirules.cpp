@@ -17,11 +17,11 @@
  * 02110-1301, USA.
  */
 
+#include "global.h"
 #include "midirules.h"
 
 #include <gtkmm/stock.h>
 
-#include "global.h"
 
 MidiRules::MidiRules() :
     label(_("Midi rule:")),

@@ -5,12 +5,12 @@
     GNU General Public License version 2.
 */
 
+#include "global.h"
 #include "CombineInstrumentsDialog.h"
 
 // enable this for debug messages being printed while combining the instruments
 #define DEBUG_COMBINE_INSTRUMENTS 0
 
-#include "global.h"
 #include "compat.h"
 
 #include <set>

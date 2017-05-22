@@ -17,10 +17,7 @@
  * 02110-1301 USA.
  */
 
-#if HAVE_CONFIG_H
-# include <config.h>
-#endif
-
+#include "global.h"
 #include <gtk/gtk.h>
 #include "gigedit.h"
 #include <gtkmm.h>

@@ -17,6 +17,7 @@
  * 02110-1301 USA.
  */
 
+#include "global.h"
 #include <gtkmm/box.h>
 #include "dimregionchooser.h"
 #include <cairomm/context.h>
@@ -29,7 +30,6 @@
 #include <gtkmm/messagedialog.h>
 #include <assert.h>
 
-#include "global.h"
 #include "gfx/builtinpix.h"
 
 //TODO: this function and dimensionCaseOf() from global.h are duplicates, eliminate either one of them!

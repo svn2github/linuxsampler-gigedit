@@ -17,6 +17,7 @@
  * 02110-1301 USA.
  */
 
+#include "global.h"
 #include "regionchooser.h"
 
 #include <algorithm>
@@ -30,7 +31,6 @@
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/dialog.h>
 
-#include "global.h"
 #include "Settings.h"
 #include "gfx/builtinpix.h"
 

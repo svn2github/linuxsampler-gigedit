@@ -17,9 +17,9 @@
  * 02110-1301 USA.
  */
 
+#include "global.h"
 #include "dimregionedit.h"
 
-#include "global.h"
 #include "compat.h"
 
 VelocityCurve::VelocityCurve(double (gig::DimensionRegion::*getter)(uint8_t)) :

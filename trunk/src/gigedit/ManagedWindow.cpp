@@ -5,10 +5,10 @@
     GNU General Public License version 2.
 */
 
+#include "global.h"
 #include "ManagedWindow.h"
 #include <typeinfo>
 #include <glib.h>
-#include "global.h"
 
 ///////////////////////////////////////////////////////////////////////////
 // class 'ManagedWindow'

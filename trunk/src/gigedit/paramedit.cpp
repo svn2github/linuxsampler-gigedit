@@ -17,9 +17,9 @@
  * 02110-1301 USA.
  */
 
+#include "global.h"
 #include "paramedit.h"
 
-#include "global.h"
 #include "compat.h"
 #include "Settings.h"
 

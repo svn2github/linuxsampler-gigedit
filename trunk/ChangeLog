@@ -99,6 +99,8 @@ Version SVN HEAD (?)
   * Autoconf: check for presence of at least gtk+-2.0-dev.
   * Instruments list view: show amount of real-time instruments scripts used
     by instrument.
+  * Script Editor: Fixed Gtk crash while entering a variety of ill formed code
+    like unterminated string literals.
 
 Version 1.0.0 (2015-07-17)
 

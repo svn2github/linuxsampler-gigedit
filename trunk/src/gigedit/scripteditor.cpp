@@ -339,7 +339,14 @@ LinuxSampler::ScriptVM* ScriptEditor::GetScriptVM() {
 }
 
 static void getIteratorsForIssue(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampler::ParserIssue& issue, Gtk::TextBuffer::iterator& start, Gtk::TextBuffer::iterator& end) {
-    start = txtbuf->get_iter_at_line_index(issue.firstLine - 1, issue.firstColumn - 1);
+    Gtk::TextBuffer::iterator itLine =
+        txtbuf->get_iter_at_line_index(issue.firstLine - 1, 0);
+    const int charsInLine = itLine.get_bytes_in_line();
+    start = txtbuf->get_iter_at_line_index(
+        issue.firstLine - 1,
+        // check we are not getting past the end of the line here, otherwise Gtk crashes
+        issue.firstColumn - 1 < charsInLine ? issue.firstColumn - 1 : charsInLine - 1
+    );
     end = start;
     end.forward_lines(issue.lastLine - issue.firstLine);
     end.forward_chars(
@@ -350,8 +357,14 @@ static void getIteratorsForIssue(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const Li
 }
 
 static void applyCodeTag(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampler::VMSourceToken& token, Glib::RefPtr<Gtk::TextBuffer::Tag>& tag) {
-    Gtk::TextBuffer::iterator itStart =
-        txtbuf->get_iter_at_line_index(token.firstLine(), token.firstColumn());
+    Gtk::TextBuffer::iterator itLine =
+        txtbuf->get_iter_at_line_index(token.firstLine(), 0);
+    const int charsInLine = itLine.get_bytes_in_line();
+    Gtk::TextBuffer::iterator itStart = txtbuf->get_iter_at_line_index(
+        token.firstLine(),
+        // check we are not getting past the end of the line here, otherwise Gtk crashes
+        token.firstColumn() < charsInLine ? token.firstColumn() : charsInLine - 1
+    );
     Gtk::TextBuffer::iterator itEnd = itStart;
     const int length = token.text().length();
     itEnd.forward_chars(length);

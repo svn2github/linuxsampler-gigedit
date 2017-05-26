@@ -101,6 +101,9 @@ Version SVN HEAD (?)
     by instrument.
   * Script Editor: Fixed Gtk crash while entering a variety of ill formed code
     like unterminated string literals.
+  * Assigned more useful default dimensions (and default position) for various
+    windows and dialogs (if auto-restore of user's own custom window
+    dimensions is disabled).
 
 Version 1.0.0 (2015-07-17)
 

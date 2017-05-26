@@ -785,6 +785,11 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
       m_descriptionLabel(), m_tableDimCombo(2, 2), m_comboDimType(),
       m_labelDimType(Glib::ustring(_("Combine by Dimension:")) + "  ", Gtk::ALIGN_END)
 {
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(500, 600);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     m_scrolledWindow.add(m_treeView);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 

@@ -35,7 +35,10 @@ MacrosSetup::MacrosSetup() :
 
     set_title(_("Setup Macros"));
 
-    set_default_size(680, 500);
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(680, 500);
+        set_position(Gtk::WIN_POS_CENTER);
+    }
 
     m_labelIntro.set_padding(10, 10);
 #if GTKMM_MAJOR_VERSION >= 3

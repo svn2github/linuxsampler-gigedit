@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2014 Andreas Persson
+ * Copyright (C) 2006-2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -249,6 +249,11 @@ DimensionManager::DimensionManager() :
 {
     ignoreColumnClicked = true;
 
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(630, 250);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     set_title(_("Dimensions of selected Region"));
     add(vbox);
     scrolledWindow.add(treeView);
@@ -297,8 +302,6 @@ DimensionManager::DimensionManager() :
     );
 
     show_all_children();
-    
-    resize(460,300);
 }
 
 bool DimensionManager::allRegions() const {

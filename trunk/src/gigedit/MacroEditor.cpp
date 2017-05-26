@@ -21,7 +21,10 @@ MacroEditor::MacroEditor() :
 {
     add(m_vbox);
 
-    set_default_size(800, 600);
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(800, 600);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
 
     m_labelIntro.set_padding(10, 10);
 #if GTKMM_MAJOR_VERSION >= 3

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 Andreas Persson
+ * Copyright (C) 2013-2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,6 +28,11 @@ MidiRules::MidiRules() :
     quit_button(Gtk::Stock::CLOSE),
     unknown(_("unknown"))
 {
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        //set_default_size(470, 390);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     set_title(_("Midi Rules"));
     set_border_width(6);
 

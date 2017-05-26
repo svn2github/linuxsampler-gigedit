@@ -78,7 +78,11 @@ MainWindow::MainWindow() :
     loadBuiltInPix();
 
 //    set_border_width(5);
-//    set_default_size(400, 200);
+
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(800, 600);
+        set_position(Gtk::WIN_POS_CENTER);
+    }
 
     add(m_VBox);
 
@@ -1816,6 +1820,7 @@ void MainWindow::on_action_help_about()
     dialog.set_comments(sComment.c_str());
     dialog.set_website("http://www.linuxsampler.org");
     dialog.set_website_label("http://www.linuxsampler.org");
+    dialog.set_position(Gtk::WIN_POS_CENTER);
     dialog.run();
 }
 
@@ -1841,6 +1846,11 @@ PropDialog::PropDialog()
       table(2, 1),
       m_file(NULL)
 {
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(470, 390);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     set_title(_("File Properties"));
     eName.set_width_chars(50);
 
@@ -1975,6 +1985,11 @@ InstrumentProps::InstrumentProps() :
     eDimensionKeyRangeLow(_("Keyswitching range low")),
     eDimensionKeyRangeHigh(_("Keyswitching range high"))
 {
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        //set_default_size(470, 390);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     set_title(_("Instrument Properties"));
 
     eDimensionKeyRangeLow.set_tip(
@@ -3558,7 +3573,6 @@ void MainWindow::instrument_name_changed(const Gtk::TreeModel::Path& path,
 void MainWindow::on_action_combine_instruments() {
     CombineInstrumentsDialog* d = new CombineInstrumentsDialog(*this, file);
     d->show_all();
-    d->resize(500, 400);
     d->run();
     if (d->fileWasChanged()) {
         // update GUI with new instrument just created

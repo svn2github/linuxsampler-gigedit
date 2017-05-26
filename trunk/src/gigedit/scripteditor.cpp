@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2016 Christian Schoenebeck
+    Copyright (c) 2014-2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -67,6 +67,11 @@ ScriptEditor::ScriptEditor() :
 #if USE_LS_SCRIPTVM
     m_vm = NULL;
 #endif
+
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(800, 700);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
 
     // depending on GTK version and installed themes, there may be different
     // icons, and different names for them, so for each type of icon we use,

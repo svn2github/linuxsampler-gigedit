@@ -13,6 +13,11 @@ ScriptSlots::ScriptSlots() :
 {
     m_instrument = NULL;
 
+    if (!Settings::singleton()->autoRestoreWindowDimension) {
+        set_default_size(460,300);
+        set_position(Gtk::WIN_POS_MOUSE);
+    }
+
     add(m_vbox);
     
     m_generalInfoLabel.set_text(_(
@@ -58,8 +63,6 @@ ScriptSlots::ScriptSlots() :
     );
 
     show_all_children();
-
-    resize(460,300);
 }
 
 ScriptSlots::~ScriptSlots() {

@@ -1064,6 +1064,7 @@ void RegionChooser::show_region_properties()
     // add OK and CANCEL buttons to the dialog
     dialog.add_button(Gtk::Stock::OK, 0);
     dialog.add_button(Gtk::Stock::CANCEL, 1);
+    dialog.set_position(Gtk::WIN_POS_MOUSE);
     dialog.show_all_children();
     if (!dialog.run()) { // OK selected ...
         region->KeyGroup =

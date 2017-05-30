@@ -54,6 +54,10 @@ void macHelperRunCFuncOnMainThread(void (*fn)(void* info), void* info) {
     #endif
 }
 
+void macRaiseAppWindow() {
+    [NSApp activateIgnoringOtherApps:YES];
+}
+
 #if defined(__cplusplus)
 }
 #endif // __cplusplus

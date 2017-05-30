@@ -104,6 +104,7 @@ Version SVN HEAD (?)
   * Assigned more useful default dimensions (and default position) for various
     windows and dialogs (if auto-restore of user's own custom window
     dimensions is disabled).
+  * Mac fix: Make sure app window appears in front of all other apps.
 
 Version 1.0.0 (2015-07-17)
 

@@ -292,6 +292,7 @@ protected:
     void onMacrosSetupChanged(const std::vector<Serialization::Archive>& macros);
     void applyMacro(Serialization::Archive& macro);
     void onScriptSlotsModified(gig::Instrument* pInstrument);
+    void bringToFront();
 
     void dimreg_all_dimregs_toggled();
     gig::Instrument* get_instrument();

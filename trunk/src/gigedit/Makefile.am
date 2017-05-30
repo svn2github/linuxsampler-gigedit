@@ -9,7 +9,7 @@ endif
 
 if MAC
 mac_src = MacHelper.h MacHelper.mm
-mac_ld = -framework Foundation
+mac_ld = -framework Foundation -framework AppKit
 else
 mac_src =
 mac_ld =

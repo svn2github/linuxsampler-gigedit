@@ -62,6 +62,9 @@
 #include "gfx/builtinpix.h"
 #include "MacroEditor.h"
 #include "MacrosSetup.h"
+#if defined(__APPLE__)
+# include "MacHelper.h"
+#endif
 
 MainWindow::MainWindow() :
     m_DimRegionChooser(*this),
@@ -875,10 +878,23 @@ MainWindow::MainWindow() :
 
         updateMacroMenu();
     }
+
+    Glib::signal_idle().connect_once(
+        sigc::mem_fun(*this, &MainWindow::bringToFront),
+        200
+    );
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::bringToFront() {
+    #if defined(__APPLE__)
+    macRaiseAppWindow();
+    #endif
+    raise();
+    present();
 }
 
 void MainWindow::updateMacroMenu() {

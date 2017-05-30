@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2013 Christian Schoenebeck
+    Copyright (c) 2013 - 2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -23,6 +23,12 @@ extern "C" {
  * @param info - arbitrary pointer which will be passed to the callback call
  */
 void macHelperRunCFuncOnMainThread(void (*fn)(void* info), void* info);
+
+/**
+ * Calling this function ensures that the app windows really becomes visible
+ * in front of all other windows if the window is raised.
+ */
+void macRaiseAppWindow();
 
 #if defined(__cplusplus)
 }

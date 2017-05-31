@@ -12,7 +12,7 @@
 
 static const std::string _keywords[] = {
     "on", "end", "declare", "while", "if", "or", "and", "not", "else", "case",
-    "select", "to", "const", "polyphonic", "mod"
+    "select", "to", "const", "polyphonic", "mod", "synchronized"
 };
 static int _keywordsSz = sizeof(_keywords) / sizeof(std::string);
 

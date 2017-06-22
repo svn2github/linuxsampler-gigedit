@@ -73,6 +73,7 @@ protected:
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_preprocTag;
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_errorTag;
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_warningTag;
+    Glib::RefPtr<Gtk::TextBuffer::Tag> m_preprocCommentTag;
     Gtk::TextView m_textView;
     Gtk::Image m_statusImage;
     Gtk::Label m_statusLabel;
@@ -92,6 +93,7 @@ protected:
     std::vector<LinuxSampler::ParserIssue> m_issues;
     std::vector<LinuxSampler::ParserIssue> m_errors;
     std::vector<LinuxSampler::ParserIssue> m_warnings;
+    std::vector<LinuxSampler::CodeBlock> m_preprocComments;
 #endif
 
     bool isModified() const;

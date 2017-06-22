@@ -85,6 +85,8 @@ protected:
     Gdk::RGBA red, blue, black, white;
     Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;
     Cairo::RefPtr<Cairo::SurfacePattern> blueHatchedSurfacePattern;
+    Glib::RefPtr<Gdk::Pixbuf> blueHatchedPattern2ARGB;
+    Cairo::RefPtr<Cairo::SurfacePattern> blueHatchedSurfacePattern2;
     Glib::RefPtr<Gdk::Pixbuf> grayBlueHatchedPatternARGB;
     Cairo::RefPtr<Cairo::SurfacePattern> grayBlueHatchedSurfacePattern;
 

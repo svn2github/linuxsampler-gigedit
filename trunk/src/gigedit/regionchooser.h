@@ -103,8 +103,8 @@ protected:
     gig::Region* get_region(int key);
 
     Gdk::RGBA activeKeyColor, blue, grey1, white, black;
-    Glib::RefPtr<Gdk::Pixbuf> grayBlueHatchedPatternARGB;
-    Cairo::RefPtr<Cairo::SurfacePattern> grayBlueHatchedSurfacePattern;
+    Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;
+    Cairo::RefPtr<Cairo::SurfacePattern> blueHatchedSurfacePattern;
 
     sigc::signal<void> region_selected;
     sigc::signal<void> instrument_changed;

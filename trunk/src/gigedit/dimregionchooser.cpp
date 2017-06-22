@@ -80,7 +80,7 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
     // make sure blue hatched pattern pixmap is loaded
     loadBuiltInPix();
 
-    // create blue hatched pattern
+    // create blue hatched pattern 1
     {
         const int width = blueHatchedPattern->get_width();
         const int height = blueHatchedPattern->get_height();
@@ -108,6 +108,36 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         );
         this->blueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
         this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+    }
+
+    // create blue hatched pattern 2
+    {
+        const int width = blueHatchedPattern2->get_width();
+        const int height = blueHatchedPattern2->get_height();
+        const int stride = blueHatchedPattern2->get_rowstride();
+
+        // manually convert from RGBA to ARGB
+        this->blueHatchedPattern2ARGB = blueHatchedPattern2->copy();
+        const int pixelSize = stride / width;
+        const int totalPixels = width * height;
+        assert(pixelSize == 4);
+        unsigned char* ptr = this->blueHatchedPattern2ARGB->get_pixels();
+        for (int iPixel = 0; iPixel < totalPixels; ++iPixel, ptr += pixelSize) {
+            const unsigned char r = ptr[0];
+            const unsigned char g = ptr[1];
+            const unsigned char b = ptr[2];
+            const unsigned char a = ptr[3];
+            ptr[0] = b;
+            ptr[1] = g;
+            ptr[2] = r;
+            ptr[3] = a;
+        }
+
+        Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+            this->blueHatchedPattern2ARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+        );
+        this->blueHatchedSurfacePattern2 = Cairo::SurfacePattern::create(imageSurface);
+        this->blueHatchedSurfacePattern2->set_extend(Cairo::EXTEND_REPEAT);
     }
 
     // create gray blue hatched pattern
@@ -451,9 +481,9 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                         if (isMainSelection)
                             Gdk::Cairo::set_source_rgba(cr, blue);
                         else if (isSelectedZone)
-                            cr->set_source(blueHatchedSurfacePattern);
+                            cr->set_source(blueHatchedSurfacePattern2);
                         else if (isCheckBoxSelected)
-                            cr->set_source(grayBlueHatchedSurfacePattern);
+                            cr->set_source(blueHatchedSurfacePattern);
                         else
                             Gdk::Cairo::set_source_rgba(cr, white);
 
@@ -524,9 +554,9 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                             if (isMainSelection)
                                 Gdk::Cairo::set_source_rgba(cr, blue);
                             else if (isSelectedZone)
-                                cr->set_source(blueHatchedSurfacePattern);
+                                cr->set_source(blueHatchedSurfacePattern2);
                             else if (isCheckBoxSelected)
-                                cr->set_source(grayBlueHatchedSurfacePattern);
+                                cr->set_source(blueHatchedSurfacePattern);
                             else
                                 Gdk::Cairo::set_source_rgba(cr, white);
                             cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);

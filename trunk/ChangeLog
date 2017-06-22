@@ -107,6 +107,7 @@ Version SVN HEAD (?)
   * Mac fix: Make sure app window appears in front of all other apps.
   * Script Editor: only if compiled without liblinuxsampler; added support for
     new NKSP language keyword "synchronized".
+  * Script Editor: strike through code blocks filtered out by the preprocessor.
 
 Version 1.0.0 (2015-07-17)
 

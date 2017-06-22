@@ -9,6 +9,7 @@ extern Glib::RefPtr<Gdk::Pixbuf> redDot;
 extern Glib::RefPtr<Gdk::Pixbuf> yellowDot;
 extern Glib::RefPtr<Gdk::Pixbuf> blackLoop;
 extern Glib::RefPtr<Gdk::Pixbuf> blueHatchedPattern;
+extern Glib::RefPtr<Gdk::Pixbuf> blueHatchedPattern2;
 extern Glib::RefPtr<Gdk::Pixbuf> grayBlueHatchedPattern;
 extern Glib::RefPtr<Gdk::Pixbuf> grayLoop;
 

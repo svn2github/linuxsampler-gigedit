@@ -7,6 +7,7 @@ libgigeditgfx_la_SOURCES = \
 	black_loop.c \
 	blue_hatched_pattern.c \
 	grayblue_hatched_pattern.c \
+	grayblue_hatched_pattern2.c \
 	gray_loop.c \
 	red_dot.c \
 	yellow_dot.c

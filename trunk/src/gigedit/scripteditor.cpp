@@ -132,9 +132,16 @@ ScriptEditor::ScriptEditor() :
     m_commentTag->property_foreground() = "#9c9c9c"; // gray
     m_tagTable->add(m_commentTag);
 
+    #define PREPROC_TOKEN_COLOR  "#2f8a33" // green
+
     m_preprocTag = Gtk::TextBuffer::Tag::create();
-    m_preprocTag->property_foreground() = "#2f8a33"; // green
+    m_preprocTag->property_foreground() = PREPROC_TOKEN_COLOR;
     m_tagTable->add(m_preprocTag);
+
+    m_preprocCommentTag = Gtk::TextBuffer::Tag::create();
+    m_preprocCommentTag->property_strikethrough() = true;
+    m_preprocCommentTag->property_background() = "#e5e5e5";
+    m_tagTable->add(m_preprocCommentTag);
 
     m_errorTag = Gtk::TextBuffer::Tag::create();
     m_errorTag->property_background() = "#ff9393"; // red
@@ -343,7 +350,8 @@ LinuxSampler::ScriptVM* ScriptEditor::GetScriptVM() {
     return m_vm;
 }
 
-static void getIteratorsForIssue(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampler::ParserIssue& issue, Gtk::TextBuffer::iterator& start, Gtk::TextBuffer::iterator& end) {
+template<class T>
+static void getIteratorsForIssue(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const T& issue, Gtk::TextBuffer::iterator& start, Gtk::TextBuffer::iterator& end) {
     Gtk::TextBuffer::iterator itLine =
         txtbuf->get_iter_at_line_index(issue.firstLine - 1, 0);
     const int charsInLine = itLine.get_bytes_in_line();
@@ -379,6 +387,12 @@ static void applyCodeTag(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampl
 static void applyCodeTag(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampler::ParserIssue& issue, Glib::RefPtr<Gtk::TextBuffer::Tag>& tag) {
     Gtk::TextBuffer::iterator itStart, itEnd;
     getIteratorsForIssue(txtbuf, issue, itStart, itEnd);
+    txtbuf->apply_tag(tag, itStart, itEnd);
+}
+
+static void applyPreprocessorComment(Glib::RefPtr<Gtk::TextBuffer>& txtbuf, const LinuxSampler::CodeBlock& block, Glib::RefPtr<Gtk::TextBuffer::Tag>& tag) {
+    Gtk::TextBuffer::iterator itStart, itEnd;
+    getIteratorsForIssue(txtbuf, block, itStart, itEnd);
     txtbuf->apply_tag(tag, itStart, itEnd);
 }
 
@@ -421,6 +435,7 @@ void ScriptEditor::updateParserIssuesByVM() {
     m_issues = parserContext->issues();
     m_errors = parserContext->errors();
     m_warnings = parserContext->warnings();
+    m_preprocComments = parserContext->preprocessorComments();
 
     if (!s.empty()) {
         for (int i = 0; i < m_issues.size(); ++i) {
@@ -432,6 +447,11 @@ void ScriptEditor::updateParserIssuesByVM() {
                 applyCodeTag(m_textBuffer, issue, m_warningTag);
             }
         }
+    }
+
+    for (int i = 0; i < m_preprocComments.size(); ++i) {
+        applyPreprocessorComment(m_textBuffer, m_preprocComments[i],
+                                 m_preprocCommentTag);
     }
 
     delete parserContext;
@@ -462,6 +482,23 @@ void ScriptEditor::updateIssueTooltip(GdkEventMotion* e) {
             m_textView.set_tooltip_markup(
                 (issue.isErr() ? "<span foreground=\"#ff9393\">ERROR:</span> " : "<span foreground=\"#c4950c\">Warning:</span> ") +
                 issue.txt
+            );
+            return;
+        }
+    }
+
+    for (int i = 0; i < m_preprocComments.size(); ++i) {
+        const LinuxSampler::CodeBlock& block = m_preprocComments[i];
+        const int firstLine   = block.firstLine - 1;
+        const int firstColumn = block.firstColumn - 1;
+        const int lastLine    = block.lastLine - 1;
+        const int lastColumn  = block.lastColumn - 1;
+        if (firstLine  <= line && line <= lastLine &&
+            (firstLine != line || firstColumn <= column) &&
+            (lastLine  != line || lastColumn  >= column))
+        {
+            m_textView.set_tooltip_markup(
+                "Code block filtered out by preceding <span foreground=\"" PREPROC_TOKEN_COLOR "\">preprocessor</span> statement."
             );
             return;
         }

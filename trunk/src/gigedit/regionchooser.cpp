@@ -98,18 +98,18 @@ RegionChooser::RegionChooser() :
 
     loadBuiltInPix();
 
-    // create gray blue hatched pattern
+    // create blue hatched pattern
     {
-        const int width = grayBlueHatchedPattern->get_width();
-        const int height = grayBlueHatchedPattern->get_height();
-        const int stride = grayBlueHatchedPattern->get_rowstride();
+        const int width = blueHatchedPattern->get_width();
+        const int height = blueHatchedPattern->get_height();
+        const int stride = blueHatchedPattern->get_rowstride();
 
         // manually convert from RGBA to ARGB
-        this->grayBlueHatchedPatternARGB = grayBlueHatchedPattern->copy();
+        this->blueHatchedPatternARGB = blueHatchedPattern->copy();
         const int pixelSize = stride / width;
         const int totalPixels = width * height;
         assert(pixelSize == 4);
-        unsigned char* ptr = this->grayBlueHatchedPatternARGB->get_pixels();
+        unsigned char* ptr = this->blueHatchedPatternARGB->get_pixels();
         for (int iPixel = 0; iPixel < totalPixels; ++iPixel, ptr += pixelSize) {
             const unsigned char r = ptr[0];
             const unsigned char g = ptr[1];
@@ -122,10 +122,10 @@ RegionChooser::RegionChooser() :
         }
 
         Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
-            this->grayBlueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+            this->blueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
         );
-        this->grayBlueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
-        this->grayBlueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+        this->blueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+        this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
     }
 
     instrument = 0;
@@ -377,7 +377,7 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
                 if (region == r)
                     Gdk::Cairo::set_source_rgba(cr, blue);
                 else if (modifyallregions)
-                    cr->set_source(grayBlueHatchedSurfacePattern);
+                    cr->set_source(blueHatchedSurfacePattern);
                 else
                     Gdk::Cairo::set_source_rgba(cr, white);
 

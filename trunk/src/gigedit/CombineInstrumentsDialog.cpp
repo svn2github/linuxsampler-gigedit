@@ -796,6 +796,8 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     get_vbox()->pack_start(m_descriptionLabel, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_tableDimCombo, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_scrolledWindow);
+    get_vbox()->pack_start(m_labelOrder, Gtk::PACK_SHRINK);
+    get_vbox()->pack_start(m_iconView, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_buttonBox, Gtk::PACK_SHRINK);
 
 #if GTKMM_MAJOR_VERSION >= 3
@@ -872,6 +874,43 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         row[m_columns.m_col_instr] = instr;
     }
 
+    m_refOrderModel = Gtk::ListStore::create(m_orderColumns);
+    m_iconView.set_model(m_refOrderModel);
+    m_iconView.set_tooltip_text(_("Use drag & drop to change the order."));
+    m_iconView.set_markup_column(1);
+    m_iconView.set_selection_mode(Gtk::SELECTION_SINGLE);
+    // force background to retain white also on selections
+    // (this also fixes a bug with GTK 2 which often causes visibility issue
+    //  with the text of the selected item)
+    {
+        Gdk::Color white;
+        white.set("#ffffff");
+        m_iconView.modify_base(Gtk::STATE_SELECTED, white);
+        m_iconView.modify_base(Gtk::STATE_ACTIVE, white);
+        m_iconView.modify_bg(Gtk::STATE_SELECTED, white);
+        m_iconView.modify_bg(Gtk::STATE_ACTIVE, white);
+    }
+
+    m_labelOrder.set_text(_("Order of the instruments to be combined:"));
+
+    // establish drag&drop within the instrument tree view, allowing to reorder
+    // the sequence of instruments within the gig file
+    {
+        std::vector<Gtk::TargetEntry> drag_target_instrument;
+        drag_target_instrument.push_back(Gtk::TargetEntry("gig::Instrument"));
+        m_iconView.drag_source_set(drag_target_instrument);
+        m_iconView.drag_dest_set(drag_target_instrument);
+        m_iconView.signal_drag_begin().connect(
+            sigc::mem_fun(*this, &CombineInstrumentsDialog::on_order_drag_begin)
+        );
+        m_iconView.signal_drag_data_get().connect(
+            sigc::mem_fun(*this, &CombineInstrumentsDialog::on_order_drag_data_get)
+        );
+        m_iconView.signal_drag_data_received().connect(
+            sigc::mem_fun(*this, &CombineInstrumentsDialog::on_order_drop_drag_data_received)
+        );
+    }
+
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
     m_buttonBox.set_border_width(5);
     m_buttonBox.pack_start(m_cancelButton, Gtk::PACK_SHRINK);
@@ -905,6 +944,118 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     }
 }
 
+void CombineInstrumentsDialog::on_order_drag_begin(const Glib::RefPtr<Gdk::DragContext>& context)
+{
+    printf("Drag begin\n");
+    first_call_to_drag_data_get = true;
+}
+
+void CombineInstrumentsDialog::on_order_drag_data_get(const Glib::RefPtr<Gdk::DragContext>& context,
+                                                       Gtk::SelectionData& selection_data, guint, guint)
+{
+    printf("Drag data get\n");
+    if (!first_call_to_drag_data_get) return;
+    first_call_to_drag_data_get = false;
+
+    // get selected source instrument
+    gig::Instrument* src = NULL;
+    {
+        std::vector<Gtk::TreeModel::Path> rows = m_iconView.get_selected_items();
+        if (!rows.empty()) {
+            Gtk::TreeModel::iterator it = m_refOrderModel->get_iter(rows[0]);
+            if (it) {
+                Gtk::TreeModel::Row row = *it;
+                src = row[m_orderColumns.m_col_instr];
+            }
+        }
+    }
+    if (!src) {
+        printf("Drag data get: !src\n");
+        return;
+    }
+    printf("src=%ld\n", (size_t)src);
+
+    // pass the source gig::Instrument as pointer
+    selection_data.set(selection_data.get_target(), 0/*unused*/, (const guchar*)&src,
+                       sizeof(src)/*length of data in bytes*/);
+}
+
+void CombineInstrumentsDialog::on_order_drop_drag_data_received(
+    const Glib::RefPtr<Gdk::DragContext>& context, int x, int y,
+    const Gtk::SelectionData& selection_data, guint, guint time)
+{
+    printf("Drag data received\n");
+    if (&selection_data == NULL) {
+        printf("!selection_data\n");
+        return;
+    }
+    if (!selection_data.get_data()) {
+        printf("selection_data.get_data() == NULL\n");
+        return;
+    }
+
+    gig::Instrument* src = *((gig::Instrument**) selection_data.get_data());
+    if (!src || selection_data.get_length() != sizeof(gig::Instrument*)) {
+        printf("!src\n");
+        return;
+    }
+    printf("src=%d\n", src);
+
+    gig::Instrument* dst = NULL;
+    {
+        Gtk::TreeModel::Path path = m_iconView.get_path_at_pos(x, y);
+        if (!path) return;
+
+        Gtk::TreeModel::iterator iter = m_refOrderModel->get_iter(path);
+        if (!iter) return;
+        Gtk::TreeModel::Row row = *iter;
+        dst = row[m_orderColumns.m_col_instr];
+    }
+    if (!dst) {
+        printf("!dst\n");
+        return;
+    }
+
+    printf("dragdrop received src='%s' dst='%s'\n", src->pInfo->Name.c_str(), dst->pInfo->Name.c_str());
+
+    // swap the two items
+    typedef Gtk::TreeModel::Children Children;
+    Children children = m_refOrderModel->children();
+    Children::iterator itSrc, itDst;
+    int i = 0, iSrc = -1, iDst = -1;
+    for (Children::iterator iter = children.begin();
+         iter != children.end(); ++iter, ++i)
+    {
+        Gtk::TreeModel::Row row = *iter;
+        if (row[m_orderColumns.m_col_instr] == src) {
+            itSrc = iter;
+            iSrc  = i;
+        } else if (row[m_orderColumns.m_col_instr] == dst) {
+            itDst = iter;
+            iDst  = i;
+        }
+    }
+    if (itSrc && itDst) {
+        // swap elements
+        m_refOrderModel->iter_swap(itSrc, itDst);
+        // update markup
+        Gtk::TreeModel::Row rowSrc = *itSrc;
+        Gtk::TreeModel::Row rowDst = *itDst;
+        {
+            Glib::ustring name = rowSrc[m_orderColumns.m_col_name];
+            Glib::ustring markup =
+                "<span foreground='black' background='white'>" + ToString(iDst+1) + ".</span>\n<span foreground='green' background='white'>" + name + "</span>";
+            rowSrc[m_orderColumns.m_col_markup] = markup;
+        }
+        {
+            Glib::ustring name = rowDst[m_orderColumns.m_col_name];
+            Glib::ustring markup =
+                "<span foreground='black' background='white'>" + ToString(iSrc+1) + ".</span>\n<span foreground='green' background='white'>" + name + "</span>";
+            rowDst[m_orderColumns.m_col_markup] = markup;
+        }
+    }
+}
+
 void CombineInstrumentsDialog::setSelectedInstruments(const std::set<int>& instrumentIndeces) {
     typedef Gtk::TreeModel::Children Children;
     Children children = m_refTreeModel->children();
@@ -920,16 +1071,21 @@ void CombineInstrumentsDialog::setSelectedInstruments(const std::set<int>& instr
 
 void CombineInstrumentsDialog::combineSelectedInstruments() {
     std::vector<gig::Instrument*> instruments;
-    std::vector<Gtk::TreeModel::Path> v = m_treeView.get_selection()->get_selected_rows();
-    for (uint i = 0; i < v.size(); ++i) {
-        Gtk::TreeModel::iterator it = m_refTreeModel->get_iter(v[i]);
-        Gtk::TreeModel::Row row = *it;
-        Glib::ustring name = row[m_columns.m_col_name];
-        gig::Instrument* instrument = row[m_columns.m_col_instr];
-        #if DEBUG_COMBINE_INSTRUMENTS
-        printf("Selection '%s' 0x%lx\n\n", name.c_str(), int64_t((void*)instrument));
-        #endif
-        instruments.push_back(instrument);
+    {
+        typedef Gtk::TreeModel::Children Children;
+        int i = 0;
+        Children selection = m_refOrderModel->children();
+        for (Children::iterator it = selection.begin();
+             it != selection.end(); ++it, ++i)
+        {
+            Gtk::TreeModel::Row row = *it;
+            Glib::ustring name = row[m_orderColumns.m_col_name];
+            gig::Instrument* instrument = row[m_orderColumns.m_col_instr];
+            #if DEBUG_COMBINE_INSTRUMENTS
+            printf("Selection %d. '%s' %p\n\n", (i+1), name.c_str(), instrument));
+            #endif
+            instruments.push_back(instrument);
+        }
     }
 
     g_warnings.clear();
@@ -946,7 +1102,7 @@ void CombineInstrumentsDialog::combineSelectedInstruments() {
             mainDimension = static_cast<gig::dimension_t>(iTypeID);
         }
 
-        // now start the actual cobination task ...
+        // now start the actual combination task ...
         combineInstruments(instruments, m_gig, m_newCombinedInstrument, mainDimension);
     } catch (RIFF::Exception e) {;
         Gtk::MessageDialog msg(*this, e.Message, false, Gtk::MESSAGE_ERROR);
@@ -986,6 +1142,71 @@ void CombineInstrumentsDialog::combineSelectedInstruments() {
 void CombineInstrumentsDialog::onSelectionChanged() {
     std::vector<Gtk::TreeModel::Path> v = m_treeView.get_selection()->get_selected_rows();
     m_OKButton.set_sensitive(v.size() >= 2);
+
+    typedef Gtk::TreeModel::Children Children;
+
+    // update horizontal selection list (icon view) ...
+
+    // remove items which are not part of the new selection anymore
+    {
+        Children allOrdered = m_refOrderModel->children();
+        for (Children::iterator itOrder = allOrdered.begin();
+             itOrder != allOrdered.end(); ++itOrder)
+        {
+            Gtk::TreeModel::Row rowOrder = *itOrder;
+            gig::Instrument* instr = rowOrder[m_orderColumns.m_col_instr];
+            for (uint i = 0; i < v.size(); ++i) {
+                Gtk::TreeModel::iterator itSel = m_refTreeModel->get_iter(v[i]);
+                Gtk::TreeModel::Row rowSel = *itSel;
+                if (rowSel[m_columns.m_col_instr] == instr)
+                    goto nextOrderedItem;
+            }
+            goto removeOrderedItem;
+        nextOrderedItem:
+            continue;
+        removeOrderedItem:
+            m_refOrderModel->erase(itOrder);
+        }
+    }
+
+    // add items newly added to the selection
+    for (uint i = 0; i < v.size(); ++i) {
+        Gtk::TreeModel::iterator itSel = m_refTreeModel->get_iter(v[i]);
+        Gtk::TreeModel::Row rowSel = *itSel;
+        gig::Instrument* instr = rowSel[m_columns.m_col_instr];
+        Children allOrdered = m_refOrderModel->children();
+        for (Children::iterator itOrder = allOrdered.begin();
+             itOrder != allOrdered.end(); ++itOrder)
+        {
+            Gtk::TreeModel::Row rowOrder = *itOrder;
+            if (rowOrder[m_orderColumns.m_col_instr] == instr)
+                goto nextSelectionItem;
+        }
+        goto addNewSelectionItem;
+    nextSelectionItem:
+        continue;
+    addNewSelectionItem:
+        Glib::ustring name = gig_to_utf8(instr->pInfo->Name);
+        Gtk::TreeModel::iterator iterOrder = m_refOrderModel->append();
+        Gtk::TreeModel::Row rowOrder = *iterOrder;
+        rowOrder[m_orderColumns.m_col_name] = name;
+        rowOrder[m_orderColumns.m_col_instr] = instr;
+    }
+
+    // update markup
+    {
+        int i = 0;
+        Children allOrdered = m_refOrderModel->children();
+        for (Children::iterator itOrder = allOrdered.begin();
+             itOrder != allOrdered.end(); ++itOrder, ++i)
+        {
+            Gtk::TreeModel::Row rowOrder = *itOrder;
+            Glib::ustring name = rowOrder[m_orderColumns.m_col_name];
+            Glib::ustring markup =
+                "<span foreground='black' background='white'>" + ToString(i+1) + ".</span>\n<span foreground='green' background='white'>" + name + "</span>";
+            rowOrder[m_orderColumns.m_col_markup] = markup;
+        }
+    }
 }
 
 bool CombineInstrumentsDialog::fileWasChanged() const {

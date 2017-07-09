@@ -2623,6 +2623,7 @@ void MainWindow::add_instrument(gig::Instrument* instrument) {
     add_instrument_to_menu(name);
 
     m_TreeView.get_selection()->select(iterInstr);
+    m_TreeView.scroll_to_row(Gtk::TreePath(iterInstr));
 
     file_changed();
 }

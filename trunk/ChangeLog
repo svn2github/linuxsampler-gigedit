@@ -113,6 +113,10 @@ Version SVN HEAD (?)
     already in the main window's instruments list view; then either call the
     combine instrument dialog from the main menu or use the new keyboard
     shortcut Ctrl + j.
+  * Combine Tool: Added a vertical list which represents the order of the
+    selected instruments to be combined; dragging them modifies their order.
+  * Combine Tool: After returning from the combine tool dialog, automatically
+    scroll to the newly added (combined) instrument.
 
 Version 1.0.0 (2015-07-17)
 

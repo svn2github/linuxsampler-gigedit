@@ -19,6 +19,7 @@
 #include <gtkmm/dialog.h>
 #include <gtkmm/treeview.h>
 #include <gtkmm/liststore.h>
+#include <gtkmm/iconview.h>
 #include <gtkmm/table.h>
 #include <gtkmm/comboboxtext.h>
 #include <gtkmm/scrolledwindow.h>
@@ -59,6 +60,7 @@ protected:
     Gtk::HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
     Gtk::TreeView   m_treeView;
+    Gtk::IconView   m_iconView;
     Gtk::Button     m_cancelButton;
     Gtk::Button     m_OKButton;
 #if GTKMM_MAJOR_VERSION < 3
@@ -69,6 +71,7 @@ protected:
     Gtk::Table      m_tableDimCombo;
     Gtk::ComboBox   m_comboDimType;
     Gtk::Label      m_labelDimType;
+    Gtk::Label      m_labelOrder;
 
     class ComboDimsModel : public Gtk::TreeModel::ColumnRecord {
     public:
@@ -94,10 +97,32 @@ protected:
         Gtk::TreeModelColumn<gig::Instrument*> m_col_instr;
     } m_columns;
 
+    class OrderListModel : public Gtk::TreeModel::ColumnRecord {
+    public:
+        OrderListModel() {
+            add(m_col_name);
+            add(m_col_markup);
+            add(m_col_instr);
+        }
+
+        Gtk::TreeModelColumn<Glib::ustring>    m_col_name;
+        Gtk::TreeModelColumn<Glib::ustring>    m_col_markup;
+        Gtk::TreeModelColumn<gig::Instrument*> m_col_instr;
+    } m_orderColumns;
+
     Glib::RefPtr<Gtk::ListStore> m_refTreeModel;
+    Glib::RefPtr<Gtk::ListStore> m_refOrderModel;
+    bool first_call_to_drag_data_get;
 
     void combineSelectedInstruments();
     void onSelectionChanged();
+    void on_order_drag_begin(const Glib::RefPtr<Gdk::DragContext>& context);
+    void on_order_drag_data_get(const Glib::RefPtr<Gdk::DragContext>&,
+                                Gtk::SelectionData& selection_data, guint, guint);
+    void on_order_drop_drag_data_received(
+        const Glib::RefPtr<Gdk::DragContext>& context, int x, int y,
+        const Gtk::SelectionData& selection_data, guint, guint time
+    );
 };
 
 #endif // GIGEDIT_COMBINEINSTRUMENTSDIALOG

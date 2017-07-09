@@ -23,6 +23,7 @@
 #include <gtkmm/stock.h>
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/label.h>
+#include <gtk/gtkwidget.h> // for gtk_widget_modify_*()
 
 Glib::ustring dimTypeAsString(gig::dimension_t d);
 
@@ -885,10 +886,11 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     {
         Gdk::Color white;
         white.set("#ffffff");
-        m_iconView.modify_base(Gtk::STATE_SELECTED, white);
-        m_iconView.modify_base(Gtk::STATE_ACTIVE, white);
-        m_iconView.modify_bg(Gtk::STATE_SELECTED, white);
-        m_iconView.modify_bg(Gtk::STATE_ACTIVE, white);
+        GtkWidget* widget = (GtkWidget*) m_iconView.gobj();
+        gtk_widget_modify_base(widget, GTK_STATE_SELECTED, white.gobj());
+        gtk_widget_modify_base(widget, GTK_STATE_ACTIVE, white.gobj());
+        gtk_widget_modify_bg(widget, GTK_STATE_SELECTED, white.gobj());
+        gtk_widget_modify_bg(widget, GTK_STATE_ACTIVE, white.gobj());
     }
 
     m_labelOrder.set_text(_("Order of the instruments to be combined:"));

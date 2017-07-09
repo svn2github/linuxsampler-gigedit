@@ -26,6 +26,8 @@
 #include "wrapLabel.hh"
 #include "ManagedWindow.h"
 
+#include <set>
+
 /**
  * @brief Modal dialog which allows to merge instruments.
  *
@@ -41,6 +43,7 @@ public:
     CombineInstrumentsDialog(Gtk::Window& parent, gig::File* gig);
     bool fileWasChanged() const;
     gig::Instrument* newCombinedInstrument() const;
+    void setSelectedInstruments(const std::set<int>& instrumentIndeces);
 
     // implementation for abstract methods of interface class "ManagedDialog"
     virtual Settings::Property<int>* windowSettingX() { return &Settings::singleton()->combineInstrumentsWindowX; }
@@ -81,10 +84,12 @@ protected:
     class ListModel : public Gtk::TreeModel::ColumnRecord {
     public:
         ListModel() {
+            add(m_col_index);
             add(m_col_name);
             add(m_col_instr);
         }
 
+        Gtk::TreeModelColumn<int> m_col_index;
         Gtk::TreeModelColumn<Glib::ustring>    m_col_name;
         Gtk::TreeModelColumn<gig::Instrument*> m_col_instr;
     } m_columns;

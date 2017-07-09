@@ -108,6 +108,11 @@ Version SVN HEAD (?)
   * Script Editor: only if compiled without liblinuxsampler; added support for
     new NKSP language keyword "synchronized".
   * Script Editor: strike through code blocks filtered out by the preprocessor.
+  * Combine Tool: Show instruments' index number in the list view.
+  * Combine Tool: Now it allows to select the instruments to be combined
+    already in the main window's instruments list view; then either call the
+    combine instrument dialog from the main menu or use the new keyboard
+    shortcut Ctrl + j.
 
 Version 1.0.0 (2015-07-17)
 

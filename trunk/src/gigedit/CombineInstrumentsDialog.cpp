@@ -840,8 +840,9 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         "Use SHIFT + left click or CTRL + left click to select the instruments "
         "you want to combine."
     ));
-    m_treeView.append_column("Instrument", m_columns.m_col_name);
-    m_treeView.set_headers_visible(false);
+    m_treeView.append_column(_("Nr"), m_columns.m_col_index);
+    m_treeView.append_column(_("Instrument"), m_columns.m_col_name);
+    m_treeView.set_headers_visible(true);
     m_treeView.get_selection()->set_mode(Gtk::SELECTION_MULTIPLE);
     m_treeView.get_selection()->signal_changed().connect(
         sigc::mem_fun(*this, &CombineInstrumentsDialog::onSelectionChanged)
@@ -866,6 +867,7 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         Glib::ustring name(gig_to_utf8(instr->pInfo->Name));
         Gtk::TreeModel::iterator iter = m_refTreeModel->append();
         Gtk::TreeModel::Row row = *iter;
+        row[m_columns.m_col_index] = i;
         row[m_columns.m_col_name] = name;
         row[m_columns.m_col_instr] = instr;
     }
@@ -900,6 +902,19 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         );
         Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_WARNING);
         msg.run();
+    }
+}
+
+void CombineInstrumentsDialog::setSelectedInstruments(const std::set<int>& instrumentIndeces) {
+    typedef Gtk::TreeModel::Children Children;
+    Children children = m_refTreeModel->children();
+    for (Children::iterator iter = children.begin();
+         iter != children.end(); ++iter)
+    {
+        Gtk::TreeModel::Row row = *iter;
+        int index = row[m_columns.m_col_index];
+        if (instrumentIndeces.count(index))
+            m_treeView.get_selection()->select(iter);
     }
 }
 

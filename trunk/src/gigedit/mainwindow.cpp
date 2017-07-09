@@ -66,6 +66,13 @@
 # include "MacHelper.h"
 #endif
 
+static const Gdk::ModifierType primaryModifierKey =
+    #if defined(__APPLE__)
+    Gdk::META_MASK; // Cmd key on Mac
+    #else
+    Gdk::CONTROL_MASK; // Ctrl key on all other OSs
+    #endif
+
 MainWindow::MainWindow() :
     m_DimRegionChooser(*this),
     dimreg_label(_("Changes apply to:")),
@@ -340,6 +347,11 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::on_action_duplicate_instrument)
     );
     actionGroup->add(
+        Gtk::Action::create("CombInstruments", _("_Combine Instruments ...")),
+        Gtk::AccelKey(GDK_KEY_j, primaryModifierKey),
+        sigc::mem_fun(*this, &MainWindow::on_action_combine_instruments)
+    );
+    actionGroup->add(
         Gtk::Action::create("RemoveInstrument", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_instrument)
     );
@@ -498,6 +510,7 @@ MainWindow::MainWindow() :
         "      <menuitem action='ScriptSlots'/>"
         "      <menuitem action='AddInstrument'/>"
         "      <menuitem action='DupInstrument'/>"
+        "      <menuitem action='CombInstruments'/>"
         "      <separator/>"
         "      <menuitem action='RemoveInstrument'/>"
         "    </menu>"
@@ -534,6 +547,7 @@ MainWindow::MainWindow() :
         "    <menuitem action='ScriptSlots'/>"
         "    <menuitem action='AddInstrument'/>"
         "    <menuitem action='DupInstrument'/>"
+        "    <menuitem action='CombInstruments'/>"
         "    <separator/>"
         "    <menuitem action='RemoveInstrument'/>"
         "  </popup>"
@@ -850,13 +864,6 @@ MainWindow::MainWindow() :
         Gtk::Menu* menuMacro = dynamic_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuMacro")
         )->get_submenu();
-
-        const Gdk::ModifierType primaryModifierKey =
-#if defined(__APPLE__)
-            Gdk::META_MASK; // Cmd key on Mac
-#else
-            Gdk::CONTROL_MASK; // Ctrl key on all other OSs
-#endif
 
         const Gdk::ModifierType noModifier = (Gdk::ModifierType)0;
         Gtk::AccelMap::add_entry("<Macros>/macro_0", GDK_KEY_F1, noModifier);
@@ -3588,6 +3595,24 @@ void MainWindow::instrument_name_changed(const Gtk::TreeModel::Path& path,
 
 void MainWindow::on_action_combine_instruments() {
     CombineInstrumentsDialog* d = new CombineInstrumentsDialog(*this, file);
+
+    // take over selection from instruments list view for the combine dialog's
+    // list view as pre-selection
+    std::set<int> indeces;
+    {
+        Glib::RefPtr<Gtk::TreeSelection> sel = m_TreeView.get_selection();
+        std::vector<Gtk::TreeModel::Path> rows = sel->get_selected_rows();
+        for (int r = 0; r < rows.size(); ++r) {
+            Gtk::TreeModel::iterator it = m_refTreeModel->get_iter(rows[r]);
+            if (it) {
+                Gtk::TreeModel::Row row = *it;
+                int index = row[m_Columns.m_col_nr];
+                indeces.insert(index);
+            }
+        }
+    }
+    d->setSelectedInstruments(indeces);
+
     d->show_all();
     d->run();
     if (d->fileWasChanged()) {

@@ -264,6 +264,65 @@ void DimRegionChooser::setModifyAllRegions(bool b) {
     queue_draw();
 }
 
+void DimRegionChooser::drawIconsFor(
+    gig::dimension_t dimension, uint zone,
+    const Cairo::RefPtr<Cairo::Context>& cr,
+    int x, int y, int w, int h)
+{
+    DimensionCase dimCase;
+    dimCase[dimension] = zone;
+
+    std::vector<gig::DimensionRegion*> dimregs =
+        dimensionRegionsMatching(dimCase, region);
+
+    if (dimregs.empty()) return;
+
+    int iSampleRefs = 0;
+    int iLoops = 0;
+
+    for (uint i = 0; i < dimregs.size(); ++i) {
+        if (dimregs[i]->pSample) iSampleRefs++;
+        if (dimregs[i]->SampleLoops) iLoops++;
+    }
+
+    bool bShowLoopSymbol = (iLoops > 0);
+    bool bShowSampleRefSymbol = (iSampleRefs < dimregs.size());
+
+    if (bShowLoopSymbol || bShowSampleRefSymbol) {
+        const int margin = 1;
+
+        cr->save();
+        cr->set_line_width(1);
+        cr->rectangle(x, y + margin, w, h - 2*margin);
+        cr->clip();
+        if (bShowSampleRefSymbol) {
+            const int wPic = 8;
+            const int hPic = 8;
+            Gdk::Cairo::set_source_pixbuf(
+                cr, (iSampleRefs) ? yellowDot : redDot,
+                x + (w-wPic)/2.f,
+                y + (
+                    (bShowLoopSymbol) ? margin : (h-hPic)/2.f
+                )
+            );
+            cr->paint();
+        }
+        if (bShowLoopSymbol) {
+            const int wPic = 12;
+            const int hPic = 14;
+            Gdk::Cairo::set_source_pixbuf(
+                cr, (iLoops == dimregs.size()) ? blackLoop : grayLoop,
+                x + (w-wPic)/2.f,
+                y + (
+                    (bShowSampleRefSymbol) ? h - hPic - margin : (h-hPic)/2.f
+                )
+            );
+            cr->paint();
+        }
+        cr->restore();
+    }
+}
+
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
 bool DimRegionChooser::on_expose_event(GdkEventExpose* e)
 {
@@ -487,8 +546,13 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                         else
                             Gdk::Cairo::set_source_rgba(cr, white);
 
-                        cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);
+                        const int wZone = x - prevX - 1;
+
+                        cr->rectangle(prevX + 1, y + 1, wZone, h - 1);
                         cr->fill();
+
+                        // draw icons
+                        drawIconsFor(dimension, j, cr, prevX, y, wZone, h);
 
                         // draw text showing the beginning of the dimension zone
                         // as numeric value to the user
@@ -542,6 +606,8 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                         cr->stroke();
 
                         if (j != 0) {
+                            const int wZone = x - prevX - 1;
+
                             // draw fill for zone
                             bool isSelectedZone = this->dimzones[dimension].count(j-1);
                             bool isMainSelection =
@@ -559,8 +625,11 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                                 cr->set_source(blueHatchedSurfacePattern);
                             else
                                 Gdk::Cairo::set_source_rgba(cr, white);
-                            cr->rectangle(prevX + 1, y + 1, x - prevX - 1, h - 1);
+                            cr->rectangle(prevX + 1, y + 1, wZone, h - 1);
                             cr->fill();
+
+                            // draw icons
+                            drawIconsFor(dimension, j - 1, cr, prevX, y, wZone, h);
 
                             // draw text showing the beginning of the dimension zone
                             // as numeric value to the user

@@ -117,6 +117,8 @@ Version SVN HEAD (?)
     selected instruments to be combined; dragging them modifies their order.
   * Combine Tool: After returning from the combine tool dialog, automatically
     scroll to the newly added (combined) instrument.
+  * Draw icons on individual dimension region zones, similar to the icons
+    already been drawn on regions.
 
 Version 1.0.0 (2015-07-17)
 

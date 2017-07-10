@@ -81,6 +81,9 @@ protected:
     void delete_dimension_zone();
     void resetSelectedZones();
     void select_dimzone_by_dir(int dir, bool add = false);
+    void drawIconsFor(gig::dimension_t dimension, uint zone,
+                      const Cairo::RefPtr<Cairo::Context>& cr,
+                      int x, int y, int w, int h);
 
     Gdk::RGBA red, blue, black, white;
     Glib::RefPtr<Gdk::Pixbuf> blueHatchedPatternARGB;

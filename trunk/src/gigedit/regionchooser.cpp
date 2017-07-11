@@ -40,9 +40,10 @@
 struct RegionFeatures {
     int sampleRefs;
     int loops;
+    int validDimRegs;
 
     RegionFeatures() {
-        sampleRefs = loops = 0;
+        sampleRefs = loops = validDimRegs = 0;
     }
 };
 
@@ -50,6 +51,9 @@ static RegionFeatures regionFeatures(gig::Region* rgn) {
     RegionFeatures f;
     for (int i = 0; i < rgn->DimensionRegions; ++i) {
         gig::DimensionRegion* dr = rgn->pDimensionRegions[i];
+        DimensionCase c = dimensionCaseOf(dr);
+        if (!isUsedCase(c, rgn)) continue;
+        f.validDimRegs++;
         if (dr->pSample) f.sampleRefs++;
         // the user doesn't care about loop if there is no valid sample reference
         if (dr->pSample && dr->SampleLoops) f.loops++;
@@ -396,7 +400,7 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
         RegionFeatures features = regionFeatures(r);
 
         const bool bShowLoopSymbol = features.loops > 0;
-        const bool bShowSampleRefSymbol = features.sampleRefs < r->DimensionRegions;
+        const bool bShowSampleRefSymbol = features.sampleRefs < features.validDimRegs;
         if (bShowLoopSymbol || bShowSampleRefSymbol) {
             const int margin = 2;
             const int wRgn = x2 - x;
@@ -420,7 +424,7 @@ void RegionChooser::draw_regions(const Cairo::RefPtr<Cairo::Context>& cr,
                 const int wPic = 12;
                 const int hPic = 14;
                 Gdk::Cairo::set_source_pixbuf(
-                    cr, (features.loops == r->DimensionRegions) ? blackLoop : grayLoop,
+                    cr, (features.loops == features.validDimRegs) ? blackLoop : grayLoop,
                     x + (wRgn-wPic)/2.f,
                     (bShowSampleRefSymbol) ? h1 - hPic - margin : (h1-hPic)/2.f
                 );

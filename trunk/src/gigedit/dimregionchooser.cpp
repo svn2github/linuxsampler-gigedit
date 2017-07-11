@@ -273,7 +273,7 @@ void DimRegionChooser::drawIconsFor(
     dimCase[dimension] = zone;
 
     std::vector<gig::DimensionRegion*> dimregs =
-        dimensionRegionsMatching(dimCase, region);
+        dimensionRegionsMatching(dimCase, region, true);
 
     if (dimregs.empty()) return;
 

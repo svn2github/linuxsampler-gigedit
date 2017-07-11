@@ -211,12 +211,33 @@ inline DimensionCase dimensionCaseOf(gig::DimensionRegion* dr) {
     return dimCase;
 }
 
-inline std::vector<gig::DimensionRegion*> dimensionRegionsMatching(const DimensionCase& dimCase, gig::Region* rgn) {
+/**
+ * Checks whether the passed dimension zones are within the boundaries of the
+ * defined dimensions. This is especially relevant if there are dimensions
+ * defined with an amount not equal to a power of two, in that case there are
+ * unused dimensions regions which should be ignored.
+ */
+inline bool isUsedCase(const DimensionCase& c, gig::Region* rgn) {
+    for (int d = 0; d < rgn->Dimensions; ++d) {
+        gig::dimension_t type = rgn->pDimensionDefinitions[d].dimension;
+        if (c.find(type) == c.end()) continue;
+        int zone = c.find(type)->second;
+        if (zone < 0 || zone >= rgn->pDimensionDefinitions[d].zones)
+            return false;
+    }
+    return true;
+}
+
+inline std::vector<gig::DimensionRegion*> dimensionRegionsMatching(
+    const DimensionCase& dimCase, gig::Region* rgn, bool skipUnusedZones = false)
+{
     std::vector<gig::DimensionRegion*> v;
     for (int idr = 0; idr < 256; ++idr) {
         if (!rgn->pDimensionRegions[idr]) continue;
         DimensionCase c = dimensionCaseOf(rgn->pDimensionRegions[idr]);
-        if (!dimCase.isViolating(c)) v.push_back(rgn->pDimensionRegions[idr]);
+        if (dimCase.isViolating(c)) continue;
+        if (skipUnusedZones && !isUsedCase(c, rgn)) continue;
+        v.push_back(rgn->pDimensionRegions[idr]);
     }
     return v;
 }

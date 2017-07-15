@@ -7,6 +7,7 @@
 
 #include "scripteditor.h"
 #include "global.h"
+#include <gtk/gtkwidget.h> // for gtk_widget_modify_*()
 
 #if !USE_LS_SCRIPTVM
 
@@ -151,6 +152,10 @@ ScriptEditor::ScriptEditor() :
     m_warningTag->property_background() = "#fffd7c"; // yellow
     m_tagTable->add(m_warningTag);
 
+    m_lineNrTag = Gtk::TextBuffer::Tag::create();
+    m_lineNrTag->property_foreground() = "#CCCCCC";
+    m_tagTable->add(m_lineNrTag);
+
     // create menu
     m_actionGroup = Gtk::ActionGroup::create();
     m_actionGroup->add(Gtk::Action::create("MenuScript", _("_Script")));
@@ -181,10 +186,33 @@ ScriptEditor::ScriptEditor() :
         "</ui>"
     );
 
+    m_lineNrBuffer = Gtk::TextBuffer::create(m_tagTable);
+    m_lineNrView.set_buffer(m_lineNrBuffer);
+    m_lineNrView.set_left_margin(3);
+    m_lineNrView.set_right_margin(3);
+    m_lineNrTextViewSpacer.set_size_request(5);
+    {
+        Gdk::Color color;
+        color.set("#F5F5F5");
+        GtkWidget* widget = (GtkWidget*) m_lineNrView.gobj();
+        gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
+        gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
+    }
+    {
+        Gdk::Color color;
+        color.set("#EEEEEE");
+        GtkWidget* widget = (GtkWidget*) m_lineNrTextViewSpacer.gobj();
+        gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
+        gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
+    }
     m_textBuffer = Gtk::TextBuffer::create(m_tagTable);
     m_textView.set_buffer(m_textBuffer);
+    m_textView.set_left_margin(5);
     setFontSize(currentFontSize(), false);
-    m_scrolledWindow.add(m_textView);
+    m_textViewHBox.pack_start(m_lineNrView, Gtk::PACK_SHRINK);
+    m_textViewHBox.pack_start(m_lineNrTextViewSpacer, Gtk::PACK_SHRINK);
+    m_textViewHBox.add(m_textView);
+    m_scrolledWindow.add(m_textViewHBox);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
     Gtk::Widget* menuBar = m_uiManager->get_widget("/MenuBar");
@@ -269,8 +297,10 @@ void ScriptEditor::setFontSize(int size, bool save) {
     fdesc.set_family("monospace");
     fdesc.set_size(size * PANGO_SCALE);
 #if GTKMM_MAJOR_VERSION < 3
+    m_lineNrView.modify_font(fdesc);
     m_textView.modify_font(fdesc);
 #else
+    m_lineNrView.override_font(fdesc);
     m_textView.override_font(fdesc);
 #endif
     if (save) Settings::singleton()->scriptEditorFontSize = size;
@@ -289,6 +319,20 @@ void ScriptEditor::setScript(gig::Script* script) {
     //printf("text : '%s'\n", txt.c_str());
     m_textBuffer->set_text(txt);
     m_textBuffer->set_modified(false);
+}
+
+void ScriptEditor::updateLineNumbers() {
+    const int n = m_textBuffer->get_line_count();
+    const int old = m_lineNrBuffer->get_line_count();
+    if (n == old) return;
+    Glib::ustring s;
+    for (int i = 0; i < n; ++i) {
+        if (i) s += "\n";
+        s += ToString(i+1);
+    }
+    m_lineNrBuffer->remove_all_tags(m_lineNrBuffer->begin(), m_lineNrBuffer->end());
+    m_lineNrBuffer->set_text(s);
+    m_lineNrBuffer->apply_tag(m_lineNrTag, m_lineNrBuffer->begin(), m_lineNrBuffer->end());
 }
 
 void ScriptEditor::onTextInserted(const Gtk::TextBuffer::iterator& itEnd, const Glib::ustring& txt, int length) {
@@ -341,6 +385,7 @@ void ScriptEditor::onTextInserted(const Gtk::TextBuffer::iterator& itEnd, const 
     ;
     
 #endif // USE_LS_SCRIPTVM
+    updateLineNumbers();
 }
 
 #if USE_LS_SCRIPTVM
@@ -566,6 +611,7 @@ void ScriptEditor::onTextErased(const Gtk::TextBuffer::iterator& itStart, const 
 
     m_textBuffer->remove_all_tags(itStart2, itEnd2);
 #endif // USE_LS_SCRIPTVM
+    updateLineNumbers();
 }
 
 bool ScriptEditor::on_motion_notify_event(GdkEventMotion* e) {

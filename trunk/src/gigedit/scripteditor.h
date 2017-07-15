@@ -61,6 +61,8 @@ protected:
     Gtk::HBox m_statusHBox;
     Gtk::HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
+    Gtk::HBox m_textViewHBox;
+    Glib::RefPtr<Gtk::TextBuffer> m_lineNrBuffer;
     Glib::RefPtr<Gtk::TextBuffer> m_textBuffer;
     Glib::RefPtr<Gtk::TextBuffer::TagTable> m_tagTable;
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_keywordTag;
@@ -74,6 +76,9 @@ protected:
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_errorTag;
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_warningTag;
     Glib::RefPtr<Gtk::TextBuffer::Tag> m_preprocCommentTag;
+    Glib::RefPtr<Gtk::TextBuffer::Tag> m_lineNrTag;
+    Gtk::TextView m_lineNrView;
+    Gtk::TextView m_lineNrTextViewSpacer;
     Gtk::TextView m_textView;
     Gtk::Image m_statusImage;
     Gtk::Label m_statusLabel;
@@ -115,6 +120,7 @@ protected:
     void onMenuChangeFontSize();
     int  currentFontSize() const;
     void setFontSize(int size, bool save);
+    void updateLineNumbers();
 };
 
 #endif // GIGEDIT_SCRIPTEDITOR_H

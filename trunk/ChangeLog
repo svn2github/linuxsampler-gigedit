@@ -121,6 +121,7 @@ Version SVN HEAD (?)
     already been drawn on regions.
   * Fixed loop and sample reference icons being displayed incorrectly sometimes,
     because unused dimension regions were not ignored.
+  * Script Editor: Show line numbers.
 
 Version 1.0.0 (2015-07-17)
 

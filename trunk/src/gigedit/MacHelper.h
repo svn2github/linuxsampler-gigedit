@@ -30,6 +30,12 @@ void macHelperRunCFuncOnMainThread(void (*fn)(void* info), void* info);
  */
 void macRaiseAppWindow();
 
+/**
+ * Returns @c true if this Mac runs at least OS X 10.6 ("Snow Leopard") or
+ * higher.
+ */
+bool macIsMinMac10_6();
+
 #if defined(__cplusplus)
 }
 #endif // __cplusplus

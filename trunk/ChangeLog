@@ -122,6 +122,8 @@ Version SVN HEAD (?)
   * Fixed loop and sample reference icons being displayed incorrectly sometimes,
     because unused dimension regions were not ignored.
   * Script Editor: Show line numbers.
+  * Script Editor: Right aligned line numbers.
+  * Script Editor: Fixed font readability issue on Mac.
 
 Version 1.0.0 (2015-07-17)
 

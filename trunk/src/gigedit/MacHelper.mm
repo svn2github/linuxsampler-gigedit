@@ -58,6 +58,10 @@ void macRaiseAppWindow() {
     [NSApp activateIgnoringOtherApps:YES];
 }
 
+bool macIsMinMac10_6() {
+    return NSAppKitVersionNumber >= NSAppKitVersionNumber10_6;
+}
+
 #if defined(__cplusplus)
 }
 #endif // __cplusplus

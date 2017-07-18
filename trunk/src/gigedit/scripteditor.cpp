@@ -8,6 +8,10 @@
 #include "scripteditor.h"
 #include "global.h"
 #include <gtk/gtkwidget.h> // for gtk_widget_modify_*()
+#if defined(__APPLE__)
+# include "MacHelper.h"
+#endif
+#include <math.h> // for log10()
 
 #if !USE_LS_SCRIPTVM
 
@@ -282,7 +286,7 @@ ScriptEditor::~ScriptEditor() {
 
 int ScriptEditor::currentFontSize() const {
 #if defined(__APPLE__)
-    const int defaultFontSize = 13;
+    const int defaultFontSize = 11;
 #else
     const int defaultFontSize = 10;
 #endif
@@ -295,7 +299,16 @@ void ScriptEditor::setFontSize(int size, bool save) {
     //printf("setFontSize(%d,%d)\n", size, save);
     Pango::FontDescription fdesc;
     fdesc.set_family("monospace");
+#if defined(__APPLE__)
+    // fixes poor readability of default monospace font on Macs
+    if (macIsMinMac10_6())
+        fdesc.set_family("Menlo");
+#endif
     fdesc.set_size(size * PANGO_SCALE);
+    /*Glib::RefPtr<Pango::Context> context = m_textView.get_pango_context();
+    Cairo::FontOptions options;
+    options.set_antialias(Cairo::ANTIALIAS_NONE);
+    context->set_cairo_font_options(options);*/
 #if GTKMM_MAJOR_VERSION < 3
     m_lineNrView.modify_font(fdesc);
     m_textView.modify_font(fdesc);
@@ -325,14 +338,20 @@ void ScriptEditor::updateLineNumbers() {
     const int n = m_textBuffer->get_line_count();
     const int old = m_lineNrBuffer->get_line_count();
     if (n == old) return;
+    const int digits = log10(n) + 1;
+    const int bufSz = digits + 2;
+    char* buf = new char[bufSz];
+    std::string sFmt1 =   "%" + ToString(digits) + "d";
+    std::string sFmt2 = "\n%" + ToString(digits) + "d";
     Glib::ustring s;
     for (int i = 0; i < n; ++i) {
-        if (i) s += "\n";
-        s += ToString(i+1);
+        snprintf(buf, bufSz, i ? sFmt2.c_str() : sFmt1.c_str(), i+1);
+        s += buf;
     }
     m_lineNrBuffer->remove_all_tags(m_lineNrBuffer->begin(), m_lineNrBuffer->end());
     m_lineNrBuffer->set_text(s);
     m_lineNrBuffer->apply_tag(m_lineNrTag, m_lineNrBuffer->begin(), m_lineNrBuffer->end());
+    if (buf) delete[] buf;
 }
 
 void ScriptEditor::onTextInserted(const Gtk::TextBuffer::iterator& itEnd, const Glib::ustring& txt, int length) {

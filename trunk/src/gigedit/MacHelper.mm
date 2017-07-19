@@ -58,6 +58,10 @@ void macRaiseAppWindow() {
     [NSApp activateIgnoringOtherApps:YES];
 }
 
+#ifndef NSAppKitVersionNumber10_6
+# define NSAppKitVersionNumber10_6 1038
+#endif
+
 bool macIsMinMac10_6() {
     return NSAppKitVersionNumber >= NSAppKitVersionNumber10_6;
 }

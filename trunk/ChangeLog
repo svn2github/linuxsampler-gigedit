@@ -124,6 +124,8 @@ Version SVN HEAD (?)
   * Script Editor: Show line numbers.
   * Script Editor: Right aligned line numbers.
   * Script Editor: Fixed font readability issue on Mac.
+  * Added EG state machine options for EG1 and EG2, which may be used to
+    configure whether the individual EG stages may be cancelled.
 
 Version 1.0.0 (2015-07-17)
 

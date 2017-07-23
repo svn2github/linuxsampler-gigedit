@@ -291,6 +291,18 @@ public:
     }
 };
 
+class BoolBox : public Gtk::CheckButton {
+public:
+    BoolBox(const char* labelText) : Gtk::CheckButton(labelText) {
+        signal_toggled().connect(sig_changed.make_slot());
+    }
+    bool get_value() const { return get_active(); }
+    void set_value(bool value) { set_active(value); }
+    sigc::signal<void>& signal_value_changed() { return sig_changed; }
+protected:
+    sigc::signal<void> sig_changed;
+};
+
 
 class BoolEntryPlus6 : public LabelWidget {
 private:

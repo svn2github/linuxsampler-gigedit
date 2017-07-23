@@ -147,6 +147,41 @@ void CrossfadeCurve::draw_one_curve(const Cairo::RefPtr<Cairo::Context>& cr,
 }
 
 
+EGStateOptions::EGStateOptions() : HBox(),
+    label(_("May be cancelled: ")),
+    checkBoxAttack(_("Attack")),
+    checkBoxAttackHold(_("Attack Hold")),
+    checkBoxDecay1(_("Decay 1")),
+    checkBoxDecay2(_("Decay 2")),
+    checkBoxRelease(_("Release"))
+{
+    set_spacing(6);
+
+    pack_start(label);
+    pack_start(checkBoxAttack, Gtk::PACK_SHRINK);
+    pack_start(checkBoxAttackHold, Gtk::PACK_SHRINK);
+    pack_start(checkBoxDecay1, Gtk::PACK_SHRINK);
+    pack_start(checkBoxDecay2, Gtk::PACK_SHRINK);
+    pack_start(checkBoxRelease, Gtk::PACK_SHRINK);
+
+    checkBoxAttack.set_tooltip_text(_(
+        "If checked: a note-off aborts the 'attack' stage."
+    ));
+    checkBoxAttackHold.set_tooltip_text(_(
+        "If checked: a note-off aborts the 'attack hold' stage."
+    ));
+    checkBoxDecay1.set_tooltip_text(_(
+        "If checked: a note-off aborts the 'decay 1' stage."
+    ));
+    checkBoxDecay2.set_tooltip_text(_(
+        "If checked: a note-off aborts the 'decay 2' stage."
+    ));
+    checkBoxRelease.set_tooltip_text(_(
+        "If checked: a note-on reverts back from the 'release' stage."
+    ));
+}
+
+
 DimRegionEdit::DimRegionEdit() :
     velocity_curve(&gig::DimensionRegion::GetVelocityAttenuation),
     release_curve(&gig::DimensionRegion::GetVelocityRelease),
@@ -266,6 +301,26 @@ DimRegionEdit::DimRegionEdit() :
             &gig::DimensionRegion::EG1ControllerDecayInfluence);
     connect(eEG1ControllerReleaseInfluence,
             &gig::DimensionRegion::EG1ControllerReleaseInfluence);
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG1Options.AttackCancel));
+        connect(eEG1StateOptions.checkBoxAttack, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG1Options.AttackHoldCancel));
+        connect(eEG1StateOptions.checkBoxAttackHold, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG1Options.Decay1Cancel));
+        connect(eEG1StateOptions.checkBoxDecay1, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG1Options.Decay2Cancel));
+        connect(eEG1StateOptions.checkBoxDecay2, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG1Options.ReleaseCancel));
+        connect(eEG1StateOptions.checkBoxRelease, mp.pmember);
+    }
     connect(eLFO1Frequency, &gig::DimensionRegion::LFO1Frequency);
     connect(eLFO1InternalDepth, &gig::DimensionRegion::LFO1InternalDepth);
     connect(eLFO1ControlDepth, &gig::DimensionRegion::LFO1ControlDepth);
@@ -287,6 +342,26 @@ DimRegionEdit::DimRegionEdit() :
             &gig::DimensionRegion::EG2ControllerDecayInfluence);
     connect(eEG2ControllerReleaseInfluence,
             &gig::DimensionRegion::EG2ControllerReleaseInfluence);
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG2Options.AttackCancel));
+        connect(eEG2StateOptions.checkBoxAttack, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG2Options.AttackHoldCancel));
+        connect(eEG2StateOptions.checkBoxAttackHold, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG2Options.Decay1Cancel));
+        connect(eEG2StateOptions.checkBoxDecay1, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG2Options.Decay2Cancel));
+        connect(eEG2StateOptions.checkBoxDecay2, mp.pmember);
+    }
+    {
+        ClassMemberPtr<gig::DimensionRegion, bool> mp(offsetof(gig::DimensionRegion, EG2Options.ReleaseCancel));
+        connect(eEG2StateOptions.checkBoxRelease, mp.pmember);
+    }
     connect(eLFO2Frequency, &gig::DimensionRegion::LFO2Frequency);
     connect(eLFO2InternalDepth, &gig::DimensionRegion::LFO2InternalDepth);
     connect(eLFO2ControlDepth, &gig::DimensionRegion::LFO2ControlDepth);
@@ -514,6 +589,7 @@ DimRegionEdit::DimRegionEdit() :
     addProp(eEG1ControllerAttackInfluence);
     addProp(eEG1ControllerDecayInfluence);
     addProp(eEG1ControllerReleaseInfluence);
+    addLine(eEG1StateOptions);
 
     nextPage();
 
@@ -659,6 +735,7 @@ DimRegionEdit::DimRegionEdit() :
     addProp(eEG2ControllerAttackInfluence);
     addProp(eEG2ControllerDecayInfluence);
     addProp(eEG2ControllerReleaseInfluence);
+    addLine(eEG2StateOptions);
     lLFO2 = addHeader(_("Filter Cutoff Oscillator (LFO2)"));
     addProp(eLFO2Frequency);
     addProp(eLFO2InternalDepth);
@@ -927,6 +1004,13 @@ void DimRegionEdit::addProp(LabelWidget& prop)
     rowno++;
 }
 
+void DimRegionEdit::addLine(Gtk::HBox& line)
+{
+    table[pageno]->attach(line, 1, 3, rowno, rowno + 1,
+                          Gtk::FILL, Gtk::SHRINK);
+    rowno++;
+}
+
 void DimRegionEdit::addRightHandSide(Gtk::Widget& widget)
 {
     table[pageno]->attach(widget, 2, 3, rowno, rowno + 1,
@@ -959,6 +1043,11 @@ void DimRegionEdit::set_dim_region(gig::DimensionRegion* d)
     eEG1ControllerAttackInfluence.set_value(d->EG1ControllerAttackInfluence);
     eEG1ControllerDecayInfluence.set_value(d->EG1ControllerDecayInfluence);
     eEG1ControllerReleaseInfluence.set_value(d->EG1ControllerReleaseInfluence);
+    eEG1StateOptions.checkBoxAttack.set_value(d->EG1Options.AttackCancel);
+    eEG1StateOptions.checkBoxAttackHold.set_value(d->EG1Options.AttackHoldCancel);
+    eEG1StateOptions.checkBoxDecay1.set_value(d->EG1Options.Decay1Cancel);
+    eEG1StateOptions.checkBoxDecay2.set_value(d->EG1Options.Decay2Cancel);
+    eEG1StateOptions.checkBoxRelease.set_value(d->EG1Options.ReleaseCancel);
     eLFO1Frequency.set_value(d->LFO1Frequency);
     eLFO1InternalDepth.set_value(d->LFO1InternalDepth);
     eLFO1ControlDepth.set_value(d->LFO1ControlDepth);
@@ -977,6 +1066,11 @@ void DimRegionEdit::set_dim_region(gig::DimensionRegion* d)
     eEG2ControllerAttackInfluence.set_value(d->EG2ControllerAttackInfluence);
     eEG2ControllerDecayInfluence.set_value(d->EG2ControllerDecayInfluence);
     eEG2ControllerReleaseInfluence.set_value(d->EG2ControllerReleaseInfluence);
+    eEG2StateOptions.checkBoxAttack.set_value(d->EG2Options.AttackCancel);
+    eEG2StateOptions.checkBoxAttackHold.set_value(d->EG2Options.AttackHoldCancel);
+    eEG2StateOptions.checkBoxDecay1.set_value(d->EG2Options.Decay1Cancel);
+    eEG2StateOptions.checkBoxDecay2.set_value(d->EG2Options.Decay2Cancel);
+    eEG2StateOptions.checkBoxRelease.set_value(d->EG2Options.ReleaseCancel);
     eLFO2Frequency.set_value(d->LFO2Frequency);
     eLFO2InternalDepth.set_value(d->LFO2InternalDepth);
     eLFO2ControlDepth.set_value(d->LFO2ControlDepth);
@@ -1122,6 +1216,7 @@ void DimRegionEdit::VCFEnabled_toggled()
     eEG2ControllerAttackInfluence.set_sensitive(sensitive);
     eEG2ControllerDecayInfluence.set_sensitive(sensitive);
     eEG2ControllerReleaseInfluence.set_sensitive(sensitive);
+    eEG2StateOptions.set_sensitive(sensitive);
     lLFO2->set_sensitive(sensitive);
     eLFO2Frequency.set_sensitive(sensitive);
     eLFO2InternalDepth.set_sensitive(sensitive);

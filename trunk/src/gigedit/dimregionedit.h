@@ -75,6 +75,18 @@ private:
                         bool sensitive);
 };
 
+class EGStateOptions : public Gtk::HBox {
+public:
+    Gtk::Label label;
+    BoolBox checkBoxAttack;
+    BoolBox checkBoxAttackHold;
+    BoolBox checkBoxDecay1;
+    BoolBox checkBoxDecay2;
+    BoolBox checkBoxRelease;
+
+    EGStateOptions();
+};
+
 class DimRegionEdit : public Gtk::Notebook
 {
 public:
@@ -140,6 +152,7 @@ protected:
     NumEntryTemp<uint8_t> eEG1ControllerAttackInfluence;
     NumEntryTemp<uint8_t> eEG1ControllerDecayInfluence;
     NumEntryTemp<uint8_t> eEG1ControllerReleaseInfluence;
+    EGStateOptions eEG1StateOptions;
     NumEntryTemp<double> eLFO1Frequency;
     NumEntryTemp<uint16_t> eLFO1InternalDepth;
     NumEntryTemp<uint16_t> eLFO1ControlDepth;
@@ -158,6 +171,7 @@ protected:
     NumEntryTemp<uint8_t> eEG2ControllerAttackInfluence;
     NumEntryTemp<uint8_t> eEG2ControllerDecayInfluence;
     NumEntryTemp<uint8_t> eEG2ControllerReleaseInfluence;
+    EGStateOptions eEG2StateOptions;
     NumEntryTemp<double> eLFO2Frequency;
     NumEntryTemp<uint16_t> eLFO2InternalDepth;
     NumEntryTemp<uint16_t> eLFO2ControlDepth;
@@ -232,6 +246,7 @@ protected:
     void addProp(BoolEntry& boolentry);
     void addProp(BoolEntryPlus6& boolentry);
     void addProp(LabelWidget& labelwidget);
+    void addLine(Gtk::HBox& line);
     void addString(const char* labelText, Gtk::Label*& label,
                    Gtk::Entry*& widget);
     void addString(const char* labelText, Gtk::Label*& label,
@@ -262,6 +277,19 @@ protected:
     void nullOutSampleReference();
 
     int update_model;
+
+    /**
+     * Workaround for the circumstance that C++ does not allow to cast to
+     * member pointers.
+     */
+    template<typename classT, typename memberT>
+    union ClassMemberPtr {
+        memberT classT::*pmember;
+        void* pvoid;
+
+        ClassMemberPtr(size_t s) : pvoid((void*)s) {}
+        ClassMemberPtr(void* p) : pvoid(p) {}
+    };
 
     // connect a widget to a setter function in DimRegionEdit
     template<typename C, typename T>

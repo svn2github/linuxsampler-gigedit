@@ -323,6 +323,7 @@ protected:
     Glib::RefPtr<Gtk::ListStore> m_refTreeModel;
 
     Gtk::Menu* instrument_menu;
+    Gtk::Menu* assign_scripts_menu;
 
     std::map<gig::Sample*,int> sample_ref_count;
 
@@ -457,6 +458,10 @@ protected:
     void show_intruments_tab();
     void show_scripts_tab();
 
+    void select_prev_instrument();
+    void select_next_instrument();
+    void select_instrument_by_dir(int dir);
+
     void select_prev_region();
     void select_next_region();
 
@@ -549,6 +554,8 @@ protected:
     void __import_queued_samples();
     void __clear();
     void __refreshEntireGUI();
+    void updateScriptListOfMenu();
+    void assignScript(gig::Script* pScript);
 
     bool close_confirmation_dialog();
     bool leaving_shared_mode_dialog();

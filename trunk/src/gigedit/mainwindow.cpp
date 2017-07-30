@@ -87,6 +87,8 @@ MainWindow::MainWindow() :
 {
     loadBuiltInPix();
 
+    this->file = NULL;
+
 //    set_border_width(5);
 
     if (!Settings::singleton()->autoRestoreWindowDimension) {
@@ -221,6 +223,7 @@ MainWindow::MainWindow() :
         sigc::mem_fun(*this, &MainWindow::show_scripts_tab)
     );
     actionGroup->add(Gtk::Action::create("AllInstruments", _("_Select")));
+    actionGroup->add(Gtk::Action::create("AssignScripts", _("Assign Script")));
 
     actionGroup->add(Gtk::Action::create("MenuEdit", _("_Edit")));
 
@@ -245,6 +248,16 @@ MainWindow::MainWindow() :
                                          _("Adjust Clipboard Content")),
                      Gtk::AccelKey(GDK_KEY_x, Gdk::MOD1_MASK),
                      sigc::mem_fun(*this, &MainWindow::adjust_clipboard_content));
+
+    actionGroup->add(Gtk::Action::create("SelectPrevInstr",
+                                         _("Select Previous Instrument")),
+                     Gtk::AccelKey(GDK_KEY_Up, primaryModifierKey),
+                     sigc::mem_fun(*this, &MainWindow::select_prev_instrument));
+
+    actionGroup->add(Gtk::Action::create("SelectNextInstr",
+                                         _("Select Next Instrument")),
+                     Gtk::AccelKey(GDK_KEY_Down, primaryModifierKey),
+                     sigc::mem_fun(*this, &MainWindow::select_next_instrument));
 
     actionGroup->add(Gtk::Action::create("SelectPrevRegion",
                                          _("Select Previous Region")),
@@ -474,6 +487,9 @@ MainWindow::MainWindow() :
         "      <menuitem action='AdjustClipboard'/>"
         "      <menuitem action='PasteDimRgn'/>"
         "      <separator/>"
+        "      <menuitem action='SelectPrevInstr'/>"
+        "      <menuitem action='SelectNextInstr'/>"
+        "      <separator/>"
         "      <menuitem action='SelectPrevRegion'/>"
         "      <menuitem action='SelectNextRegion'/>"
         "      <separator/>"
@@ -508,6 +524,7 @@ MainWindow::MainWindow() :
         "      <menuitem action='InstrProperties'/>"
         "      <menuitem action='MidiRules'/>"
         "      <menuitem action='ScriptSlots'/>"
+        "      <menu action='AssignScripts'/>"
         "      <menuitem action='AddInstrument'/>"
         "      <menuitem action='DupInstrument'/>"
         "      <menuitem action='CombInstruments'/>"
@@ -641,6 +658,9 @@ MainWindow::MainWindow() :
 
     instrument_menu = static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuInstrument/AllInstruments"))->get_submenu();
+
+    assign_scripts_menu = static_cast<Gtk::MenuItem*>(
+        uiManager->get_widget("/MenuBar/MenuInstrument/AssignScripts"))->get_submenu();
 
     Gtk::Widget* menuBar = uiManager->get_widget("/MenuBar");
     m_VBox.pack_start(*menuBar, Gtk::PACK_SHRINK);
@@ -886,6 +906,25 @@ MainWindow::MainWindow() :
         updateMacroMenu();
     }
 
+    // setup "Assign Scripts" keyboard accelerators
+    {
+        Gtk::AccelMap::add_entry("<Scripts>/script_0", GDK_KEY_F1, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_1", GDK_KEY_F2, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_2", GDK_KEY_F3, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_3", GDK_KEY_F4, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_4", GDK_KEY_F5, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_5", GDK_KEY_F6, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_6", GDK_KEY_F7, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_7", GDK_KEY_F8, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_8", GDK_KEY_F9, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_9", GDK_KEY_F10, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_10", GDK_KEY_F11, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_11", GDK_KEY_F12, Gdk::SHIFT_MASK);
+
+        Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
+        assign_scripts_menu->set_accel_group(accelGroup);
+    }
+
     Glib::signal_idle().connect_once(
         sigc::mem_fun(*this, &MainWindow::bringToFront),
         200
@@ -1101,6 +1140,8 @@ void MainWindow::on_sel_change()
             static_cast<Gtk::RadioMenuItem*>(children[index])->set_active();
         }
     }
+
+    updateScriptListOfMenu();
 
     m_RegionChooser.set_instrument(get_instrument());
 
@@ -2301,6 +2342,27 @@ void MainWindow::onScriptSlotsModified(gig::Instrument* pInstrument) {
         row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
         break;
     }
+
+    // causes the sampler to reload the instrument with the new script
+    on_sel_change();
+}
+
+void MainWindow::assignScript(gig::Script* pScript) {
+    if (!pScript) {
+        printf("assignScript() : !script\n");
+        return;
+    }
+    printf("assignScript('%s')\n", pScript->Name.c_str());
+
+    gig::Instrument* pInstrument = get_instrument();
+    if (!pInstrument) {
+        printf("!instrument\n");
+        return;
+    }
+
+    pInstrument->AddScriptSlot(pScript);
+
+    onScriptSlotsModified(pInstrument);
 }
 
 void MainWindow::on_action_refresh_all() {
@@ -2575,6 +2637,52 @@ void MainWindow::on_script_treeview_button_release(GdkEventButton* button) {
     }
 }
 
+void MainWindow::updateScriptListOfMenu() {
+    // remove all entries from "Assign Script" menu
+    {
+        const std::vector<Gtk::Widget*> children = assign_scripts_menu->get_children();
+        for (int i = 0; i < children.size(); ++i) {
+            Gtk::Widget* child = children[i];
+            assign_scripts_menu->remove(*child);
+            delete child;
+        }
+    }
+
+    int iTotalScripts = 0;
+
+    if (!file) goto noScripts;
+
+    // add all configured macros as menu items to the "Macro" menu
+    for (int iGroup = 0; file->GetScriptGroup(iGroup); ++iGroup) {
+        gig::ScriptGroup* pGroup = file->GetScriptGroup(iGroup);
+        for (int iScript = 0; pGroup->GetScript(iScript); ++iScript, ++iTotalScripts) {
+            gig::Script* pScript = pGroup->GetScript(iScript);
+            std::string name = pScript->Name;
+
+            Gtk::MenuItem* item = new Gtk::MenuItem(name);
+            item->signal_activate().connect(
+                sigc::bind(
+                    sigc::mem_fun(*this, &MainWindow::assignScript), pScript
+                )
+            );
+            assign_scripts_menu->append(*item);
+            item->set_accel_path("<Scripts>/script_" + ToString(iTotalScripts));
+            //item->set_tooltip_text(comment);
+        }
+    }
+
+    noScripts:
+
+    // if there are no macros configured at all, then show a dummy entry instead
+    if (!iTotalScripts) {
+        Gtk::MenuItem* item = new Gtk::MenuItem(_("No Scripts"));
+        item->set_sensitive(false);
+        assign_scripts_menu->append(*item);
+    }
+
+    assign_scripts_menu->show_all_children();
+}
+
 Gtk::RadioMenuItem* MainWindow::add_instrument_to_menu(
     const Glib::ustring& name, int position) {
 
@@ -2621,10 +2729,7 @@ void MainWindow::add_instrument(gig::Instrument* instrument) {
     instrument_name_connection.unblock();
 
     add_instrument_to_menu(name);
-
-    m_TreeView.get_selection()->select(iterInstr);
-    m_TreeView.scroll_to_row(Gtk::TreePath(iterInstr));
-
+    select_instrument(instrument);
     file_changed();
 }
 
@@ -3874,6 +3979,29 @@ void MainWindow::show_intruments_tab() {
 
 void MainWindow::show_scripts_tab() {
     m_TreeViewNotebook.set_current_page(2);
+}
+
+void MainWindow::select_instrument_by_dir(int dir) {
+    if (!file) return;
+    gig::Instrument* pInstrument = get_instrument();
+    if (!pInstrument) {
+        select_instrument( file->GetInstrument(0) );
+        return;
+    }
+    for (int i = 0; file->GetInstrument(i); ++i) {
+        if (file->GetInstrument(i) == pInstrument) {
+            select_instrument( file->GetInstrument(i + dir) );
+            return;
+        }
+    }
+}
+
+void MainWindow::select_prev_instrument() {
+    select_instrument_by_dir(-1);
+}
+
+void MainWindow::select_next_instrument() {
+    select_instrument_by_dir(1);
 }
 
 void MainWindow::select_prev_region() {

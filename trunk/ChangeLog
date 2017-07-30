@@ -126,6 +126,16 @@ Version SVN HEAD (?)
   * Script Editor: Fixed font readability issue on Mac.
   * Added EG state machine options for EG1 and EG2, which may be used to
     configure whether the individual EG stages may be cancelled.
+  * Fix: after the combine instruments dialog, the new instrument was not
+    correctly displayed by the GUI as being selected.
+  * Fix: automatically reload instrument after script slots have been modified.
+  * Combine Tool: OK button has focus now by default to quickly combine
+    instruments by pressing Return key.
+  * Added keyboard accelerators Shift+F1 to Shift+F12 for quick assigning
+    a script to the currently selected instrument, and an appropriate
+    additional menu "Instruments" -> "Assign Script".
+  * Added keyboard accelerators Ctrl + Arrow Down and Ctrl + Arrow Up for
+    switching between instruments.
 
 Version 1.0.0 (2015-07-17)
 

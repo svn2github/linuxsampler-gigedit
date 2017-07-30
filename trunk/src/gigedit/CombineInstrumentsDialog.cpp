@@ -944,6 +944,9 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         Gtk::MessageDialog msg(*this, txt, false, Gtk::MESSAGE_WARNING);
         msg.run();
     }
+
+    // OK button should have focus by default for quick combining with Return key
+    m_OKButton.grab_focus();
 }
 
 void CombineInstrumentsDialog::on_order_drag_begin(const Glib::RefPtr<Gdk::DragContext>& context)
@@ -1069,6 +1072,8 @@ void CombineInstrumentsDialog::setSelectedInstruments(const std::set<int>& instr
         if (instrumentIndeces.count(index))
             m_treeView.get_selection()->select(iter);
     }
+    // hack: OK button lost focus after doing the above, it should have focus by default for quick combining with Return key
+    m_OKButton.grab_focus();
 }
 
 void CombineInstrumentsDialog::combineSelectedInstruments() {

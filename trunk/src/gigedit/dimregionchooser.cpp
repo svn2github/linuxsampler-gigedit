@@ -1479,13 +1479,14 @@ void DimRegionChooser::select_dimzone_by_dir(int dir, bool add) {
         return;
     }
 
-    if (maindimcase.empty()) {
+    // commented out: re-evaluate maindimcase, since it might not been reset from a previous instrument which causes errors if it got different dimension types
+    //if (maindimcase.empty()) {
         maindimcase = dimensionCaseOf(region->pDimensionRegions[maindimregno]);
         if (maindimcase.empty()) {
             printf("caseOfDimregion(%d) -> empty\n", maindimregno);
             return;
         }
-    }
+    //}
 
     int z = (dir > 0) ? maindimcase[maindimtype] + 1 : maindimcase[maindimtype] - 1;
     if (z < 0) z = 0;

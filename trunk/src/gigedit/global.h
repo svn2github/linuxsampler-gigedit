@@ -116,6 +116,20 @@ gig::String gig_from_utf8(const Glib::ustring& utf8_string) {
     return Glib::convert_with_fallback(utf8_string, GIG_STR_ENCODING, "UTF-8", "?");
 }
 
+inline Glib::ustring ltrim(Glib::ustring s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+inline Glib::ustring rtrim(Glib::ustring s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+inline Glib::ustring trim(Glib::ustring s) {
+    return ltrim(rtrim(s));
+}
+
 template<class T> inline std::string ToString(T o) {
     std::stringstream ss;
     ss << o;

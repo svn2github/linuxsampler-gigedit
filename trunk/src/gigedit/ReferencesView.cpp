@@ -45,7 +45,7 @@ ReferencesView::ReferencesView(Gtk::Window& parent) :
     m_treeView.append_column(_("References"), m_columns.m_col_refcount);
     m_treeView.set_headers_visible(true);
     m_treeView.get_selection()->set_mode(Gtk::SELECTION_SINGLE);
-    m_treeView.get_selection()->signal_changed().connect(
+    m_treeView.signal_row_activated().connect(
         sigc::mem_fun(*this, &ReferencesView::onSelectionChanged)
     );
 
@@ -130,13 +130,14 @@ void ReferencesView::setSample(gig::Sample* sample) {
     m_treeView.expand_all();
 }
 
-void ReferencesView::onSelectionChanged() {
+void ReferencesView::onSelectionChanged(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* column) {
     if (!m_sample) return;
 
-    Glib::RefPtr<Gtk::TreeSelection> sel = m_treeView.get_selection();
-    Gtk::TreeModel::iterator it = sel->get_selected();
-    Gtk::TreeModel::Row row = *it;
+    Gtk::TreeModel::iterator it = m_refTreeModel->get_iter(path);
     if (!it) return;
+
+    Gtk::TreeModel::Row row = *it;
+
     gig::Instrument* pInstrument = row[m_columns.m_col_instr];
     gig::Region* pRegion = row[m_columns.m_col_region];
     gig::DimensionRegion* pDimRgn = NULL;

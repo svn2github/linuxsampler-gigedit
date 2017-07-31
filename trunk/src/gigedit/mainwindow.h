@@ -39,10 +39,12 @@
 #include <gtkmm/radiomenuitem.h>
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/treestore.h>
+#include <gtkmm/treemodelfilter.h>
 #include <gtkmm/uimanager.h>
 #include <gtkmm/window.h>
 #include <gtkmm/statusbar.h>
 #include <gtkmm/image.h>
+#include <gtkmm/entry.h>
 
 #include <sstream>
 
@@ -321,6 +323,7 @@ protected:
 
     Gtk::TreeView m_TreeView;
     Glib::RefPtr<Gtk::ListStore> m_refTreeModel;
+    Glib::RefPtr<Gtk::TreeModelFilter> m_refTreeModelFilter; //FIXME: I really would love to get rid of TreeModelFilter, because it causes behavior conflicts with get_model() all over the place (see the respective comments regarding get_model()), however I found no other way to filter a treeview effectively.
 
     Gtk::Menu* instrument_menu;
     Gtk::Menu* assign_scripts_menu;
@@ -402,7 +405,11 @@ protected:
     Gtk::Label labelSomeLoops;
     DimRegionEdit dimreg_edit;
 
+    Gtk::VBox m_left_vbox;
     Gtk::Notebook m_TreeViewNotebook;
+    Gtk::HBox m_searchField;
+    Gtk::Label m_searchLabel;
+    Gtk::Entry m_searchText;
 
     struct SampleImportItem {
         gig::Sample*  gig_sample;  // pointer to the gig::Sample to
@@ -432,6 +439,8 @@ protected:
     void on_action_sync_sampler_instrument_selection();
     void on_action_move_root_note_with_region_moved();
     void on_action_help_about();
+
+    void on_notebook_tab_switched(GtkNotebookPage* page, guint page_num);
 
     // sample right-click popup actions
     void on_sample_treeview_button_release(GdkEventButton* button);
@@ -538,6 +547,7 @@ protected:
     void instrument_name_changed(const Gtk::TreeModel::Path& path,
                                  const Gtk::TreeModel::iterator& iter);
     void instr_name_changed_by_instr_props(Gtk::TreeModel::iterator& it);
+    bool instrument_row_visible(const Gtk::TreeModel::const_iterator& iter);
     sigc::connection instrument_name_connection;
 
     void on_action_combine_instruments();

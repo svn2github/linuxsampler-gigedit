@@ -136,6 +136,12 @@ Version SVN HEAD (?)
     additional menu "Instruments" -> "Assign Script".
   * Added keyboard accelerators Ctrl + Arrow Down and Ctrl + Arrow Up for
     switching between instruments.
+  * Added search filter field which allows to quickly filter the instrument
+    list by case insensitive search tokens.
+  * Fix: navigating between dimension zones by keyboard did sometimes not
+    work after switching from an instrument with different dimension types.
+  * Fix: Sample references view dialog had some odd behaviors, like it did not
+    respond to mouse scroll events for instance.
 
 Version 1.0.0 (2015-07-17)
 

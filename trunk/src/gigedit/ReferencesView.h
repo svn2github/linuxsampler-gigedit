@@ -85,7 +85,7 @@ protected:
 
     Glib::RefPtr<RefsTreeStore>  m_refTreeModel;
 
-    void onSelectionChanged();
+    void onSelectionChanged(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* column);
 };
 
 #endif // GIGEDIT_REFERENCESVIEW_H

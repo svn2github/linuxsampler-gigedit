@@ -32,6 +32,7 @@
 #include <glibmm/dispatcher.h>
 #include <glibmm/miscutils.h>
 #include <glibmm/stringutils.h>
+#include <glibmm/regex.h>
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/filechooserdialog.h>
 #include <gtkmm/messagedialog.h>
@@ -121,7 +122,16 @@ MainWindow::MainWindow() :
 
     m_TreeViewNotebook.set_size_request(300);
 
-    m_HPaned.add1(m_TreeViewNotebook);
+    m_searchLabel.set_text(Glib::ustring(" ") + _("Filter:"));
+    m_searchField.pack_start(m_searchLabel, Gtk::PACK_SHRINK);
+    m_searchField.pack_start(m_searchText);
+    m_searchField.set_spacing(5);
+
+    m_left_vbox.pack_start(m_TreeViewNotebook);
+    m_left_vbox.pack_start(m_searchField, Gtk::PACK_SHRINK);
+
+    m_HPaned.add1(m_left_vbox);
+
     dimreg_hbox.add(dimreg_label);
     dimreg_hbox.add(dimreg_all_regions);
     dimreg_hbox.add(dimreg_all_dimregs);
@@ -685,7 +695,12 @@ MainWindow::MainWindow() :
 
     // Create the Tree model:
     m_refTreeModel = Gtk::ListStore::create(m_Columns);
-    m_TreeView.set_model(m_refTreeModel);
+    m_refTreeModelFilter = Gtk::TreeModelFilter::create(m_refTreeModel);
+    m_refTreeModelFilter->set_visible_func(
+        sigc::mem_fun(*this, &MainWindow::instrument_row_visible)
+    );
+    m_TreeView.set_model(m_refTreeModelFilter);
+
     m_TreeView.get_selection()->set_mode(Gtk::SELECTION_MULTIPLE);
     m_TreeView.set_tooltip_text(_("Right click here for actions on instruments & MIDI Rules. Drag & drop to change the order of instruments."));
     instrument_name_connection = m_refTreeModel->signal_row_changed().connect(
@@ -861,6 +876,10 @@ MainWindow::MainWindow() :
     dimreg_stereo.signal_toggled().connect(
         sigc::mem_fun(*this, &MainWindow::update_dimregs));
 
+    m_searchText.signal_changed().connect(
+        sigc::mem_fun(m_refTreeModelFilter.operator->(), &Gtk::TreeModelFilter::refilter)
+    );
+
     file = 0;
     file_is_changed = false;
 
@@ -868,6 +887,10 @@ MainWindow::MainWindow() :
 
     // start with a new gig file by default
     on_action_file_new();
+
+    m_TreeViewNotebook.signal_switch_page().connect(
+        sigc::mem_fun(*this, &MainWindow::on_notebook_tab_switched)
+    );
 
     // select 'Instruments' tab by default
     // (gtk allows this only if the tab childs are visible, thats why it's here)
@@ -1039,6 +1062,13 @@ void MainWindow::onMacrosSetupChanged(const std::vector<Serialization::Archive>&
     m_macros = macros;
     Settings::singleton()->saveMacros(m_macros);
     updateMacroMenu();
+}
+
+void MainWindow::on_notebook_tab_switched(GtkNotebookPage* page, guint page_num) {
+    bool isInstrumentsPage = (page_num == 1);
+    // so far we only support filtering for the instruments list, so hide the
+    // filter text entry field if another tab is selected
+    m_searchField.set_visible(isInstrumentsPage);
 }
 
 bool MainWindow::on_delete_event(GdkEventAny* event)
@@ -2335,7 +2365,10 @@ void MainWindow::onScriptSlotsModified(gig::Instrument* pInstrument) {
     if (!pInstrument) return;
     const int iScriptSlots = pInstrument->ScriptSlotCount();
 
-    Glib::RefPtr<Gtk::TreeModel> model = m_TreeView.get_model();
+    //NOTE: This is a big mess! Sometimes GTK requires m_TreeView.get_model(), here we need m_refTreeModelFilter->get_model(), otherwise accessing children below causes an error!
+    //Glib::RefPtr<Gtk::TreeModel> model = m_TreeView.get_model();
+    Glib::RefPtr<Gtk::TreeModel> model = m_refTreeModelFilter->get_model();
+
     for (int i = 0; i < model->children().size(); ++i) {
         Gtk::TreeModel::Row row = model->children()[i];
         if (row[m_Columns.m_col_instr] != pInstrument) continue;
@@ -2467,7 +2500,10 @@ void MainWindow::on_instrument_selection_change(Gtk::RadioMenuItem* item) {
 void MainWindow::select_instrument(gig::Instrument* instrument) {
     if (!instrument) return;
 
+    //NOTE: This is a big mess! Sometimes GTK requires m_refTreeModelFilter->get_model(), here we need m_TreeView.get_model(), otherwise treeview selection below causes an error!
     Glib::RefPtr<Gtk::TreeModel> model = m_TreeView.get_model();
+    //Glib::RefPtr<Gtk::TreeModel> model = m_refTreeModelFilter->get_model();
+
     for (int i = 0; i < model->children().size(); ++i) {
         Gtk::TreeModel::Row row = model->children()[i];
         if (row[m_Columns.m_col_instr] == instrument) {
@@ -2489,7 +2525,10 @@ bool MainWindow::select_dimension_region(gig::DimensionRegion* dimRgn) {
     gig::Region* pRegion = (gig::Region*) dimRgn->GetParent();
     gig::Instrument* pInstrument = (gig::Instrument*) pRegion->GetParent();
 
+    //NOTE: This is a big mess! Sometimes GTK requires m_refTreeModelFilter->get_model(), here we need m_TreeView.get_model(), otherwise treeview selection below causes an error!
     Glib::RefPtr<Gtk::TreeModel> model = m_TreeView.get_model();
+    //Glib::RefPtr<Gtk::TreeModel> model = m_refTreeModelFilter->get_model();
+
     for (int i = 0; i < model->children().size(); ++i) {
         Gtk::TreeModel::Row row = model->children()[i];
         if (row[m_Columns.m_col_instr] == pInstrument) {
@@ -3697,6 +3736,26 @@ void MainWindow::instrument_name_changed(const Gtk::TreeModel::Path& path,
 
         file_changed();
     }
+}
+
+bool MainWindow::instrument_row_visible(const Gtk::TreeModel::const_iterator& iter) {
+    if (!iter)
+        return true;
+
+    Glib::ustring pattern = m_searchText.get_text().lowercase();
+    trim(pattern);
+    if (pattern.empty()) return true;
+
+    Gtk::TreeModel::Row row = *iter;
+    Glib::ustring name = row[m_Columns.m_col_name];
+    name = name.lowercase();
+
+    std::vector<Glib::ustring> tokens = Glib::Regex::split_simple(" ", pattern);
+    for (int t = 0; t < tokens.size(); ++t)
+        if (name.find(tokens[t]) == Glib::ustring::npos)
+            return false;
+
+    return true;
 }
 
 void MainWindow::on_action_combine_instruments() {

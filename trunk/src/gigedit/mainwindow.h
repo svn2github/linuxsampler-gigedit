@@ -45,6 +45,7 @@
 #include <gtkmm/statusbar.h>
 #include <gtkmm/image.h>
 #include <gtkmm/entry.h>
+#include <gtkmm/notebook.h>
 
 #include <sstream>
 

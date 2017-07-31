@@ -25,6 +25,7 @@
 #endif
 
 #include <cstring>
+#include <algorithm>
 
 #include <glibmmconfig.h>
 // threads.h must be included first to be able to build with

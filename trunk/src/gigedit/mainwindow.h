@@ -45,7 +45,6 @@
 #include <gtkmm/statusbar.h>
 #include <gtkmm/image.h>
 #include <gtkmm/entry.h>
-#include <gtk/gtknotebook.h>
 #include <gtkmm/notebook.h>
 
 #include <sstream>
@@ -442,7 +441,7 @@ protected:
     void on_action_move_root_note_with_region_moved();
     void on_action_help_about();
 
-    void on_notebook_tab_switched(GtkNotebookPage* page, guint page_num);
+    void on_notebook_tab_switched(void* page, guint page_num);
 
     // sample right-click popup actions
     void on_sample_treeview_button_release(GdkEventButton* button);

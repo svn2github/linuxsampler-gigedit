@@ -1064,7 +1064,8 @@ void MainWindow::onMacrosSetupChanged(const std::vector<Serialization::Archive>&
     updateMacroMenu();
 }
 
-void MainWindow::on_notebook_tab_switched(GtkNotebookPage* page, guint page_num) {
+//NOTE: the actual signal's first argument for argument 'page' is on some gtkmm version GtkNotebookPage* and on some Gtk::Widget*. Since we don't need that argument, it is simply void* here for now.
+void MainWindow::on_notebook_tab_switched(void* page, guint page_num) {
     bool isInstrumentsPage = (page_num == 1);
     // so far we only support filtering for the instruments list, so hide the
     // filter text entry field if another tab is selected

@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 4.0.0), pkg-config, intltool,
   libgtkmm-2.4-dev | libgtkmm-3.0-dev,
   libgtk2.0-dev | libgtk-3-dev,
   libsndfile1-dev, xsltproc, docbook-xsl, libgig-dev (>= 4.0.0)
-Standards-Version: 3.6.1
+Standards-Version: 4.0.0
 
 Package: gigedit
 Section: sound

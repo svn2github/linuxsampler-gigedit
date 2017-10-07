@@ -1,3 +1,9 @@
+gigedit (1.0.0-1+svn62) unreleased; urgency=low
+
+  * Raised Debian compatibility level to Debian 9 "Stretch".
+
+ -- Christian Schoenebeck <cuse@users.sourceforge.net>  Sat, 07 Oct 2017 19:55:51 +0200
+
 gigedit (1.0.0-1+svn48) unreleased; urgency=low
 
   * Added dependency to either gnome-icon-theme or hicolor-icon-theme,

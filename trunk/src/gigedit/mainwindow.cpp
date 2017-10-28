@@ -2075,7 +2075,7 @@ InstrumentProps::InstrumentProps() :
     eGainPlus6(_("Gain +6dB"), eAttenuation, -6),
     eEffectSend(_("Effect send"), 0, 65535),
     eFineTune(_("Fine tune"), -8400, 8400),
-    ePitchbendRange(_("Pitchbend range"), 0, 12),
+    ePitchbendRange(_("Pitchbend range"), 0, 48),
     ePianoReleaseMode(_("Piano release mode")),
     eDimensionKeyRangeLow(_("Keyswitching range low")),
     eDimensionKeyRangeHigh(_("Keyswitching range high"))

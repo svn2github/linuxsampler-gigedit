@@ -143,6 +143,7 @@ Version SVN HEAD (?)
   * Fix: Sample references view dialog had some odd behaviors, like it did not
     respond to mouse scroll events for instance.
   * Debian: Raised Debian compatibility level to Debian 9 "Stretch".
+  * Raised max. pitchbend range to 48 semi tones.
 
 Version 1.0.0 (2015-07-17)
 

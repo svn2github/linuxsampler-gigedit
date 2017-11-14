@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2007 Andreas Persson
+ * Copyright (C) 2006 - 2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,7 +20,11 @@
 #include "global.h"
 #include <gtk/gtk.h>
 #include "gigedit.h"
-#include <gtkmm.h>
+#ifdef GTKMM_HEADER_FILE
+# include GTKMM_HEADER_FILE(gtkmm.h)
+#else
+# include <gtkmm.h>
+#endif
 
 #if GTKMM_MAJOR_VERSION >= 3
 
@@ -32,9 +36,13 @@
  * was a good idea!
  */
 static void enforceGtk3Settings(int argc, char* argv[]) {
+#if GTK_MAJOR_VERSION > 3 || (GTK_MAJOR_VERSION == 3 && (GTK_MINOR_VERSION > 89) || (GTK_MINOR_VERSION == 89 && GTK_MICRO_VERSION >= 3)) // GTK >= 3.89.3
+    gtk_init();
+#else
     gtk_init(&argc, &argv);
+#endif
 
-    // got not behavior change on those 2 settings, so ignoring them for now,
+    // got no behavior change on those 2 settings, so ignoring them for now,
     // actually I though I could use them to show the mnemonics in the GTK 3
     // menus again, but it seems that was entirely removed from around GTK 3.10.
     //g_object_set(gtk_settings_get_default(), "gtk-auto-mnemonics", false, NULL);

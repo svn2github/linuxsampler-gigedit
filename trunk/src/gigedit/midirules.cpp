@@ -17,15 +17,21 @@
  * 02110-1301, USA.
  */
 
+#include "compat.h"
 #include "global.h"
 #include "midirules.h"
 
-#include <gtkmm/stock.h>
-
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 
 MidiRules::MidiRules() :
     label(_("Midi rule:")),
+#if HAS_GTKMM_STOCK
     quit_button(Gtk::Stock::CLOSE),
+#else
+    quit_button(_("_Close"), true),
+#endif
     unknown(_("unknown"))
 {
     if (!Settings::singleton()->autoRestoreWindowDimension) {
@@ -34,11 +40,19 @@ MidiRules::MidiRules() :
     }
 
     set_title(_("Midi Rules"));
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    set_margin(6);
+#else
     set_border_width(6);
+#endif
 
     add(vbox);
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    hbox.set_margin(6);
+#else
     hbox.set_border_width(6);
+#endif
     hbox.set_spacing(6);
     hbox.pack_start(label, Gtk::PACK_SHRINK);
     hbox.pack_start(combo, Gtk::PACK_SHRINK);
@@ -55,10 +69,18 @@ MidiRules::MidiRules() :
         sigc::mem_fun(*this, &MidiRules::combo_changed));
     vbox.pack_start(hbox, Gtk::PACK_SHRINK);
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    box.set_margin(6);
+#else
     box.set_border_width(6);
+#endif
     vbox.pack_start(box);
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    button_box.set_margin(6);
+#else
     button_box.set_border_width(6);
+#endif
     button_box.set_layout(Gtk::BUTTONBOX_END);
     button_box.pack_start(quit_button);
     quit_button.set_can_default();
@@ -70,7 +92,9 @@ MidiRules::MidiRules() :
     legato.signal_changed().connect(sig_changed.make_slot());
     ctrl_trigger.signal_changed().connect(sig_changed.make_slot());
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 void MidiRules::combo_changed() {
@@ -143,7 +167,9 @@ void MidiRules::set_instrument(gig::Instrument* instrument) {
         remove_unknown_from_combo();
         combo.set_active(active);
     }
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
     update_model--;
 }
 
@@ -205,7 +231,12 @@ MidiRuleCtrlTrigger::MidiRuleCtrlTrigger() :
     scrolled_window.set_shadow_type(Gtk::SHADOW_IN);
     scrolled_window.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
 
+#if USE_GTKMM_GRID
+    table.set_column_spacing(5);
+#else
     table.set_col_spacings(5);
+#endif
+
     table.add(eControllerNumber);
     pack_start(table, Gtk::PACK_SHRINK);
 
@@ -406,7 +437,8 @@ void MidiRuleCtrlTrigger::add_row() {
     row[columns.override_pedal] = false;
     update_model--;
 
-    tree_view.get_selection()->select(row);
+    //NOTE: was ->select(row) before, but did not compile with GTKMM4 development branch, probably going to be fixed before final GTKMM4 release though.
+    tree_view.get_selection()->select(it);
     path = list_store->get_path(it);
     tree_view.scroll_to_row(path);
     tree_view.set_cursor(path);
@@ -523,7 +555,11 @@ MidiRuleLegato::MidiRuleLegato() :
     connect(eAltSustain1Key, &gig::MidiRuleLegato::AltSustain1Key);
     connect(eAltSustain2Key, &gig::MidiRuleLegato::AltSustain2Key);
 
+#if USE_GTKMM_GRID
+    set_column_spacing(5);
+#else
     set_col_spacings(5);
+#endif
 
     add(eBypassUseController);
     add(eBypassKey);

@@ -17,7 +17,7 @@
  * 02110-1301 USA.
  */
 
-#include <glibmmconfig.h>
+#include "compat.h"
 // threads.h must be included first to be able to build with
 // G_DISABLE_DEPRECATED
 #if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
@@ -27,12 +27,19 @@
 
 #include "dimensionmanager.h"
 
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/dialog.h>
 #include <gtkmm/comboboxtext.h>
 #include <gtkmm/spinbutton.h>
-#include <gtkmm/table.h>
+#include <gtkmm/label.h>
+#if USE_GTKMM_GRID
+# include <gtkmm/grid.h>
+#else
+# include <gtkmm/table.h>
+#endif
 
 #include "global.h"
 #include "compat.h"
@@ -244,7 +251,11 @@ void IntSetCellRenderer::valueChanged() {
 }
 
 DimensionManager::DimensionManager() :
+#if HAS_GTKMM_STOCK
     addButton(Gtk::Stock::ADD), removeButton(Gtk::Stock::REMOVE),
+#else
+    addButton(_("_Add"), true), removeButton(_("_Remove"), true),
+#endif
     allRegionsCheckBox(_("All Regions"))
 {
     ignoreColumnClicked = true;
@@ -254,6 +265,12 @@ DimensionManager::DimensionManager() :
         set_position(Gtk::WIN_POS_MOUSE);
     }
 
+#if !HAS_GTKMM_STOCK
+    // see : https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
+    addButton.set_icon_name("list-add");
+    removeButton.set_icon_name("list-remove");
+#endif
+
     set_title(_("Dimensions of selected Region"));
     add(vbox);
     scrolledWindow.add(treeView);
@@ -261,7 +278,11 @@ DimensionManager::DimensionManager() :
     scrolledWindow.show();
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    buttonBox.set_margin(5);
+#else
     buttonBox.set_border_width(5);
+#endif
     buttonBox.show();
     buttonBox.pack_start(allRegionsCheckBox, Gtk::PACK_EXPAND_PADDING);
     buttonBox.pack_start(addButton, Gtk::PACK_SHRINK);
@@ -301,7 +322,9 @@ DimensionManager::DimensionManager() :
         sigc::mem_fun(*this, &DimensionManager::onAllRegionsCheckBoxToggled)
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 bool DimensionManager::allRegions() const {
@@ -440,7 +463,11 @@ void DimensionManager::onColumnClicked() {
                 count++;
             }
         }
+#if USE_GTKMM_GRID
+        Gtk::Grid table;
+#else
         Gtk::Table table(1, 2);
+#endif
         Gtk::Label labelDimType(_("Dimension:"), Gtk::ALIGN_START);
         Gtk::ComboBox comboDimType;
         comboDimType.set_model(refComboModel);
@@ -448,11 +475,22 @@ void DimensionManager::onColumnClicked() {
         comboDimType.pack_start(comboModel.m_type_name);
         table.attach(labelDimType, 0, 1, 0, 1);
         table.attach(comboDimType, 1, 2, 0, 1);
+#if USE_GTKMM_BOX
+        dialog.get_content_area()->pack_start(table);
+#else
         dialog.get_vbox()->pack_start(table);
+#endif
 
+#if HAS_GTKMM_STOCK
         dialog.add_button(Gtk::Stock::OK, 0);
         dialog.add_button(Gtk::Stock::CANCEL, 1);
+#else
+        dialog.add_button(_("_OK"), 0);
+        dialog.add_button(_("_Cancel"), 1);
+#endif
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
         dialog.show_all_children();
+#endif
         
         comboDimType.set_active(oldTypeIndex);
 
@@ -544,17 +582,32 @@ void DimensionManager::addDimension() {
             row[comboModel.m_type_name] = sType;
         }
     }
+#if USE_GTKMM_GRID
+    Gtk::Grid table;
+#else
     Gtk::Table table(2, 2);
+#endif
     Gtk::Label labelDimType(_("Dimension:"), Gtk::ALIGN_START);
     Gtk::ComboBox comboDimType;
     comboDimType.set_model(refComboModel);
     comboDimType.pack_start(comboModel.m_type_id);
     comboDimType.pack_start(comboModel.m_type_name);
     Gtk::Label labelZones(_("Zones:"), Gtk::ALIGN_START);
+#if USE_GTKMM_GRID
+    table.attach(labelDimType, 0, 0);
+    table.attach(comboDimType, 1, 0);
+    table.attach(labelZones, 0, 1);
+#else
     table.attach(labelDimType, 0, 1, 0, 1);
     table.attach(comboDimType, 1, 2, 0, 1);
     table.attach(labelZones, 0, 1, 1, 2);
+#endif
+
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(table);
+#else
     dialog.get_vbox()->pack_start(table);
+#endif
 
     // number of zones: use a combo box with fix values for gig
     // v2 and a spin button for v3
@@ -584,9 +637,16 @@ void DimensionManager::addDimension() {
         table.attach(spinZones, 1, 2, 1, 2);
     }
 
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::OK, 0);
     dialog.add_button(Gtk::Stock::CANCEL, 1);
+#else
+    dialog.add_button(_("_OK"), 0);
+    dialog.add_button(_("_Cancel"), 1);
+#endif
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     dialog.show_all_children();
+#endif
 
     if (!dialog.run()) { // OK selected ...
         Gtk::TreeModel::iterator iterType = comboDimType.get_active();

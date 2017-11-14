@@ -20,7 +20,9 @@
 #include <string.h>
 
 #include <glibmm/ustring.h>
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/label.h>
 #include <gtk/gtkwidget.h> // for gtk_widget_modify_*()
@@ -782,8 +784,18 @@ static void combineInstruments(std::vector<gig::Instrument*>& instruments, gig::
 CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::File* gig)
     : ManagedDialog(_("Combine Instruments"), parent, true),
       m_gig(gig), m_fileWasChanged(false), m_newCombinedInstrument(NULL),
+#if HAS_GTKMM_STOCK
       m_cancelButton(Gtk::Stock::CANCEL), m_OKButton(Gtk::Stock::OK),
-      m_descriptionLabel(), m_tableDimCombo(2, 2), m_comboDimType(),
+#else
+      m_cancelButton(_("_Cancel"), true), m_OKButton(_("_OK"), true),
+#endif
+      m_descriptionLabel(),
+#if USE_GTKMM_GRID
+      m_tableDimCombo(),
+#else
+      m_tableDimCombo(2, 2),
+#endif
+      m_comboDimType(),
       m_labelDimType(Glib::ustring(_("Combine by Dimension:")) + "  ", Gtk::ALIGN_END)
 {
     if (!Settings::singleton()->autoRestoreWindowDimension) {
@@ -794,12 +806,21 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     m_scrolledWindow.add(m_treeView);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
+#if USE_GTKMM_BOX
+    get_content_area()->pack_start(m_descriptionLabel, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_tableDimCombo, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_scrolledWindow);
+    get_content_area()->pack_start(m_labelOrder, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_iconView, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_buttonBox, Gtk::PACK_SHRINK);
+#else
     get_vbox()->pack_start(m_descriptionLabel, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_tableDimCombo, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_scrolledWindow);
     get_vbox()->pack_start(m_labelOrder, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_iconView, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_buttonBox, Gtk::PACK_SHRINK);
+#endif
 
 #if GTKMM_MAJOR_VERSION >= 3
     m_descriptionLabel.set_line_wrap();
@@ -884,13 +905,19 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     // (this also fixes a bug with GTK 2 which often causes visibility issue
     //  with the text of the selected item)
     {
+#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color white;
+#else
+        Gdk::RGBA white;
+#endif
         white.set("#ffffff");
         GtkWidget* widget = (GtkWidget*) m_iconView.gobj();
+#if GTK_MAJOR_VERSION < 3
         gtk_widget_modify_base(widget, GTK_STATE_SELECTED, white.gobj());
         gtk_widget_modify_base(widget, GTK_STATE_ACTIVE, white.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_SELECTED, white.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_ACTIVE, white.gobj());
+#endif
     }
 
     m_labelOrder.set_text(_("Order of the instruments to be combined:"));
@@ -914,7 +941,11 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     }
 
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    m_buttonBox.set_margin(5);
+#else
     m_buttonBox.set_border_width(5);
+#endif
     m_buttonBox.pack_start(m_cancelButton, Gtk::PACK_SHRINK);
     m_buttonBox.pack_start(m_OKButton, Gtk::PACK_SHRINK);
     m_buttonBox.show();
@@ -931,7 +962,9 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
         sigc::mem_fun(*this, &CombineInstrumentsDialog::combineSelectedInstruments)
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 
     // show a warning to user if he uses a .gig in v2 format
     if (gig->pVersion->major < 3) {

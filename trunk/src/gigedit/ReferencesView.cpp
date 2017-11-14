@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014,2015 Christian Schoenebeck
+    Copyright (c) 2014 - 2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -14,17 +14,33 @@ Glib::ustring note_str(int note);
 
 ReferencesView::ReferencesView(Gtk::Window& parent) :
     ManagedDialog("", parent, true), m_sample(NULL),
-    m_closeButton(Gtk::Stock::CLOSE), m_descriptionLabel()
+#if HAS_GTKMM_STOCK
+    m_closeButton(Gtk::Stock::CLOSE),
+#else
+    m_closeButton(_("_Close"), true),
+#endif
+    m_descriptionLabel()
 {
     set_title("Nothing selected");
+
+#if !HAS_GTKMM_STOCK
+    m_closeButton.set_icon_name("window-close");
+#endif
 
     m_scrolledWindow.add(m_treeView);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
+#if USE_GTKMM_BOX
+    get_content_area()->pack_start(m_descriptionLabel, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_scrolledWindow);
+    get_content_area()->pack_start(m_summaryLabel, Gtk::PACK_SHRINK);
+    get_content_area()->pack_start(m_buttonBox, Gtk::PACK_SHRINK);
+#else
     get_vbox()->pack_start(m_descriptionLabel, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_scrolledWindow);
     get_vbox()->pack_start(m_summaryLabel, Gtk::PACK_SHRINK);
     get_vbox()->pack_start(m_buttonBox, Gtk::PACK_SHRINK);
+#endif
 
 #if GTKMM_MAJOR_VERSION >= 3
     m_descriptionLabel.set_line_wrap();
@@ -50,14 +66,20 @@ ReferencesView::ReferencesView(Gtk::Window& parent) :
     );
 
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    m_buttonBox.set_margin(5);
+#else
     m_buttonBox.set_border_width(5);
+#endif
     m_buttonBox.pack_start(m_closeButton, Gtk::PACK_SHRINK);
 
     m_closeButton.signal_clicked().connect(
         sigc::mem_fun(*this, &ReferencesView::hide)
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 void ReferencesView::setSample(gig::Sample* sample) {

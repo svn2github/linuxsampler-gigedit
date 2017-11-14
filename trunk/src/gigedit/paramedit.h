@@ -28,17 +28,25 @@
 
 #include <cmath>
 
+#include "compat.h"
+
 #include <glibmm/convert.h>
 #include <gtkmm/box.h>
 #include <gtkmm/adjustment.h>
-#include <gtkmm/alignment.h>
+#if HAS_GTKMM_ALIGNMENT
+# include <gtkmm/alignment.h>
+#endif
 #include <gtkmm/checkbutton.h>
 #include <gtkmm/comboboxtext.h>
 #include <gtkmm/frame.h>
 #include <gtkmm/label.h>
 #include <gtkmm/scale.h>
 #include <gtkmm/spinbutton.h>
-#include <gtkmm/table.h>
+#if USE_GTKMM_GRID
+# include <gtkmm/grid.h>
+#else
+# include <gtkmm/table.h>
+#endif
 #include <gtkmm/textview.h>
 
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 12) || GTKMM_MAJOR_VERSION < 2
@@ -83,9 +91,9 @@ protected:
 #else
     Glib::RefPtr<Gtk::Adjustment> adjust;
 #endif
-    Gtk::HScale scale;
+    HScale scale;
     Gtk::SpinButton spinbutton;
-    Gtk::HBox box;
+    HBox box;
 
     static int round_to_int(double x) {
         return int(x < 0.0 ? x - 0.5 : x + 0.5);
@@ -199,7 +207,9 @@ template<typename T>
 class ChoiceEntry : public LabelWidget {
 private:
     Gtk::ComboBoxText combobox;
+#if HAS_GTKMM_ALIGNMENT
     Gtk::Alignment align;
+#endif
     const T* values;
 public:
     ChoiceEntry(const char* labelText);
@@ -218,12 +228,18 @@ public:
 
 template<typename T>
 ChoiceEntry<T>::ChoiceEntry(const char* labelText) :
+#if HAS_GTKMM_ALIGNMENT
     LabelWidget(labelText, align),
     align(0, 0, 0, 0),
+#else
+    LabelWidget(labelText, combobox),
+#endif
     values(0)
 {
     combobox.signal_changed().connect(sig_changed.make_slot());
+#if HAS_GTKMM_ALIGNMENT
     align.add(combobox);
+#endif
 }
 
 template<typename T>
@@ -262,7 +278,9 @@ class ChoiceEntryLeverageCtrl : public LabelWidget {
 private:
     gig::leverage_ctrl_t value;
     Gtk::ComboBoxText combobox;
+#if HAS_GTKMM_ALIGNMENT
     Gtk::Alignment align;
+#endif
     void value_changed();
 public:
     ChoiceEntryLeverageCtrl(const char* labelText);
@@ -342,7 +360,12 @@ public:
 /**
  * Container widget for LabelWidgets.
  */
-class Table : public Gtk::Table
+class Table :
+#if USE_GTKMM_GRID
+    public Gtk::Grid
+#else
+    public Gtk::Table
+#endif
 {
 public:
     Table(int x, int y);
@@ -350,6 +373,9 @@ public:
     void add(BoolEntryPlus6& boolentry);
     void add(LabelWidget& labelwidget);
 private:
+#if USE_GTKMM_GRID
+    int cols;
+#endif
     int rowno;
 };
 

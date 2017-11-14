@@ -14,7 +14,11 @@
 # include <gig.h>
 #endif
 
-#include <gtkmm.h>
+#ifdef GTKMM_HEADER_FILE
+# include GTKMM_HEADER_FILE(gtkmm.h)
+#else
+# include <gtkmm.h>
+#endif
 #include "wrapLabel.hh"
 #include "ManagedWindow.h"
 
@@ -44,7 +48,7 @@ public:
 protected:
     gig::Sample* m_sample;
 
-    Gtk::HButtonBox      m_buttonBox;
+    HButtonBox      m_buttonBox;
     Gtk::ScrolledWindow  m_scrolledWindow;
     Gtk::TreeView        m_treeView;
     Gtk::Button          m_closeButton;

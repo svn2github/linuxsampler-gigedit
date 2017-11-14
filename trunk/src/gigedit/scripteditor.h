@@ -14,13 +14,28 @@
 # include <gig.h>
 #endif
 
-#include <gtkmm.h>
+#ifdef GTKMM_HEADER_FILE
+# include GTKMM_HEADER_FILE(gtkmm.h)
+#else
+# include <gtkmm.h>
+#endif
 #if HAVE_CONFIG_H
 # include <config.h>
 #endif
 #include "compat.h"
-#include <gtkmm/uimanager.h>
-#include <gtkmm/actiongroup.h>
+
+#if USE_GTKMM_BUILDER
+# include <gtkmm/builder.h>
+#else
+# include <gtkmm/uimanager.h> // deprecated in gtkmm >= 3.21.4
+#endif
+
+#if USE_GLIB_ACTION
+# include <giomm/simpleactiongroup.h>
+#else
+# include <gtkmm/actiongroup.h>
+#endif
+
 #include "ManagedWindow.h"
 
 // Should we use a very simple (and buggy) local NKSP syntax parser, or should
@@ -56,12 +71,12 @@ public:
     virtual Settings::Property<int>* windowSettingHeight() { return &Settings::singleton()->scriptEditorWindowH; }
 
 protected:
-    Gtk::VBox m_vbox;
-    Gtk::HBox m_footerHBox;
-    Gtk::HBox m_statusHBox;
-    Gtk::HButtonBox m_buttonBox;
+    VBox m_vbox;
+    HBox m_footerHBox;
+    HBox m_statusHBox;
+    HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
-    Gtk::HBox m_textViewHBox;
+    HBox m_textViewHBox;
     Glib::RefPtr<Gtk::TextBuffer> m_lineNrBuffer;
     Glib::RefPtr<Gtk::TextBuffer> m_textBuffer;
     Glib::RefPtr<Gtk::TextBuffer::TagTable> m_tagTable;
@@ -85,12 +100,24 @@ protected:
     Gtk::Button m_applyButton;
     Gtk::Button m_cancelButton;
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION >= 20)
+    Glib::RefPtr<Gtk::CssProvider> m_css;
+#endif
+
     Glib::RefPtr<Gdk::Pixbuf> m_warningIcon;
     Glib::RefPtr<Gdk::Pixbuf> m_errorIcon;
     Glib::RefPtr<Gdk::Pixbuf> m_successIcon;
 
+#if USE_GLIB_ACTION
+    Glib::RefPtr<Gio::SimpleActionGroup> m_actionGroup;
+#else
     Glib::RefPtr<Gtk::ActionGroup> m_actionGroup;
+#endif
+#if USE_GTKMM_BUILDER
+    Glib::RefPtr<Gtk::Builder> m_uiManager;
+#else
     Glib::RefPtr<Gtk::UIManager> m_uiManager;
+#endif
 
     gig::Script* m_script;
 #if USE_LS_SCRIPTVM
@@ -116,7 +143,10 @@ protected:
     void updateStatusBar();
 #endif
     bool on_motion_notify_event(GdkEventMotion* e);
-    bool onWindowDelete(GdkEventAny* e);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool onWindowDelete(Gdk::Event& e);
+#endif
+    bool onWindowDeleteP(GdkEventAny* e);
     void onMenuChangeFontSize();
     int  currentFontSize() const;
     void setFontSize(int size, bool save);

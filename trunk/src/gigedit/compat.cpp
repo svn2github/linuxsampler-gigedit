@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Andreas Persson
+ * Copyright (C) 2011-2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,7 +17,11 @@
  * 02110-1301 USA.
  */
 
-#include <gtkmmconfig.h>
+#ifdef GTKMM_HEADER_FILE
+# include GTKMM_HEADER_FILE(gtkmmconfig.h)
+#else
+# include <gtkmmconfig.h>
+#endif
 
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
 #include <gdkmm/window.h>

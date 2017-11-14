@@ -7,11 +7,20 @@
 
 #include "scriptslots.h"
 #include "global.h"
+#include "compat.h"
 
 ScriptSlots::ScriptSlots() :
+#if HAS_GTKMM_STOCK
     m_closeButton(Gtk::Stock::CLOSE)
+#else
+    m_closeButton(_("_Close"), true)
+#endif
 {
     m_instrument = NULL;
+
+#if !HAS_GTKMM_STOCK
+    m_closeButton.set_icon_name("window-close");
+#endif
 
     if (!Settings::singleton()->autoRestoreWindowDimension) {
         set_default_size(460,300);
@@ -62,7 +71,9 @@ ScriptSlots::ScriptSlots() :
         sigc::mem_fun(*this, &ScriptSlots::onScriptDragNDropDataReceived)
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 ScriptSlots::~ScriptSlots() {
@@ -127,11 +138,21 @@ void ScriptSlots::appendNewSlot(gig::Script* script) {
 
     Row row;
     row.id = slotID++;
-    row.hbox = new Gtk::HBox;
+    row.hbox = new HBox;
     row.label = new Gtk::Label;
+#if HAS_GTKMM_STOCK
     row.downButton = new Gtk::Button(Gtk::Stock::GO_DOWN);
     row.upButton = new Gtk::Button(Gtk::Stock::GO_UP);
     row.deleteButton = new Gtk::Button(Gtk::Stock::DELETE);
+#else
+    row.downButton = new Gtk::Button(_("_Down"), true);
+    row.upButton = new Gtk::Button(_("_Up"), true);
+    row.deleteButton = new Gtk::Button(_("_Delete"), true);
+
+    row.downButton->set_icon_name("go-down");
+    row.upButton->set_icon_name("go-up");
+    row.deleteButton->set_icon_name("edit-delete");
+#endif
     row.script = script;
 
     row.hbox->pack_start(*row.label);
@@ -159,7 +180,9 @@ void ScriptSlots::appendNewSlot(gig::Script* script) {
     );
 
     m_vboxSlots.add(*row.hbox);
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     m_scrolledWindow.show_all_children();
+#endif
 
     m_slots.push_back(row);
 }

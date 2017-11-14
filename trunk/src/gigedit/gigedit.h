@@ -28,7 +28,11 @@
 
 #include <list>
 #include <cstddef>
-#include <sigc++/signal.h>
+#ifdef SIGCPP_HEADER_FILE
+# include SIGCPP_HEADER_FILE(signal.h)
+#else
+# include <sigc++/signal.h>
+#endif
 
 class GigEdit {
 public:

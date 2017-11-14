@@ -17,6 +17,7 @@
  * 02110-1301 USA.
  */
 
+#include "compat.h"
 #include "global.h"
 #include "regionchooser.h"
 
@@ -25,8 +26,13 @@
 
 #include <cairomm/context.h>
 #include <gdkmm/general.h>
+#if HAS_GDKMM_SEAT
+# include <gdkmm/seat.h>
+#endif
 #include <gdkmm/cursor.h>
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include <gdkmm/pixbuf.h>
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/dialog.h>
@@ -126,10 +132,18 @@ RegionChooser::RegionChooser() :
         }
 
         Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+#if HAS_CAIROMM_CPP11_ENUMS
+            this->blueHatchedPatternARGB->get_pixels(), Cairo::Surface::Format::ARGB32, width, height, stride
+#else
             this->blueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+#endif
         );
         this->blueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+#if HAS_CAIROMM_CPP11_ENUMS
+        this->blueHatchedSurfacePattern->set_extend(Cairo::Pattern::Extend::REPEAT);
+#else
         this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+#endif
     }
 
     instrument = 0;
@@ -163,7 +177,22 @@ RegionChooser::RegionChooser() :
     m_VirtKeybPropsBox.show();
     for (int i = 0 ; i < 128 ; i++) key_pressed[i] = false;
 
-    actionGroup = Gtk::ActionGroup::create();
+    actionGroup = ActionGroup::create();
+#if USE_GLIB_ACTION
+    actionGroup->add_action(
+        "Properties", sigc::mem_fun(*this, &RegionChooser::show_region_properties)
+    );
+    actionGroup->add_action(
+        "Remove", sigc::mem_fun(*this, &RegionChooser::delete_region)
+    );
+    actionGroup->add_action(
+        "Add", sigc::mem_fun(*this, &RegionChooser::add_region)
+    );
+    actionGroup->add_action(
+        "Dimensions", sigc::mem_fun(*this, &RegionChooser::manage_dimensions)
+    );
+    insert_action_group("PopupMenuInsideRegion", actionGroup);
+#else
     actionGroup->add(Gtk::Action::create("Properties",
                                          Gtk::Stock::PROPERTIES),
                      sigc::mem_fun(*this,
@@ -174,7 +203,50 @@ RegionChooser::RegionChooser() :
                      sigc::mem_fun(*this, &RegionChooser::add_region));
     actionGroup->add(Gtk::Action::create("Dimensions", _("Dimensions...")),
                      sigc::mem_fun(*this, &RegionChooser::manage_dimensions));
+#endif
 
+#if USE_GTKMM_BUILDER
+    uiManager = Gtk::Builder::create();
+    Glib::ustring ui_info =
+        "<interface>"
+        "  <menu id='menu-PopupMenuInsideRegion'>"
+        "    <section>"
+        "      <item>"
+        "        <attribute name='label' translatable='yes'>Properties</attribute>"
+        "        <attribute name='action'>PopupMenuInsideRegion.Properties</attribute>"
+        "      </item>"
+        "      <item>"
+        "        <attribute name='label' translatable='yes'>Dimensions</attribute>"
+        "        <attribute name='action'>PopupMenuInsideRegion.Dimensions</attribute>"
+        "      </item>"
+        "      <item>"
+        "        <attribute name='label' translatable='yes'>Remove</attribute>"
+        "        <attribute name='action'>PopupMenuInsideRegion.Remove</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "  <menu id='menu-PopupMenuOutsideRegion'>"
+        "    <section>"
+        "      <item>"
+        "        <attribute name='label' translatable='yes'>Add</attribute>"
+        "        <attribute name='action'>PopupMenuInsideRegion.Add</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "</interface>";
+    uiManager->add_from_string(ui_info);
+    
+    popup_menu_inside_region = new Gtk::Menu(
+         Glib::RefPtr<Gio::Menu>::cast_dynamic(
+             uiManager->get_object("menu-PopupMenuInsideRegion")
+         )
+    );
+    popup_menu_outside_region = new Gtk::Menu(
+         Glib::RefPtr<Gio::Menu>::cast_dynamic(
+             uiManager->get_object("menu-PopupMenuOutsideRegion")
+         )
+    );
+#else
     uiManager = Gtk::UIManager::create();
     uiManager->insert_action_group(actionGroup);
     Glib::ustring ui_info =
@@ -195,8 +267,15 @@ RegionChooser::RegionChooser() :
     popup_menu_outside_region = dynamic_cast<Gtk::Menu*>(
         uiManager->get_widget("/PopupMenuOutsideRegion"));
 
+#endif // USE_GTKMM_BUILDER
+
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# warning GTKMM4 event registration code missing for regionchooser!
+    //add_events(Gdk::EventMask::BUTTON_PRESS_MASK);
+#else
     add_events(Gdk::BUTTON_PRESS_MASK | Gdk::BUTTON_RELEASE_MASK |
                Gdk::POINTER_MOTION_MASK | Gdk::POINTER_MOTION_HINT_MASK);
+#endif
 
     dimensionManager.region_to_be_changed_signal.connect(
         region_to_be_changed_signal.make_slot()
@@ -275,7 +354,13 @@ bool RegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
     const Gdk::Color bg = get_style()->get_bg(Gtk::STATE_NORMAL);
 #else
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    GdkRGBA gdkBgRGBA;
+    gtk_style_context_get_background_color(get_style_context()->gobj(), &gdkBgRGBA);
+    const Gdk::RGBA bg = Glib::wrap(&gdkBgRGBA, true);
+# else
     const Gdk::RGBA bg = get_style_context()->get_background_color();
+# endif
 #endif
     Gdk::Cairo::set_source_rgba(cr, bg);
     cr->paint();
@@ -574,7 +659,11 @@ bool RegionChooser::on_button_release_event(GdkEventButton* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         get_window()->pointer_ungrab(event->time);
 #else
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
         Glib::wrap(event->device, true)->ungrab(event->time);
+# else
+        gdk_device_ungrab(Glib::wrap(event->device, true)->gobj(), event->time);
+# endif
 #endif
         resize.active = false;
 
@@ -586,7 +675,11 @@ bool RegionChooser::on_button_release_event(GdkEventButton* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         get_window()->pointer_ungrab(event->time);
 #else
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
         Glib::wrap(event->device, true)->ungrab(event->time);
+# else
+        gdk_device_ungrab(Glib::wrap(event->device, true)->gobj(), event->time);
+# endif
 #endif
         move.active = false;
 
@@ -594,7 +687,16 @@ bool RegionChooser::on_button_release_event(GdkEventButton* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
             get_window()->set_cursor(Gdk::Cursor(Gdk::SB_H_DOUBLE_ARROW));
 #else
-            get_window()->set_cursor(Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW));
+            get_window()->set_cursor(
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
+                Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW)
+# else
+                Gdk::Cursor::create(
+                    Glib::wrap(event->device, true)->get_seat()->get_display(),
+                    Gdk::SB_H_DOUBLE_ARROW
+                )
+# endif
+            );
 #endif
             cursor_is_resize = true;
         }
@@ -690,6 +792,7 @@ bool RegionChooser::on_button_press_event(GdkEventButton* event)
                                        Gdk::Cursor(Gdk::SB_H_DOUBLE_ARROW),
                                        event->time);
 #else
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
             Glib::wrap(event->device, true)->grab(get_window(),
                                                   Gdk::OWNERSHIP_NONE,
                                                   false,
@@ -698,6 +801,21 @@ bool RegionChooser::on_button_press_event(GdkEventButton* event)
                                                   Gdk::POINTER_MOTION_HINT_MASK,
                                                   Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW),
                                                   event->time);
+# else
+            gdk_device_grab(
+                Glib::wrap(event->device, true)->gobj(),
+                get_window()->gobj(),
+                GDK_OWNERSHIP_NONE,
+                false,
+                GdkEventMask(GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
+                             GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON1_MOTION_MASK),
+                Gdk::Cursor::create(
+                    Glib::wrap(event->device, true)->get_seat()->get_display(),
+                    Gdk::SB_H_DOUBLE_ARROW
+                )->gobj(),
+                event->time
+            );
+# endif
 #endif
             resize.active = true;
         } else {
@@ -716,14 +834,30 @@ bool RegionChooser::on_button_press_event(GdkEventButton* event)
                                            Gdk::Cursor(Gdk::FLEUR),
                                            event->time);
 #else
-                Glib::wrap(event->device, true)->grab(get_window(),
-                                                      Gdk::OWNERSHIP_NONE,
-                                                      false,
-                                                      Gdk::BUTTON_RELEASE_MASK |
-                                                      Gdk::POINTER_MOTION_MASK |
-                                                      Gdk::POINTER_MOTION_HINT_MASK,
-                                                      Gdk::Cursor::create(Gdk::FLEUR),
-                                                      event->time);
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
+            Glib::wrap(event->device, true)->grab(get_window(),
+                                                  Gdk::OWNERSHIP_NONE,
+                                                  false,
+                                                  Gdk::BUTTON_RELEASE_MASK |
+                                                  Gdk::POINTER_MOTION_MASK |
+                                                  Gdk::POINTER_MOTION_HINT_MASK,
+                                                  Gdk::Cursor::create(Gdk::FLEUR),
+                                                  event->time);
+# else
+            gdk_device_grab(
+                Glib::wrap(event->device, true)->gobj(),
+                get_window()->gobj(),
+                GDK_OWNERSHIP_NONE,
+                false,
+                GdkEventMask(GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
+                             GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON1_MOTION_MASK),
+                Gdk::Cursor::create(
+                    Glib::wrap(event->device, true)->get_seat()->get_display(),
+                    Gdk::FLEUR
+                )->gobj(),
+                event->time
+            );
+# endif
 #endif
                 move.active = true;
                 move.offset = event->x - key_to_x(region->KeyRange.low, w);
@@ -941,8 +1075,14 @@ bool RegionChooser::on_motion_notify_event(GdkEventMotion* event)
 {
     Glib::RefPtr<Gdk::Window> window = get_window();
     int x, y;
+#if HAS_GDKMM_SEAT
+    x = event->x;
+    y = event->y;
+    Gdk::ModifierType state = Gdk::ModifierType(event->state);
+#else
     Gdk::ModifierType state = Gdk::ModifierType(0);
     window->get_pointer(x, y, state);
+#endif
 
     // handle virtual MIDI keyboard
     if (m_VirtKeybModeChoice.get_value() != VIRT_KEYBOARD_MODE_CHORD &&
@@ -973,7 +1113,16 @@ bool RegionChooser::on_motion_notify_event(GdkEventMotion* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
                 window->set_cursor(Gdk::Cursor(Gdk::SB_H_DOUBLE_ARROW));
 #else
-                window->set_cursor(Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW));
+                window->set_cursor(
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
+                    Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW)
+# else
+                    Gdk::Cursor::create(
+                        Glib::wrap(event->device, true)->get_seat()->get_display(),
+                        Gdk::SB_H_DOUBLE_ARROW
+                    )
+# endif
+                );
 #endif
                 cursor_is_resize = true;
             }
@@ -1053,7 +1202,11 @@ void RegionChooser::show_region_properties()
     // add "Keygroup" checkbox
     Gtk::CheckButton checkBoxKeygroup(_("Member of a Keygroup (Exclusive Group)"));
     checkBoxKeygroup.set_active(region->KeyGroup);
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(checkBoxKeygroup);
+#else
     dialog.get_vbox()->pack_start(checkBoxKeygroup);
+#endif
     checkBoxKeygroup.show();
     // add "Keygroup" spinbox
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
@@ -1063,13 +1216,24 @@ void RegionChooser::show_region_properties()
     Gtk::SpinButton spinBox(Gtk::Adjustment::create(1, 1, 999));
 #endif
     if (region->KeyGroup) spinBox.set_value(region->KeyGroup);
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(spinBox);
+#else
     dialog.get_vbox()->pack_start(spinBox);
+#endif
     spinBox.show();
     // add OK and CANCEL buttons to the dialog
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::OK, 0);
     dialog.add_button(Gtk::Stock::CANCEL, 1);
+#else
+    dialog.add_button(_("_OK"), 0);
+    dialog.add_button(_("_Cancel"), 1);
+#endif
     dialog.set_position(Gtk::WIN_POS_MOUSE);
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     dialog.show_all_children();
+#endif
     if (!dialog.run()) { // OK selected ...
         region->KeyGroup =
             (checkBoxKeygroup.get_active()) ? spinBox.get_value_as_int() : 0;

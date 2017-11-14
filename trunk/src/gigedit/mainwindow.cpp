@@ -20,7 +20,7 @@
 #include <iostream>
 #include <cstring>
 
-#include <glibmmconfig.h>
+#include "compat.h"
 // threads.h must be included first to be able to build with
 // G_DISABLE_DEPRECATED
 #if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
@@ -36,10 +36,14 @@
 #include <gtkmm/aboutdialog.h>
 #include <gtkmm/filechooserdialog.h>
 #include <gtkmm/messagedialog.h>
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include <gtkmm/targetentry.h>
 #include <gtkmm/main.h>
-#include <gtkmm/toggleaction.h>
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 89)
+# include <gtkmm/toggleaction.h>
+#endif
 #include <gtkmm/accelmap.h>
 #if GTKMM_MAJOR_VERSION < 3
 #include "wrapLabel.hh"
@@ -49,7 +53,11 @@
 #include "compat.h"
 
 #include <stdio.h>
-#include <sndfile.h>
+#ifdef LIBSNDFILE_HEADER_FILE
+# include LIBSNDFILE_HEADER_FILE(sndfile.h)
+#else
+# include <sndfile.h>
+#endif
 #include <assert.h>
 
 #include "mainwindow.h"
@@ -105,8 +113,13 @@ MainWindow::MainWindow() :
 
     // m_TreeView.set_reorderable();
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    m_TreeView.signal_button_press_event().connect(
+        sigc::mem_fun(*this, &MainWindow::on_button_release));
+#else
     m_TreeView.signal_button_press_event().connect_notify(
         sigc::mem_fun(*this, &MainWindow::on_button_release));
+#endif
 
     // Add the TreeView tab, inside a ScrolledWindow, with the button underneath:
     m_ScrolledWindow.add(m_TreeView);
@@ -143,30 +156,52 @@ MainWindow::MainWindow() :
         legend_hbox.add(labelLegend);
 
         imageNoSample.set(redDot);
+#if HAS_GTKMM_ALIGNMENT
         imageNoSample.set_alignment(Gtk::ALIGN_END);
         labelNoSample.set_alignment(Gtk::ALIGN_START);
+#else
+        imageNoSample.set_halign(Gtk::ALIGN_END);
+        labelNoSample.set_halign(Gtk::ALIGN_START);
+#endif
         legend_hbox.add(imageNoSample);
         legend_hbox.add(labelNoSample);
 
         imageMissingSample.set(yellowDot);
+#if HAS_GTKMM_ALIGNMENT
         imageMissingSample.set_alignment(Gtk::ALIGN_END);
         labelMissingSample.set_alignment(Gtk::ALIGN_START);
+#else
+        imageMissingSample.set_halign(Gtk::ALIGN_END);
+        labelMissingSample.set_halign(Gtk::ALIGN_START);
+#endif
         legend_hbox.add(imageMissingSample);
         legend_hbox.add(labelMissingSample);
 
         imageLooped.set(blackLoop);
+#if HAS_GTKMM_ALIGNMENT
         imageLooped.set_alignment(Gtk::ALIGN_END);
         labelLooped.set_alignment(Gtk::ALIGN_START);
+#else
+        imageLooped.set_halign(Gtk::ALIGN_END);
+        labelLooped.set_halign(Gtk::ALIGN_START);
+#endif
         legend_hbox.add(imageLooped);
         legend_hbox.add(labelLooped);
 
         imageSomeLoops.set(grayLoop);
+#if HAS_GTKMM_ALIGNMENT
         imageSomeLoops.set_alignment(Gtk::ALIGN_END);
         labelSomeLoops.set_alignment(Gtk::ALIGN_START);
+#else
+        imageSomeLoops.set_halign(Gtk::ALIGN_END);
+        labelSomeLoops.set_halign(Gtk::ALIGN_START);
+#endif
         legend_hbox.add(imageSomeLoops);
         legend_hbox.add(labelSomeLoops);
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
         legend_hbox.show_all_children();
+#endif
     }
     dimreg_vbox.pack_start(legend_hbox, Gtk::PACK_SHRINK);
     m_HPaned.add2(dimreg_vbox);
@@ -180,6 +215,45 @@ MainWindow::MainWindow() :
     m_TreeViewNotebook.append_page(m_ScrolledWindow, _("Instruments"));
     m_TreeViewNotebook.append_page(m_ScrolledWindowScripts, _("Scripts"));
 
+#if USE_GLIB_ACTION
+    m_actionGroup = Gio::SimpleActionGroup::create();
+    m_actionGroup->add_action(
+        "New", sigc::mem_fun(*this, &MainWindow::on_action_file_new)
+    );
+    m_actionGroup->add_action(
+        "Open", sigc::mem_fun(*this, &MainWindow::on_action_file_open)
+    );
+    m_actionGroup->add_action(
+        "Save", sigc::mem_fun(*this, &MainWindow::on_action_file_save)
+    );
+    m_actionGroup->add_action(
+        "SaveAs", sigc::mem_fun(*this, &MainWindow::on_action_file_save_as)
+    );
+    m_actionGroup->add_action(
+        "Properties", sigc::mem_fun(*this, &MainWindow::on_action_file_properties)
+    );
+    m_actionGroup->add_action(
+        "InstrProperties", sigc::mem_fun(*this, &MainWindow::show_instr_props)
+    );
+    m_actionMIDIRules = m_actionGroup->add_action(
+        "MidiRules", sigc::mem_fun(*this, &MainWindow::show_midi_rules)
+    );
+    m_actionGroup->add_action(
+        "ScriptSlots", sigc::mem_fun(*this, &MainWindow::show_script_slots)
+    );
+    m_actionGroup->add_action(
+        "Quit", sigc::mem_fun(*this, &MainWindow::on_action_quit)
+    );
+    m_actionGroup->add_action(
+        "MenuSample", sigc::mem_fun(*this, &MainWindow::show_samples_tab)
+    );
+    m_actionGroup->add_action(
+        "MenuInstrument", sigc::mem_fun(*this, &MainWindow::show_intruments_tab)
+    );
+    m_actionGroup->add_action(
+        "MenuScript", sigc::mem_fun(*this, &MainWindow::show_scripts_tab)
+    );
+#else
     actionGroup = Gtk::ActionGroup::create();
 
     actionGroup->add(Gtk::Action::create("MenuFile", _("_File")));
@@ -236,6 +310,7 @@ MainWindow::MainWindow() :
     actionGroup->add(Gtk::Action::create("AssignScripts", _("Assign Script")));
 
     actionGroup->add(Gtk::Action::create("MenuEdit", _("_Edit")));
+#endif
 
     const Gdk::ModifierType primaryModifierKey =
 #if defined(__APPLE__)
@@ -244,6 +319,47 @@ MainWindow::MainWindow() :
     Gdk::CONTROL_MASK; // Ctrl key on all other OSs
 #endif
 
+#if USE_GLIB_ACTION
+    m_actionCopyDimRgn = m_actionGroup->add_action(
+        "CopyDimRgn", sigc::mem_fun(*this, &MainWindow::copy_selected_dimrgn)
+    );
+    m_actionPasteDimRgn = m_actionGroup->add_action(
+        "PasteDimRgn", sigc::mem_fun(*this, &MainWindow::paste_copied_dimrgn)
+    );
+    m_actionAdjustClipboard = m_actionGroup->add_action(
+        "AdjustClipboard", sigc::mem_fun(*this, &MainWindow::adjust_clipboard_content)
+    );
+    m_actionGroup->add_action(
+        "SelectPrevInstr", sigc::mem_fun(*this, &MainWindow::select_prev_instrument)
+    );
+    m_actionGroup->add_action(
+        "SelectNextInstr", sigc::mem_fun(*this, &MainWindow::select_next_instrument)
+    );
+    m_actionGroup->add_action(
+        "SelectPrevRegion", sigc::mem_fun(*this, &MainWindow::select_prev_region)
+    );
+    m_actionGroup->add_action(
+        "SelectNextRegion", sigc::mem_fun(*this, &MainWindow::select_next_region)
+    );
+    m_actionGroup->add_action(
+        "SelectPrevDimRgnZone", sigc::mem_fun(*this, &MainWindow::select_prev_dim_rgn_zone)
+    );
+    m_actionGroup->add_action(
+        "SelectNextDimRgnZone", sigc::mem_fun(*this, &MainWindow::select_next_dim_rgn_zone)
+    );
+    m_actionGroup->add_action(
+        "SelectPrevDimension", sigc::mem_fun(*this, &MainWindow::select_prev_dimension)
+    );
+    m_actionGroup->add_action(
+        "SelectNextDimension", sigc::mem_fun(*this, &MainWindow::select_next_dimension)
+    );
+    m_actionGroup->add_action(
+        "SelectAddPrevDimRgnZone", sigc::mem_fun(*this, &MainWindow::select_add_prev_dim_rgn_zone)
+    );
+    m_actionGroup->add_action(
+        "SelectAddNextDimRgnZone", sigc::mem_fun(*this, &MainWindow::select_add_next_dim_rgn_zone)
+    );
+#else
     actionGroup->add(Gtk::Action::create("CopyDimRgn",
                                          _("Copy selected dimension region")),
                      Gtk::AccelKey(GDK_KEY_c, Gdk::MOD1_MASK),
@@ -308,7 +424,13 @@ MainWindow::MainWindow() :
                                          _("Add Next Dimension Region Zone to Selection")),
                      Gtk::AccelKey(GDK_KEY_Right, Gdk::MOD1_MASK | Gdk::SHIFT_MASK),
                      sigc::mem_fun(*this, &MainWindow::select_add_next_dim_rgn_zone));
+#endif
 
+#if USE_GLIB_ACTION
+    m_actionToggleCopySampleUnity = m_actionGroup->add_action_bool("CopySampleUnity", true);
+    m_actionToggleCopySampleTune  = m_actionGroup->add_action_bool("CopySampleTune", true);
+    m_actionToggleCopySampleLoop  = m_actionGroup->add_action_bool("CopySampleLoop", true);
+#else
     Glib::RefPtr<Gtk::ToggleAction> toggle_action =
         Gtk::ToggleAction::create("CopySampleUnity", _("Copy Sample's _Unity Note"));
     toggle_action->set_active(true);
@@ -323,8 +445,17 @@ MainWindow::MainWindow() :
         Gtk::ToggleAction::create("CopySampleLoop", _("Copy Sample's _Loop Points"));
     toggle_action->set_active(true);
     actionGroup->add(toggle_action);
+#endif
 
-
+#if USE_GLIB_ACTION
+    m_actionToggleStatusBar =
+        m_actionGroup->add_action_bool("Statusbar", sigc::mem_fun(*this, &MainWindow::on_action_view_status_bar), true);
+    m_actionToggleRestoreWinDim =
+        m_actionGroup->add_action_bool("AutoRestoreWinDim", sigc::mem_fun(*this, &MainWindow::on_auto_restore_win_dim), Settings::singleton()->autoRestoreWindowDimension);
+    m_actionToggleSaveWithTempFile =
+        m_actionGroup->add_action_bool("SaveWithTemporaryFile", sigc::mem_fun(*this, &MainWindow::on_save_with_temporary_file), Settings::singleton()->saveWithTemporaryFile);
+    m_actionGroup->add_action("RefreshAll", sigc::mem_fun(*this, &MainWindow::on_action_refresh_all));
+#else
     actionGroup->add(Gtk::Action::create("MenuMacro", _("_Macro")));
 
 
@@ -354,7 +485,25 @@ MainWindow::MainWindow() :
         Gtk::Action::create("RefreshAll", _("_Refresh All")),
         sigc::mem_fun(*this, &MainWindow::on_action_refresh_all)
     );                 
+#endif
 
+#if USE_GLIB_ACTION
+    m_actionGroup->add_action(
+        "About", sigc::mem_fun(*this, &MainWindow::on_action_help_about)
+    );
+    m_actionGroup->add_action(
+        "AddInstrument", sigc::mem_fun(*this, &MainWindow::on_action_add_instrument)
+    );
+    m_actionGroup->add_action(
+        "DupInstrument", sigc::mem_fun(*this, &MainWindow::on_action_duplicate_instrument)
+    );
+    m_actionGroup->add_action(
+        "CombInstruments", sigc::mem_fun(*this, &MainWindow::on_action_combine_instruments)
+    );
+    m_actionGroup->add_action(
+        "RemoveInstrument", sigc::mem_fun(*this, &MainWindow::on_action_remove_instrument)
+    );
+#else
     action = Gtk::Action::create("MenuHelp", Gtk::Stock::HELP);
     actionGroup->add(Gtk::Action::create("MenuHelp",
                                          action->property_label()));
@@ -378,8 +527,22 @@ MainWindow::MainWindow() :
         Gtk::Action::create("RemoveInstrument", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_instrument)
     );
+#endif
 
-
+#if USE_GLIB_ACTION
+    m_actionToggleWarnOnExtensions = m_actionGroup->add_action_bool(
+        "WarnUserOnExtensions", sigc::mem_fun(*this, &MainWindow::on_action_warn_user_on_extensions),
+        Settings::singleton()->warnUserOnExtensions
+    );
+    m_actionToggleSyncSamplerSelection = m_actionGroup->add_action_bool(
+        "SyncSamplerInstrumentSelection", sigc::mem_fun(*this, &MainWindow::on_action_sync_sampler_instrument_selection),
+        Settings::singleton()->syncSamplerInstrumentSelection
+    );
+    m_actionToggleMoveRootNoteWithRegion = m_actionGroup->add_action_bool(
+        "MoveRootNoteWithRegionMoved", sigc::mem_fun(*this, &MainWindow::on_action_move_root_note_with_region_moved),
+        Settings::singleton()->moveRootNoteWithRegionMoved
+    );
+#else
     actionGroup->add(Gtk::Action::create("MenuSettings", _("_Settings")));
     
     toggle_action =
@@ -405,8 +568,16 @@ MainWindow::MainWindow() :
         toggle_action,
         sigc::mem_fun(*this, &MainWindow::on_action_move_root_note_with_region_moved)
     );
+#endif
 
-
+#if USE_GLIB_ACTION
+    m_actionGroup->add_action(
+        "CombineInstruments", sigc::mem_fun(*this, &MainWindow::on_action_combine_instruments)
+    );
+    m_actionGroup->add_action(
+        "MergeFiles", sigc::mem_fun(*this, &MainWindow::on_action_merge_files)
+    );
+#else
     actionGroup->add(Gtk::Action::create("MenuTools", _("_Tools")));
 
     actionGroup->add(
@@ -418,9 +589,35 @@ MainWindow::MainWindow() :
         Gtk::Action::create("MergeFiles", _("_Merge Files...")),
         sigc::mem_fun(*this, &MainWindow::on_action_merge_files)
     );
-
+#endif
 
     // sample right-click popup actions
+#if USE_GLIB_ACTION
+    m_actionSampleProperties = m_actionGroup->add_action(
+        "SampleProperties", sigc::mem_fun(*this, &MainWindow::on_action_sample_properties)
+    );
+    m_actionAddSampleGroup = m_actionGroup->add_action(
+        "AddGroup", sigc::mem_fun(*this, &MainWindow::on_action_add_group)
+    );
+    m_actionAddSample = m_actionGroup->add_action(
+        "AddSample", sigc::mem_fun(*this, &MainWindow::on_action_add_sample)
+    );
+    m_actionRemoveSample = m_actionGroup->add_action(
+        "RemoveSample", sigc::mem_fun(*this, &MainWindow::on_action_remove_sample)
+    );
+    m_actionGroup->add_action(
+        "RemoveUnusedSamples", sigc::mem_fun(*this, &MainWindow::on_action_remove_unused_samples)
+    );
+    m_actionViewSampleRefs = m_actionGroup->add_action(
+        "ShowSampleRefs", sigc::mem_fun(*this, &MainWindow::on_action_view_references)
+    );
+    m_actionReplaceSample = m_actionGroup->add_action(
+        "ReplaceSample", sigc::mem_fun(*this, &MainWindow::on_action_replace_sample)
+    );
+    m_actionGroup->add_action(
+        "ReplaceAllSamplesInAllGroups", sigc::mem_fun(*this, &MainWindow::on_action_replace_all_samples_in_all_groups)
+    );
+#else
     actionGroup->add(
         Gtk::Action::create("SampleProperties", Gtk::Stock::PROPERTIES),
         sigc::mem_fun(*this, &MainWindow::on_action_sample_properties)
@@ -455,8 +652,23 @@ MainWindow::MainWindow() :
                             _("Replace All Samples in All Groups...")),
         sigc::mem_fun(*this, &MainWindow::on_action_replace_all_samples_in_all_groups)
     );
+#endif
     
     // script right-click popup actions
+#if USE_GLIB_ACTION
+    m_actionAddScriptGroup = m_actionGroup->add_action(
+        "AddScriptGroup", sigc::mem_fun(*this, &MainWindow::on_action_add_script_group)
+    );
+    m_actionAddScript = m_actionGroup->add_action(
+        "AddScript", sigc::mem_fun(*this, &MainWindow::on_action_add_script)
+    );
+    m_actionEditScript = m_actionGroup->add_action(
+        "EditScript", sigc::mem_fun(*this, &MainWindow::on_action_edit_script)
+    );
+    m_actionRemoveScript = m_actionGroup->add_action(
+        "RemoveScript", sigc::mem_fun(*this, &MainWindow::on_action_remove_script)
+    );
+#else
     actionGroup->add(
         Gtk::Action::create("AddScriptGroup", _("Add _Group")),
         sigc::mem_fun(*this, &MainWindow::on_action_add_script_group)
@@ -473,7 +685,391 @@ MainWindow::MainWindow() :
         Gtk::Action::create("RemoveScript", Gtk::Stock::REMOVE),
         sigc::mem_fun(*this, &MainWindow::on_action_remove_script)
     );
+#endif
 
+#if USE_GTKMM_BUILDER
+    insert_action_group("AppMenu", m_actionGroup);
+    
+    m_uiManager = Gtk::Builder::create();
+    Glib::ustring ui_info =
+        "<interface>"
+        "  <menubar id='MenuBar'>"
+        "    <menu id='MenuFile'>"
+        "      <attribute name='label' translatable='yes'>_File</attribute>"
+        "      <section>"
+        "        <item id='New'>"
+        "          <attribute name='label' translatable='yes'>New</attribute>"
+        "          <attribute name='action'>AppMenu.New</attribute>"
+        "        </item>"
+        "        <item id='Open'>"
+        "          <attribute name='label' translatable='yes'>Open</attribute>"
+        "          <attribute name='action'>AppMenu.Open</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='Save'>"
+        "          <attribute name='label' translatable='yes'>Save</attribute>"
+        "          <attribute name='action'>AppMenu.Save</attribute>"
+        "        </item>"
+        "        <item id='SaveAs'>"
+        "          <attribute name='label' translatable='yes'>Save As</attribute>"
+        "          <attribute name='action'>AppMenu.SaveAs</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='Properties'>"
+        "          <attribute name='label' translatable='yes'>Properties</attribute>"
+        "          <attribute name='action'>AppMenu.Properties</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='Quit'>"
+        "          <attribute name='label' translatable='yes'>Quit</attribute>"
+        "          <attribute name='action'>AppMenu.Quit</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuEdit'>"
+        "      <attribute name='label' translatable='yes'>Edit</attribute>"
+        "      <section>"
+        "        <item id='CopyDimRgn'>"
+        "          <attribute name='label' translatable='yes'>Copy Dimension Region</attribute>"
+        "          <attribute name='action'>AppMenu.CopyDimRgn</attribute>"
+        "        </item>"
+        "        <item id='AdjustClipboard'>"
+        "          <attribute name='label' translatable='yes'>Adjust Clipboard</attribute>"
+        "          <attribute name='action'>AppMenu.AdjustClipboard</attribute>"
+        "        </item>"
+        "        <item id='PasteDimRgn'>"
+        "          <attribute name='label' translatable='yes'>Paste Dimension Region</attribute>"
+        "          <attribute name='action'>AppMenu.PasteDimRgn</attribute>"
+        "        </item>"
+        "      </section>"
+        "        <item id='SelectPrevInstr'>"
+        "          <attribute name='label' translatable='yes'>Previous Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.SelectPrevInstr</attribute>"
+        "        </item>"
+        "        <item id='SelectNextInstr'>"
+        "          <attribute name='label' translatable='yes'>Next Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.SelectNextInstr</attribute>"
+        "        </item>"
+        "      <section>"
+        "        <item id='SelectPrevRegion'>"
+        "          <attribute name='label' translatable='yes'>Previous Region</attribute>"
+        "          <attribute name='action'>AppMenu.SelectPrevRegion</attribute>"
+        "        </item>"
+        "        <item id='SelectNextRegion'>"
+        "          <attribute name='label' translatable='yes'>Next Region</attribute>"
+        "          <attribute name='action'>AppMenu.SelectNextRegion</attribute>"
+        "        </item>"
+        "      </section>"
+        "        <item id='SelectPrevDimension'>"
+        "          <attribute name='label' translatable='yes'>Previous Dimension</attribute>"
+        "          <attribute name='action'>AppMenu.SelectPrevDimension</attribute>"
+        "        </item>"
+        "        <item id='SelectNextDimension'>"
+        "          <attribute name='label' translatable='yes'>Next Dimension</attribute>"
+        "          <attribute name='action'>AppMenu.SelectNextDimension</attribute>"
+        "        </item>"
+        "        <item id='SelectPrevDimRgnZone'>"
+        "          <attribute name='label' translatable='yes'>Previous Dimension Region Zone</attribute>"
+        "          <attribute name='action'>AppMenu.SelectPrevDimRgnZone</attribute>"
+        "        </item>"
+        "        <item id='SelectNextDimRgnZone'>"
+        "          <attribute name='label' translatable='yes'>Next Dimension Region Zone</attribute>"
+        "          <attribute name='action'>AppMenu.SelectNextDimRgnZone</attribute>"
+        "        </item>"
+        "        <item id='SelectAddPrevDimRgnZone'>"
+        "          <attribute name='label' translatable='yes'>Add Previous Dimension Region Zone</attribute>"
+        "          <attribute name='action'>AppMenu.SelectAddPrevDimRgnZone</attribute>"
+        "        </item>"
+        "        <item id='SelectAddNextDimRgnZone'>"
+        "          <attribute name='label' translatable='yes'>Add Next Dimension Region Zone</attribute>"
+        "          <attribute name='action'>AppMenu.SelectAddNextDimRgnZone</attribute>"
+        "        </item>"
+        "      <section>"
+        "        <item id='CopySampleUnity'>"
+        "          <attribute name='label' translatable='yes'>Copy Sample Unity</attribute>"
+        "          <attribute name='action'>AppMenu.CopySampleUnity</attribute>"
+        "        </item>"
+        "        <item id='CopySampleTune'>"
+        "          <attribute name='label' translatable='yes'>Copy Sample Tune</attribute>"
+        "          <attribute name='action'>AppMenu.CopySampleTune</attribute>"
+        "        </item>"
+        "        <item id='CopySampleLoop'>"
+        "          <attribute name='label' translatable='yes'>Copy Sample Loop</attribute>"
+        "          <attribute name='action'>AppMenu.CopySampleLoop</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuMacro'>"
+        "      <attribute name='label' translatable='yes'>Macro</attribute>"
+        "      <section>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuSample'>"
+        "      <attribute name='label' translatable='yes'>Sample</attribute>"
+        "      <section>"
+        "        <item id='SampleProperties'>"
+        "          <attribute name='label' translatable='yes'>Properties</attribute>"
+        "          <attribute name='action'>AppMenu.SampleProperties</attribute>"
+        "        </item>"
+        "        <item id='AddGroup'>"
+        "          <attribute name='label' translatable='yes'>Add Group</attribute>"
+        "          <attribute name='action'>AppMenu.AddGroup</attribute>"
+        "        </item>"
+        "        <item id='AddSample'>"
+        "          <attribute name='label' translatable='yes'>Add Sample</attribute>"
+        "          <attribute name='action'>AppMenu.AddSample</attribute>"
+        "        </item>"
+        "        <item id='ShowSampleRefs'>"
+        "          <attribute name='label' translatable='yes'>Show Sample References</attribute>"
+        "          <attribute name='action'>AppMenu.ShowSampleRefs</attribute>"
+        "        </item>"
+        "        <item id='ReplaceSample'>"
+        "          <attribute name='label' translatable='yes'>Replace Sample</attribute>"
+        "          <attribute name='action'>AppMenu.ReplaceSample</attribute>"
+        "        </item>"
+        "        <item id='ReplaceAllSamplesInAllGroups'>"
+        "          <attribute name='label' translatable='yes'>Replace all Samples in all Groups</attribute>"
+        "          <attribute name='action'>AppMenu.ReplaceAllSamplesInAllGroups</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='RemoveSample'>"
+        "          <attribute name='label' translatable='yes'>Remove Sample</attribute>"
+        "          <attribute name='action'>AppMenu.RemoveSample</attribute>"
+        "        </item>"
+        "        <item id='RemoveUnusedSamples'>"
+        "          <attribute name='label' translatable='yes'>Remove unused Samples</attribute>"
+        "          <attribute name='action'>AppMenu.RemoveUnusedSamples</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuInstrument'>"
+        "      <attribute name='label' translatable='yes'>Instrument</attribute>"
+        "      <section>"
+        "        <item id='InstrProperties'>"
+        "          <attribute name='label' translatable='yes'>Properties</attribute>"
+        "          <attribute name='action'>AppMenu.InstrProperties</attribute>"
+        "        </item>"
+        "        <item id='MidiRules'>"
+        "          <attribute name='label' translatable='yes'>MIDI Rules</attribute>"
+        "          <attribute name='action'>AppMenu.MidiRules</attribute>"
+        "        </item>"
+        "        <item id='ScriptSlots'>"
+        "          <attribute name='label' translatable='yes'>Script Slots</attribute>"
+        "          <attribute name='action'>AppMenu.ScriptSlots</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <submenu id='AssignScripts'>"
+        "        <attribute name='label' translatable='yes'>Assign Scripts</attribute>"
+        "      </submenu>"
+        "      <section>"
+        "        <item id='AddInstrument'>"
+        "          <attribute name='label' translatable='yes'>Add Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.AddInstrument</attribute>"
+        "        </item>"
+        "        <item id='DupInstrument'>"
+        "          <attribute name='label' translatable='yes'>Duplicate Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.DupInstrument</attribute>"
+        "        </item>"
+        "        <item id='CombInstruments'>"
+        "          <attribute name='label' translatable='yes'>Combine Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.CombInstruments</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='RemoveInstrument'>"
+        "          <attribute name='label' translatable='yes'>Remove Instrument</attribute>"
+        "          <attribute name='action'>AppMenu.RemoveInstrument</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuScript'>"
+        "      <attribute name='label' translatable='yes'>Script</attribute>"
+        "      <section>"
+        "        <item id='AddScriptGroup'>"
+        "          <attribute name='label' translatable='yes'>Add Script Group</attribute>"
+        "          <attribute name='action'>AppMenu.AddScriptGroup</attribute>"
+        "        </item>"
+        "        <item id='AddScript'>"
+        "          <attribute name='label' translatable='yes'>Add Script</attribute>"
+        "          <attribute name='action'>AppMenu.AddScript</attribute>"
+        "        </item>"
+        "        <item id='EditScript'>"
+        "          <attribute name='label' translatable='yes'>Edit Script</attribute>"
+        "          <attribute name='action'>AppMenu.EditScript</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='RemoveScript'>"
+        "          <attribute name='label' translatable='yes'>Remove Script</attribute>"
+        "          <attribute name='action'>AppMenu.RemoveScript</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuView'>"
+        "      <attribute name='label' translatable='yes'>View</attribute>"
+        "      <section>"
+        "        <item id='Statusbar'>"
+        "          <attribute name='label' translatable='yes'>Statusbar</attribute>"
+        "          <attribute name='action'>AppMenu.Statusbar</attribute>"
+        "        </item>"
+        "        <item id='AutoRestoreWinDim'>"
+        "          <attribute name='label' translatable='yes'>Auto restore Window Dimensions</attribute>"
+        "          <attribute name='action'>AppMenu.AutoRestoreWinDim</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='RefreshAll'>"
+        "          <attribute name='label' translatable='yes'>Refresh All</attribute>"
+        "          <attribute name='action'>AppMenu.RefreshAll</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuTools'>"
+        "      <attribute name='label' translatable='yes'>Tools</attribute>"
+        "      <section>"
+        "        <item id='CombineInstruments'>"
+        "          <attribute name='label' translatable='yes'>Combine Instruments ...</attribute>"
+        "          <attribute name='action'>AppMenu.CombineInstruments</attribute>"
+        "        </item>"
+        "        <item id='MergeFiles'>"
+        "          <attribute name='label' translatable='yes'>Merge Files ...</attribute>"
+        "          <attribute name='action'>AppMenu.MergeFiles</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuSettings'>"
+        "      <attribute name='label' translatable='yes'>Settings</attribute>"
+        "      <section>"
+        "        <item id='WarnUserOnExtensions'>"
+        "          <attribute name='label' translatable='yes'>Warning on Format Extensions</attribute>"
+        "          <attribute name='action'>AppMenu.WarnUserOnExtensions</attribute>"
+        "        </item>"
+        "        <item id='SyncSamplerInstrumentSelection'>"
+        "          <attribute name='label' translatable='yes'>Synchronize Sampler Selection</attribute>"
+        "          <attribute name='action'>AppMenu.SyncSamplerInstrumentSelection</attribute>"
+        "        </item>"
+        "        <item id='MoveRootNoteWithRegionMoved'>"
+        "          <attribute name='label' translatable='yes'>Move Root Note with Region moved</attribute>"
+        "          <attribute name='action'>AppMenu.MoveRootNoteWithRegionMoved</attribute>"
+        "        </item>"
+        "        <item id='SaveWithTemporaryFile'>"
+        "          <attribute name='label' translatable='yes'>Save with temporary file</attribute>"
+        "          <attribute name='action'>AppMenu.SaveWithTemporaryFile</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuHelp'>"
+        "      <attribute name='label' translatable='yes'>Help</attribute>"
+        "      <section>"
+        "        <item id='About'>"
+        "          <attribute name='label' translatable='yes'>About ...</attribute>"
+        "          <attribute name='action'>AppMenu.About</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "  </menubar>"
+        // popups
+        "  <menu id='PopupMenu'>"
+        "    <section>"
+        "      <item id='InstrProperties'>"
+        "        <attribute name='label' translatable='yes'>Instrument Properties</attribute>"
+        "        <attribute name='action'>AppMenu.InstrProperties</attribute>"
+        "      </item>"
+        "      <item id='MidiRules'>"
+        "        <attribute name='label' translatable='yes'>MIDI Rules</attribute>"
+        "        <attribute name='action'>AppMenu.MidiRules</attribute>"
+        "      </item>"
+        "      <item id='ScriptSlots'>"
+        "        <attribute name='label' translatable='yes'>Script Slots</attribute>"
+        "        <attribute name='action'>AppMenu.ScriptSlots</attribute>"
+        "      </item>"
+        "      <item id='AddInstrument'>"
+        "        <attribute name='label' translatable='yes'>Add Instrument</attribute>"
+        "        <attribute name='action'>AppMenu.AddInstrument</attribute>"
+        "      </item>"
+        "      <item id='DupInstrument'>"
+        "        <attribute name='label' translatable='yes'>Duplicate Instrument</attribute>"
+        "        <attribute name='action'>AppMenu.DupInstrument</attribute>"
+        "      </item>"
+        "      <item id='CombInstruments'>"
+        "        <attribute name='label' translatable='yes'>Combine Instruments</attribute>"
+        "        <attribute name='action'>AppMenu.CombInstruments</attribute>"
+        "      </item>"
+        "    </section>"
+        "    <section>"
+        "      <item id='RemoveInstrument'>"
+        "        <attribute name='label' translatable='yes'>Remove Instruments</attribute>"
+        "        <attribute name='action'>AppMenu.RemoveInstrument</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "  <menu id='SamplePopupMenu'>"
+        "    <section>"
+        "      <item id='SampleProperties'>"
+        "        <attribute name='label' translatable='yes'>Sample Properties</attribute>"
+        "        <attribute name='action'>AppMenu.SampleProperties</attribute>"
+        "      </item>"
+        "      <item id='AddGroup'>"
+        "        <attribute name='label' translatable='yes'>Add Sample Group</attribute>"
+        "        <attribute name='action'>AppMenu.AddGroup</attribute>"
+        "      </item>"
+        "      <item id='AddSample'>"
+        "        <attribute name='label' translatable='yes'>Add Sample</attribute>"
+        "        <attribute name='action'>AppMenu.AddSample</attribute>"
+        "      </item>"
+        "      <item id='ShowSampleRefs'>"
+        "        <attribute name='label' translatable='yes'>Show Sample References ...</attribute>"
+        "        <attribute name='action'>AppMenu.ShowSampleRefs</attribute>"
+        "      </item>"
+        "      <item id='ReplaceSample'>"
+        "        <attribute name='label' translatable='yes'>Replace Sample</attribute>"
+        "        <attribute name='action'>AppMenu.ReplaceSample</attribute>"
+        "      </item>"
+        "      <item id='ReplaceAllSamplesInAllGroups'>"
+        "        <attribute name='label' translatable='yes'>Replace all Samples ...</attribute>"
+        "        <attribute name='action'>AppMenu.ReplaceAllSamplesInAllGroups</attribute>"
+        "      </item>"
+        "    </section>"
+        "    <section>"
+        "      <item id='RemoveSample'>"
+        "        <attribute name='label' translatable='yes'>Remove Sample</attribute>"
+        "        <attribute name='action'>AppMenu.RemoveSample</attribute>"
+        "      </item>"
+        "      <item id='RemoveUnusedSamples'>"
+        "        <attribute name='label' translatable='yes'>Remove unused Samples</attribute>"
+        "        <attribute name='action'>AppMenu.RemoveUnusedSamples</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "  <menu id='ScriptPopupMenu'>"
+        "    <section>"
+        "      <item id='AddScriptGroup'>"
+        "        <attribute name='label' translatable='yes'>Add Script Group</attribute>"
+        "        <attribute name='action'>AppMenu.AddScriptGroup</attribute>"
+        "      </item>"
+        "      <item id='AddScript'>"
+        "        <attribute name='label' translatable='yes'>Add Script</attribute>"
+        "        <attribute name='action'>AppMenu.AddScript</attribute>"
+        "      </item>"
+        "      <item id='EditScript'>"
+        "        <attribute name='label' translatable='yes'>Edit Script</attribute>"
+        "        <attribute name='action'>AppMenu.EditScript</attribute>"
+        "      </item>"
+        "    </section>"
+        "    <section>"
+        "      <item id='RemoveScript'>"
+        "        <attribute name='label' translatable='yes'>Remove Script</attribute>"
+        "        <attribute name='action'>AppMenu.RemoveScript</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "</interface>";
+    m_uiManager->add_from_string(ui_info);
+#else
     uiManager = Gtk::UIManager::create();
     uiManager->insert_action_group(actionGroup);
     add_accel_group(uiManager->get_accel_group());
@@ -598,7 +1194,25 @@ MainWindow::MainWindow() :
         "  </popup>"
         "</ui>";
     uiManager->add_ui_from_string(ui_info);
+#endif
 
+#if USE_GTKMM_BUILDER
+    popup_menu = new Gtk::Menu(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            m_uiManager->get_object("PopupMenu")
+        )
+    );
+    sample_popup = new Gtk::Menu(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            m_uiManager->get_object("SamplePopupMenu")
+        )
+    );
+    script_popup = new Gtk::Menu(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            m_uiManager->get_object("ScriptPopupMenu")
+        )
+    );
+#else
     popup_menu = dynamic_cast<Gtk::Menu*>(uiManager->get_widget("/PopupMenu"));
     
     // Set tooltips for menu items (for some reason, setting a tooltip on the
@@ -664,15 +1278,29 @@ MainWindow::MainWindow() :
             uiManager->get_widget("/MenuBar/MenuTools/MergeFiles"));
         item->set_tooltip_text(_("Add instruments and samples of other .gig files to this .gig file."));
     }
+#endif
 
-
+#if USE_GTKMM_BUILDER
+    assign_scripts_menu = new Gtk::Menu(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            m_uiManager->get_object("AssignScripts")
+        )
+    );
+#else
     instrument_menu = static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuInstrument/AllInstruments"))->get_submenu();
 
     assign_scripts_menu = static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuInstrument/AssignScripts"))->get_submenu();
+#endif
 
+#if USE_GTKMM_BUILDER
+    Gtk::Widget* menuBar = NULL;
+    m_uiManager->get_widget("MenuBar", menuBar);
+#else
     Gtk::Widget* menuBar = uiManager->get_widget("/MenuBar");
+#endif
+
     m_VBox.pack_start(*menuBar, Gtk::PACK_SHRINK);
     m_VBox.pack_start(m_HPaned);
     m_VBox.pack_start(m_RegionChooser, Gtk::PACK_SHRINK);
@@ -683,8 +1311,12 @@ MainWindow::MainWindow() :
     set_file_is_shared(false);
 
     // Status Bar:
+#if USE_GTKMM_BOX
+# warning No status bar layout for GTKMM 4 yet
+#else
     m_StatusBar.pack_start(m_AttachedStateLabel, Gtk::PACK_SHRINK);
     m_StatusBar.pack_start(m_AttachedStateImage, Gtk::PACK_SHRINK);
+#endif
     m_StatusBar.show();
 
     m_RegionChooser.signal_region_selected().connect(
@@ -756,9 +1388,15 @@ MainWindow::MainWindow() :
         );
     }
     m_TreeViewSamples.set_headers_visible(true);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    m_TreeViewSamples.signal_button_press_event().connect(
+        sigc::mem_fun(*this, &MainWindow::on_sample_treeview_button_release)
+    );
+#else
     m_TreeViewSamples.signal_button_press_event().connect_notify(
         sigc::mem_fun(*this, &MainWindow::on_sample_treeview_button_release)
     );
+#endif
     m_refSamplesTreeModel->signal_row_changed().connect(
         sigc::mem_fun(*this, &MainWindow::sample_name_changed)
     );
@@ -775,9 +1413,15 @@ MainWindow::MainWindow() :
     // m_TreeViewScripts.set_reorderable();
     m_TreeViewScripts.append_column_editable("Samples", m_ScriptsModel.m_col_name);
     m_TreeViewScripts.set_headers_visible(false);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    m_TreeViewScripts.signal_button_press_event().connect(
+        sigc::mem_fun(*this, &MainWindow::on_script_treeview_button_release)
+    );
+#else
     m_TreeViewScripts.signal_button_press_event().connect_notify(
         sigc::mem_fun(*this, &MainWindow::on_script_treeview_button_release)
     );
+#endif
     //FIXME: why the heck does this double click signal_row_activated() only fire while CTRL key is pressed ?
     m_TreeViewScripts.signal_row_activated().connect(
         sigc::mem_fun(*this, &MainWindow::script_double_clicked)
@@ -883,7 +1527,9 @@ MainWindow::MainWindow() :
     file = 0;
     file_is_changed = false;
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 
     // start with a new gig file by default
     on_action_file_new();
@@ -904,9 +1550,17 @@ MainWindow::MainWindow() :
 
     // setup macros and their keyboard accelerators
     {
+#if USE_GTKMM_BUILDER
+        menuMacro = new Gtk::Menu(
+            Glib::RefPtr<Gio::Menu>::cast_dynamic(
+                m_uiManager->get_object("MenuMacro")
+            )
+        );
+#else
         Gtk::Menu* menuMacro = dynamic_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuMacro")
         )->get_submenu();
+#endif
 
         const Gdk::ModifierType noModifier = (Gdk::ModifierType)0;
         Gtk::AccelMap::add_entry("<Macros>/macro_0", GDK_KEY_F1, noModifier);
@@ -967,9 +1621,11 @@ void MainWindow::bringToFront() {
 }
 
 void MainWindow::updateMacroMenu() {
+#if !USE_GTKMM_BUILDER
     Gtk::Menu* menuMacro = dynamic_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuMacro")
     )->get_submenu();
+#endif
 
     // remove all entries from "Macro" menu
     {
@@ -1027,7 +1683,9 @@ void MainWindow::updateMacroMenu() {
         item->set_accel_path("<Macros>/SetupMacros");
     }
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     menuMacro->show_all_children();
+#endif
 }
 
 void MainWindow::onMacroSelected(int iMacro) {
@@ -1093,7 +1751,8 @@ gig::Instrument* MainWindow::get_instrument()
     gig::Instrument* instrument = 0;
     std::vector<Gtk::TreeModel::Path> rows = m_TreeView.get_selection()->get_selected_rows();
     if (rows.empty()) return NULL;
-    Gtk::TreeModel::const_iterator it = m_refTreeModel->get_iter(rows[0]);
+    //NOTE: was const_iterator before, which did not compile with GTKMM4 development branch, probably going to be fixed before final GTKMM4 release though.
+    Gtk::TreeModel::iterator it = m_refTreeModel->get_iter(rows[0]);
     if (it) {
         Gtk::TreeModel::Row row = *it;
         instrument = row[m_Columns.m_col_instr];
@@ -1159,6 +1818,7 @@ void MainWindow::dimreg_changed()
 
 void MainWindow::on_sel_change()
 {
+#if !USE_GTKMM_BUILDER
     // select item in instrument menu
     std::vector<Gtk::TreeModel::Path> rows = m_TreeView.get_selection()->get_selected_rows();
     if (!rows.empty()) {
@@ -1171,6 +1831,7 @@ void MainWindow::on_sel_change()
             static_cast<Gtk::RadioMenuItem*>(children[index])->set_active();
         }
     }
+#endif
 
     updateScriptListOfMenu();
 
@@ -1381,8 +2042,14 @@ Glib::Dispatcher& Saver::signal_error()
 ProgressDialog::ProgressDialog(const Glib::ustring& title, Gtk::Window& parent)
     : Gtk::Dialog(title, parent, true)
 {
+#if USE_GTKMM_BOX
+    get_content_area()->pack_start(progressBar);
+#else
     get_vbox()->pack_start(progressBar);
+#endif
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
     resize(600,50);
 }
 
@@ -1395,10 +2062,12 @@ void MainWindow::__clear() {
     m_refTreeModel->clear();
     m_refSamplesTreeModel->clear();
     m_refScriptsTreeModel->clear();
+#if !USE_GTKMM_BUILDER
     // remove all entries from "Instrument" menu
     while (!instrument_menu->get_children().empty()) {
         remove_instrument_from_menu(0);
     }
+#endif
     // free libgig's gig::File instance
     if (file && !file_is_shared) delete file;
     file = NULL;
@@ -1410,10 +2079,12 @@ void MainWindow::__refreshEntireGUI() {
     m_refTreeModel->clear();
     m_refSamplesTreeModel->clear();
     m_refScriptsTreeModel->clear();
+#if !USE_GTKMM_BUILDER
     // remove all entries from "Instrument" menu
     while (!instrument_menu->get_children().empty()) {
         remove_instrument_from_menu(0);
     }
+#endif
 
     if (!this->file) return;
 
@@ -1447,8 +2118,13 @@ bool MainWindow::close_confirmation_dialog()
     g_free(msg);
     dialog.set_secondary_text(_("If you close without saving, your changes will be lost."));
     dialog.add_button(_("Close _Without Saving"), Gtk::RESPONSE_NO);
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(file_has_name ? Gtk::Stock::SAVE : Gtk::Stock::SAVE_AS, Gtk::RESPONSE_YES);
+#else
+    dialog.add_button(_("_OK"), Gtk::RESPONSE_OK);
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+#endif
     dialog.set_default_response(Gtk::RESPONSE_YES);
     int response = dialog.run();
     dialog.hide();
@@ -1479,7 +2155,11 @@ bool MainWindow::leaving_shared_mode_dialog() {
           "used by the sampler until you tell the sampler explicitly to "
           "load it."));
     dialog.add_button(_("_Yes, Detach"), Gtk::RESPONSE_YES);
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+#endif
     dialog.set_default_response(Gtk::RESPONSE_CANCEL);
     int response = dialog.run();
     dialog.hide();
@@ -1493,8 +2173,13 @@ void MainWindow::on_action_file_open()
     if (file_is_shared && !leaving_shared_mode_dialog()) return;
 
     Gtk::FileChooserDialog dialog(*this, _("Open file"));
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(_("_Open"), Gtk::RESPONSE_OK);
+#endif
     dialog.set_default_response(Gtk::RESPONSE_OK);
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
     Gtk::FileFilter filter;
@@ -1526,7 +2211,9 @@ void MainWindow::load_file(const char* name)
         Glib::filename_display_basename(name) + "' ...",
         *this
     );
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     progress_dialog->show_all();
+#endif
     loader = new Loader(name); //FIXME: memory leak!
     loader->signal_progress().connect(
         sigc::mem_fun(*this, &MainWindow::on_loader_progress));
@@ -1560,12 +2247,14 @@ void MainWindow::load_instrument(gig::Instrument* instr) {
             // make sure the selected item in the "instruments" tree view is
             // visible (scroll to it)
             m_TreeView.scroll_to_row(Gtk::TreePath(ToString(i)));
+#if !USE_GTKMM_BUILDER
             // select item in instrument menu
             {
                 const std::vector<Gtk::Widget*> children =
                     instrument_menu->get_children();
                 static_cast<Gtk::RadioMenuItem*>(children[i])->set_active();
             }
+#endif
             // update region chooser and dimension region chooser
             m_RegionChooser.set_instrument(instr);
             break;
@@ -1637,7 +2326,9 @@ bool MainWindow::file_save()
         Glib::filename_display_basename(this->filename) + "' ...",
         *this
     );
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     progress_dialog->show_all();
+#endif
     saver = new Saver(this->file); //FIXME: memory leak!
     saver->signal_progress().connect(
         sigc::mem_fun(*this, &MainWindow::on_saver_progress));
@@ -1690,8 +2381,13 @@ void MainWindow::on_action_file_save_as()
 bool MainWindow::file_save_as()
 {
     Gtk::FileChooserDialog dialog(*this, _("Save as"), Gtk::FILE_CHOOSER_ACTION_SAVE);
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(Gtk::Stock::SAVE, Gtk::RESPONSE_OK);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(_("_Save"), Gtk::RESPONSE_OK);
+#endif
     dialog.set_default_response(Gtk::RESPONSE_OK);
     dialog.set_do_overwrite_confirmation();
 
@@ -1720,7 +2416,7 @@ bool MainWindow::file_save_as()
     }
 
     // show warning in the dialog
-    Gtk::HBox descriptionArea;
+    HBox descriptionArea;
     descriptionArea.set_spacing(15);
     Gtk::Image warningIcon;
     warningIcon.set_from_icon_name("dialog-warning",
@@ -1741,8 +2437,14 @@ bool MainWindow::file_save_as()
           "same .gig file will end up in corrupted sample wave data!\n")
     );
     descriptionArea.pack_start(description);
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(descriptionArea, Gtk::PACK_SHRINK);
+#else
     dialog.get_vbox()->pack_start(descriptionArea, Gtk::PACK_SHRINK);
+#endif
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     descriptionArea.show_all();
+#endif
 
     if (dialog.run() == Gtk::RESPONSE_OK) {
         std::string filename = dialog.get_filename();
@@ -1756,7 +2458,9 @@ bool MainWindow::file_save_as()
             Glib::filename_display_basename(filename) + "' ...",
             *this
         );
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
         progress_dialog->show_all();
+#endif
 
         saver = new Saver(file, filename); //FIXME: memory leak!
         saver->signal_progress().connect(
@@ -1937,7 +2641,11 @@ PropDialog::PropDialog()
       eSourceForm(_("Source form")),
       eCommissioned(_("Commissioned")),
       eSubject(_("Subject")),
+#if HAS_GTKMM_STOCK
       quitButton(Gtk::Stock::CLOSE),
+#else
+      quitButton(_("_Close")),
+#endif
       table(2, 1),
       m_file(NULL)
 {
@@ -1984,13 +2692,26 @@ PropDialog::PropDialog()
     table.add(eCommissioned);
     table.add(eSubject);
 
+#if USE_GTKMM_GRID
+    table.set_column_spacing(5);
+#else
     table.set_col_spacings(5);
+#endif
+
     add(vbox);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    table.set_margin(5);
+#else
     table.set_border_width(5);
+#endif
     vbox.add(table);
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    buttonBox.set_margin(5);
+#else
     buttonBox.set_border_width(5);
+#endif
     buttonBox.show();
     buttonBox.pack_start(quitButton);
     quitButton.set_can_default();
@@ -2002,7 +2723,9 @@ PropDialog::PropDialog()
 
     quitButton.show();
     vbox.show();
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 void PropDialog::set_file(gig::File* file)
@@ -2065,7 +2788,11 @@ void InstrumentProps::set_MIDIProgram(uint32_t value)
 }
 
 InstrumentProps::InstrumentProps() :
+#if HAS_GTKMM_STOCK
     quitButton(Gtk::Stock::CLOSE),
+#else
+    quitButton(_("_Close")),
+#endif
     table(2,1),
     eName(_("Name")),
     eIsDrum(_("Is drum")),
@@ -2111,7 +2838,11 @@ InstrumentProps::InstrumentProps() :
 
     eName.signal_value_changed().connect(sig_name_changed.make_slot());
 
+#if USE_GTKMM_GRID
+    table.set_column_spacing(5);
+#else
     table.set_col_spacings(5);
+#endif
 
     table.add(eName);
     table.add(eIsDrum);
@@ -2127,12 +2858,20 @@ InstrumentProps::InstrumentProps() :
     table.add(eDimensionKeyRangeHigh);
 
     add(vbox);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    table.set_margin(5);
+#else
     table.set_border_width(5);
+#endif
     vbox.pack_start(table);
     table.show();
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    buttonBox.set_margin(5);
+#else
     buttonBox.set_border_width(5);
+#endif
     buttonBox.show();
     buttonBox.pack_start(quitButton);
     quitButton.set_can_default();
@@ -2143,7 +2882,9 @@ InstrumentProps::InstrumentProps() :
 
     quitButton.show();
     vbox.show();
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 void InstrumentProps::set_instrument(gig::Instrument* instrument)
@@ -2218,10 +2959,14 @@ void MainWindow::load_gig(gig::File* gig, const char* filename, bool isSharedIns
         row[m_Columns.m_col_instr] = instrument;
         row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
 
+#if !USE_GTKMM_BUILDER
         add_instrument_to_menu(name);
+#endif
     }
     instrument_name_connection.unblock();
+#if !USE_GTKMM_BUILDER
     uiManager->get_widget("/MenuBar/MenuInstrument/AllInstruments")->show();
+#endif
 
     updateSampleRefCountMap(gig);
 
@@ -2292,7 +3037,8 @@ bool MainWindow::instr_props_set_instrument()
         instrumentProps.hide();
         return false;
     }
-    Gtk::TreeModel::const_iterator it = m_refTreeModel->get_iter(rows[0]);
+    //NOTE: was const_iterator before, which did not compile with GTKMM4 development branch, probably going to be fixed before final GTKMM4 release though.
+    Gtk::TreeModel::iterator it = m_refTreeModel->get_iter(rows[0]);
     if (it) {
         Gtk::TreeModel::Row row = *it;
         gig::Instrument* instrument = row[m_Columns.m_col_instr];
@@ -2309,7 +3055,8 @@ bool MainWindow::instr_props_set_instrument()
     } else {
         instrumentProps.hide();
     }
-    return it;
+    //NOTE: explicit boolean cast required for GTKMM4 development branch here
+    return it ? true : false;
 }
 
 void MainWindow::show_instr_props()
@@ -2404,6 +3151,17 @@ void MainWindow::on_action_refresh_all() {
 }
 
 void MainWindow::on_action_view_status_bar() {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleStatusBar->get_state(active);
+    // for some reason toggle state does not change automatically
+    active = !active;
+    m_actionToggleStatusBar->change_state(active);
+    if (active)
+        m_StatusBar.show();
+    else
+        m_StatusBar.hide();
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuView/Statusbar"));
     if (!item) {
@@ -2412,9 +3170,18 @@ void MainWindow::on_action_view_status_bar() {
     }
     if (item->get_active()) m_StatusBar.show();
     else                    m_StatusBar.hide();
+#endif
 }
 
 void MainWindow::on_auto_restore_win_dim() {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleRestoreWinDim->get_state(active);
+    // for some reason toggle state does not change automatically
+    active = !active;
+    m_actionToggleRestoreWinDim->change_state(active);
+    Settings::singleton()->autoRestoreWindowDimension = active;
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuView/AutoRestoreWinDim"));
     if (!item) {
@@ -2422,9 +3189,18 @@ void MainWindow::on_auto_restore_win_dim() {
         return;
     }
     Settings::singleton()->autoRestoreWindowDimension = item->get_active();
+#endif
 }
 
 void MainWindow::on_save_with_temporary_file() {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleSaveWithTempFile->get_state(active);
+    // for some reason toggle state does not change automatically
+    active = !active;
+    m_actionToggleSaveWithTempFile->change_state(active);
+    Settings::singleton()->saveWithTemporaryFile = active;
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuSettings/SaveWithTemporaryFile"));
     if (!item) {
@@ -2432,9 +3208,15 @@ void MainWindow::on_save_with_temporary_file() {
         return;
     }
     Settings::singleton()->saveWithTemporaryFile = item->get_active();
+#endif
 }
 
 bool MainWindow::is_copy_samples_unity_note_enabled() const {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleCopySampleUnity->get_state(active);
+    return active;
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuEdit/CopySampleUnity"));
     if (!item) {
@@ -2442,9 +3224,15 @@ bool MainWindow::is_copy_samples_unity_note_enabled() const {
         return true;
     }
     return item->get_active();
+#endif
 }
 
 bool MainWindow::is_copy_samples_fine_tune_enabled() const {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleCopySampleTune->get_state(active);
+    return active;
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuEdit/CopySampleTune"));
     if (!item) {
@@ -2452,9 +3240,15 @@ bool MainWindow::is_copy_samples_fine_tune_enabled() const {
         return true;
     }
     return item->get_active();
+#endif
 }
 
 bool MainWindow::is_copy_samples_loop_enabled() const {
+#if USE_GLIB_ACTION
+    bool active = false;
+    m_actionToggleCopySampleLoop->get_state(active);
+    return active;
+#else
     Gtk::CheckMenuItem* item =
         dynamic_cast<Gtk::CheckMenuItem*>(uiManager->get_widget("/MenuBar/MenuEdit/CopySampleLoop"));
     if (!item) {
@@ -2462,15 +3256,23 @@ bool MainWindow::is_copy_samples_loop_enabled() const {
         return true;
     }
     return item->get_active();
+#endif
 }
 
-void MainWindow::on_button_release(GdkEventButton* button)
-{
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MainWindow::on_button_release(Gdk::EventButton& _button) {
+    GdkEventButton* button = _button.gobj();
+#else
+void MainWindow::on_button_release(GdkEventButton* button) {
+#endif
     if (button->type == GDK_2BUTTON_PRESS) {
         show_instr_props();
     } else if (button->type == GDK_BUTTON_PRESS && button->button == 3) {
         // gig v2 files have no midi rules
         const bool bEnabled = !(file->pVersion && file->pVersion->major == 2);
+#if USE_GTKMM_BUILDER
+        m_actionMIDIRules->property_enabled() = bEnabled;
+#else
         static_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuInstrument/MidiRules"))->set_sensitive(
                 bEnabled
@@ -2479,10 +3281,15 @@ void MainWindow::on_button_release(GdkEventButton* button)
             uiManager->get_widget("/PopupMenu/MidiRules"))->set_sensitive(
                 bEnabled
             );
+#endif
         popup_menu->popup(button->button, button->time);
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return false;
+#endif
 }
 
+#if !USE_GTKMM_BUILDER
 void MainWindow::on_instrument_selection_change(Gtk::RadioMenuItem* item) {
     if (item->get_active()) {
         const std::vector<Gtk::Widget*> children =
@@ -2497,6 +3304,7 @@ void MainWindow::on_instrument_selection_change(Gtk::RadioMenuItem* item) {
         }
     }
 }
+#endif
 
 void MainWindow::select_instrument(gig::Instrument* instrument) {
     if (!instrument) return;
@@ -2511,7 +3319,13 @@ void MainWindow::select_instrument(gig::Instrument* instrument) {
             // select and show the respective instrument in the list view
             show_intruments_tab();
             m_TreeView.get_selection()->unselect_all();
+            
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+            auto iterSel = model->children()[i].get_iter();
+            m_TreeView.get_selection()->select(iterSel);
+#else
             m_TreeView.get_selection()->select(model->children()[i]);
+#endif
             std::vector<Gtk::TreeModel::Path> rows =
                 m_TreeView.get_selection()->get_selected_rows();
             if (!rows.empty())
@@ -2536,7 +3350,12 @@ bool MainWindow::select_dimension_region(gig::DimensionRegion* dimRgn) {
             // select and show the respective instrument in the list view
             show_intruments_tab();
             m_TreeView.get_selection()->unselect_all();
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+            auto iterSel = model->children()[i].get_iter();
+            m_TreeView.get_selection()->select(iterSel);
+#else
             m_TreeView.get_selection()->select(model->children()[i]);
+#endif
             std::vector<Gtk::TreeModel::Path> rows =
                 m_TreeView.get_selection()->get_selected_rows();
             if (!rows.empty())
@@ -2567,7 +3386,12 @@ void MainWindow::select_sample(gig::Sample* sample) {
             if (rowSample[m_SamplesModel.m_col_sample] == sample) {
                 show_samples_tab();
                 m_TreeViewSamples.get_selection()->unselect_all();
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+                auto iterSel = rowGroup.children()[s].get_iter();
+                m_TreeViewSamples.get_selection()->select(iterSel);
+#else
                 m_TreeViewSamples.get_selection()->select(rowGroup.children()[s]);
+#endif
                 std::vector<Gtk::TreeModel::Path> rows =
                     m_TreeViewSamples.get_selection()->get_selected_rows();
                 if (rows.empty()) return;
@@ -2578,7 +3402,12 @@ void MainWindow::select_sample(gig::Sample* sample) {
     }
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MainWindow::on_sample_treeview_button_release(Gdk::EventButton& _button) {
+    GdkEventButton* button = _button.gobj();
+#else
 void MainWindow::on_sample_treeview_button_release(GdkEventButton* button) {
+#endif
     if (button->type == GDK_BUTTON_PRESS && button->button == 3) {
         // by default if Ctrl keys is pressed down, then a mouse right-click
         // does not select the respective row, so we must assure this
@@ -2599,8 +3428,11 @@ void MainWindow::on_sample_treeview_button_release(GdkEventButton* button) {
             }
         }*/
 
+#if !USE_GTKMM_BUILDER
         Gtk::Menu* sample_popup =
             dynamic_cast<Gtk::Menu*>(uiManager->get_widget("/SamplePopupMenu"));
+#endif
+
         // update enabled/disabled state of sample popup items
         Glib::RefPtr<Gtk::TreeSelection> sel = m_TreeViewSamples.get_selection();
         std::vector<Gtk::TreeModel::Path> rows = sel->get_selected_rows();
@@ -2615,6 +3447,14 @@ void MainWindow::on_sample_treeview_button_release(GdkEventButton* button) {
             if (row[m_SamplesModel.m_col_sample]) nSamples++;
         }
 
+#if USE_GTKMM_BUILDER
+        m_actionSampleProperties->property_enabled() = (n == 1);
+        m_actionAddSample->property_enabled() = (n);
+        m_actionAddSampleGroup->property_enabled() = (file);
+        m_actionViewSampleRefs->property_enabled() = (nSamples == 1);
+        m_actionRemoveSample->property_enabled() = (n);
+        m_actionReplaceSample->property_enabled() = (nSamples == 1);
+#else
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/SamplePopupMenu/SampleProperties"))->
             set_sensitive(n == 1);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/SamplePopupMenu/AddSample"))->
@@ -2625,9 +3465,11 @@ void MainWindow::on_sample_treeview_button_release(GdkEventButton* button) {
             set_sensitive(nSamples == 1);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/SamplePopupMenu/RemoveSample"))->
             set_sensitive(n);
+#endif
         // show sample popup
         sample_popup->popup(button->button, button->time);
 
+#if !USE_GTKMM_BUILDER
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuSample/SampleProperties"))->
             set_sensitive(n == 1);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuSample/AddSample"))->
@@ -2638,13 +3480,25 @@ void MainWindow::on_sample_treeview_button_release(GdkEventButton* button) {
             set_sensitive(nSamples == 1);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuSample/RemoveSample"))->
             set_sensitive(n);
+#endif
     }
+    
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return false;
+#endif
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MainWindow::on_script_treeview_button_release(Gdk::EventButton& _button) {
+    GdkEventButton* button = _button.gobj();
+#else
 void MainWindow::on_script_treeview_button_release(GdkEventButton* button) {
+#endif
     if (button->type == GDK_BUTTON_PRESS && button->button == 3) {
+#if !USE_GTKMM_BUILDER
         Gtk::Menu* script_popup =
             dynamic_cast<Gtk::Menu*>(uiManager->get_widget("/ScriptPopupMenu"));
+#endif
         // update enabled/disabled state of sample popup items
         Glib::RefPtr<Gtk::TreeSelection> sel = m_TreeViewScripts.get_selection();
         Gtk::TreeModel::iterator it = sel->get_selected();
@@ -2655,6 +3509,12 @@ void MainWindow::on_script_treeview_button_release(GdkEventButton* button) {
             group_selected  = row[m_ScriptsModel.m_col_group];
             script_selected = row[m_ScriptsModel.m_col_script];
         }
+#if USE_GTKMM_BUILDER
+        m_actionAddScript->property_enabled() = (group_selected || script_selected);
+        m_actionAddScriptGroup->property_enabled() = (file);
+        m_actionEditScript->property_enabled() = (script_selected);
+        m_actionRemoveScript->property_enabled() = (group_selected || script_selected);
+#else
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/ScriptPopupMenu/AddScript"))->
             set_sensitive(group_selected || script_selected);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/ScriptPopupMenu/AddScriptGroup"))->
@@ -2663,9 +3523,11 @@ void MainWindow::on_script_treeview_button_release(GdkEventButton* button) {
             set_sensitive(script_selected);    
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/ScriptPopupMenu/RemoveScript"))->
             set_sensitive(group_selected || script_selected);
+#endif
         // show sample popup
         script_popup->popup(button->button, button->time);
 
+#if !USE_GTKMM_BUILDER
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuScript/AddScript"))->
             set_sensitive(group_selected || script_selected);
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuScript/AddScriptGroup"))->
@@ -2674,7 +3536,11 @@ void MainWindow::on_script_treeview_button_release(GdkEventButton* button) {
             set_sensitive(script_selected);    
         dynamic_cast<Gtk::MenuItem*>(uiManager->get_widget("/MenuBar/MenuScript/RemoveScript"))->
             set_sensitive(group_selected || script_selected);
+#endif
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return false;
+#endif
 }
 
 void MainWindow::updateScriptListOfMenu() {
@@ -2720,9 +3586,12 @@ void MainWindow::updateScriptListOfMenu() {
         assign_scripts_menu->append(*item);
     }
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     assign_scripts_menu->show_all_children();
+#endif
 }
 
+#if !USE_GTKMM_BUILDER
 Gtk::RadioMenuItem* MainWindow::add_instrument_to_menu(
     const Glib::ustring& name, int position) {
 
@@ -2746,7 +3615,9 @@ Gtk::RadioMenuItem* MainWindow::add_instrument_to_menu(
             item));
     return item;
 }
+#endif
 
+#if !USE_GTKMM_BUILDER
 void MainWindow::remove_instrument_from_menu(int index) {
     const std::vector<Gtk::Widget*> children =
         instrument_menu->get_children();
@@ -2754,6 +3625,7 @@ void MainWindow::remove_instrument_from_menu(int index) {
     instrument_menu->remove(*child);
     delete child;
 }
+#endif
 
 void MainWindow::add_instrument(gig::Instrument* instrument) {
     const Glib::ustring name(gig_to_utf8(instrument->pInfo->Name));
@@ -2768,7 +3640,9 @@ void MainWindow::add_instrument(gig::Instrument* instrument) {
     rowInstr[m_Columns.m_col_scripts] = "";
     instrument_name_connection.unblock();
 
+#if !USE_GTKMM_BUILDER
     add_instrument_to_menu(name);
+#endif
     select_instrument(instrument);
     file_changed();
 }
@@ -2837,7 +3711,9 @@ void MainWindow::on_action_remove_instrument() {
             if (instr) file->DeleteInstrument(instr);
             file_changed();
 
+#if !USE_GTKMM_BUILDER
             remove_instrument_from_menu(index);
+#endif
 
             // remove row from instruments tree view
             m_refTreeModel->erase(it);
@@ -3052,8 +3928,13 @@ void MainWindow::add_or_replace_sample(bool replace) {
 
     // show 'browse for file' dialog
     Gtk::FileChooserDialog dialog(*this, replace ? _("Replace Sample with") : _("Add Sample(s)"));
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+    dialog.add_button(_("_Open"), Gtk::RESPONSE_OK);
+#endif
     dialog.set_select_multiple(!replace); // allow multi audio file selection only when adding new samples, does not make sense when replacing a specific sample
 
     // matches all file types supported by libsndfile
@@ -3243,17 +4124,32 @@ void MainWindow::on_action_replace_all_samples_in_all_groups()
     Gtk::Label description(str);
     description.set_line_wrap();
 #endif
-    Gtk::HBox entryArea;
+    HBox entryArea;
     Gtk::Label entryLabel( _("Add filename extension: "), Gtk::ALIGN_START);
     Gtk::Entry postfixEntryBox;
     postfixEntryBox.set_text(".wav");
     entryArea.pack_start(entryLabel);
     entryArea.pack_start(postfixEntryBox);
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(description, Gtk::PACK_SHRINK);
+    dialog.get_content_area()->pack_start(entryArea, Gtk::PACK_SHRINK);
+#else
     dialog.get_vbox()->pack_start(description, Gtk::PACK_SHRINK);
     dialog.get_vbox()->pack_start(entryArea, Gtk::PACK_SHRINK);
+#endif
     description.show();
+
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     entryArea.show_all();
+#else
+    entryArea.show();
+#endif
+
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+#endif
     dialog.add_button(_("Select"), Gtk::RESPONSE_OK);
     dialog.set_select_multiple(false);
     if (current_sample_dir != "") {
@@ -3711,6 +4607,7 @@ void MainWindow::instrument_name_changed(const Gtk::TreeModel::Path& path,
     Gtk::TreeModel::Row row = *iter;
     Glib::ustring name = row[m_Columns.m_col_name];
 
+#if !USE_GTKMM_BUILDER
     // change name in instrument menu
     int index = path[0];
     const std::vector<Gtk::Widget*> children = instrument_menu->get_children();
@@ -3723,6 +4620,7 @@ void MainWindow::instrument_name_changed(const Gtk::TreeModel::Path& path,
         item->set_active();
 #endif
     }
+#endif
 
     // change name in gig
     gig::Instrument* instrument = row[m_Columns.m_col_instr];
@@ -3747,7 +4645,12 @@ bool MainWindow::instrument_row_visible(const Gtk::TreeModel::const_iterator& it
     trim(pattern);
     if (pattern.empty()) return true;
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+    //HACK: on GTKMM4 development branch const_iterator cannot be easily converted to iterator, probably going to be fixed before final GTKMM4 release though.
+    Gtk::TreeModel::Row row = **(Gtk::TreeModel::iterator*)(&iter);
+#else
     Gtk::TreeModel::Row row = *iter;
+#endif
     Glib::ustring name = row[m_Columns.m_col_name];
     name = name.lowercase();
 
@@ -3779,7 +4682,11 @@ void MainWindow::on_action_combine_instruments() {
     }
     d->setSelectedInstruments(indeces);
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     d->show_all();
+#else
+    d->show();
+#endif
     d->run();
     if (d->fileWasChanged()) {
         // update GUI with new instrument just created
@@ -3803,7 +4710,11 @@ void MainWindow::on_action_view_references() {
     d->dimension_region_selected.connect(
         sigc::mem_fun(*this, &MainWindow::select_dimension_region)
     );
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     d->show_all();
+#else
+    d->show();
+#endif
     d->resize(500, 400);
     d->run();
     delete d;
@@ -3887,7 +4798,11 @@ void MainWindow::mergeFiles(const std::vector<std::string>& filenames) {
             Glib::filename_display_basename(this->filename) + "' ...",
             *this
         );
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
         progress_dialog->show_all();
+#else
+        progress_dialog->show();
+#endif
         saver = new Saver(this->file); //FIXME: memory leak!
         saver->signal_progress().connect(
             sigc::mem_fun(*this, &MainWindow::on_saver_progress));
@@ -3914,7 +4829,11 @@ void MainWindow::on_action_merge_files() {
     }
 
     Gtk::FileChooserDialog dialog(*this, _("Merge .gig files"));
+#if HAS_GTKMM_STOCK
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+#else
+    dialog.add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+#endif
     dialog.add_button(_("Merge"), Gtk::RESPONSE_OK);
     dialog.set_default_response(Gtk::RESPONSE_CANCEL);
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
@@ -3931,7 +4850,7 @@ void MainWindow::on_action_merge_files() {
     dialog.set_select_multiple(true);
 
     // show warning in the file picker dialog
-    Gtk::HBox descriptionArea;
+    HBox descriptionArea;
     descriptionArea.set_spacing(15);
     Gtk::Image warningIcon;
     warningIcon.set_from_icon_name("dialog-warning",
@@ -3954,8 +4873,16 @@ void MainWindow::on_action_merge_files() {
         "will accordingly be stored separately in the target .gig file!"
     ));
     descriptionArea.pack_start(description);
+#if USE_GTKMM_BOX
+# warning No description area implemented for dialog on GTKMM 3
+#else
     dialog.get_vbox()->pack_start(descriptionArea, Gtk::PACK_SHRINK);
+#endif
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     descriptionArea.show_all();
+#else
+    descriptionArea.show();
+#endif
 
     if (dialog.run() == Gtk::RESPONSE_OK) {
         printf("on_action_merge_files self=%p\n",
@@ -3991,9 +4918,13 @@ void MainWindow::set_file_is_shared(bool b) {
     }
 
     {
+#if USE_GTKMM_BUILDER
+        m_actionToggleSyncSamplerSelection->property_enabled() = b;
+#else
         Gtk::MenuItem* item = dynamic_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuSettings/SyncSamplerInstrumentSelection"));
         if (item) item->set_sensitive(b);
+#endif
     }
 }
 
@@ -4150,12 +5081,20 @@ void MainWindow::updateClipboardPasteAvailable() {
 
 void MainWindow::updateClipboardCopyAvailable() {
     bool bDimensionRegionCopyIsPossible = m_DimRegionChooser.get_main_dimregion();
+#if USE_GTKMM_BUILDER
+    m_actionCopyDimRgn->property_enabled() = bDimensionRegionCopyIsPossible;
+#else
     static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuEdit/CopyDimRgn")
     )->set_sensitive(bDimensionRegionCopyIsPossible);
+#endif
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+void MainWindow::on_clipboard_owner_change(Gdk::EventOwnerChange& event) {
+#else
 void MainWindow::on_clipboard_owner_change(GdkEventOwnerChange* event) {
+#endif
     updateClipboardPasteAvailable();
 }
 
@@ -4222,6 +5161,10 @@ void MainWindow::on_clipboard_received_targets(const std::vector<Glib::ustring>&
         std::find(targets.begin(), targets.end(),
                   CLIPBOARD_DIMENSIONREGION_TARGET) != targets.end();
 
+#if USE_GTKMM_BUILDER
+    m_actionPasteDimRgn->property_enabled() = bDimensionRegionPasteIsPossible;
+    m_actionAdjustClipboard->property_enabled() = bDimensionRegionPasteIsPossible;
+#else
     static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuEdit/PasteDimRgn")
     )->set_sensitive(bDimensionRegionPasteIsPossible);
@@ -4229,6 +5172,7 @@ void MainWindow::on_clipboard_received_targets(const std::vector<Glib::ustring>&
     static_cast<Gtk::MenuItem*>(
         uiManager->get_widget("/MenuBar/MenuEdit/AdjustClipboard")
     )->set_sensitive(bDimensionRegionPasteIsPossible);
+#endif
 }
 
 sigc::signal<void, gig::File*>& MainWindow::signal_file_structure_to_be_changed() {

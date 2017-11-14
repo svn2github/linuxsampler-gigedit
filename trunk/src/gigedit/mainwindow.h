@@ -28,8 +28,9 @@
 # include <Serialization.h>
 #endif
 
+#include "compat.h"
+
 #include <gtkmm/box.h>
-#include <gtkmm/actiongroup.h>
 #include <gtkmm/buttonbox.h>
 #include <gtkmm/dialog.h>
 #include <gtkmm/liststore.h>
@@ -40,12 +41,17 @@
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/treestore.h>
 #include <gtkmm/treemodelfilter.h>
-#include <gtkmm/uimanager.h>
 #include <gtkmm/window.h>
 #include <gtkmm/statusbar.h>
 #include <gtkmm/image.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/notebook.h>
+
+#if USE_GTKMM_BUILDER
+# include <gtkmm/builder.h>
+#else
+# include <gtkmm/uimanager.h> // deprecated in gtkmm >= 3.21.4
+#endif
 
 #include <sstream>
 
@@ -91,8 +97,8 @@ protected:
     StringEntry eSourceForm;
     StringEntry eCommissioned;
     StringEntry eSubject;
-    Gtk::VBox vbox;
-    Gtk::HButtonBox buttonBox;
+    VBox vbox;
+    HButtonBox buttonBox;
     Gtk::Button quitButton;
     Table table;
 
@@ -125,8 +131,8 @@ protected:
     void set_MIDIProgram(uint32_t value);
 
     sigc::signal<void> sig_name_changed;
-    Gtk::VBox vbox;
-    Gtk::HButtonBox buttonBox;
+    VBox vbox;
+    HButtonBox buttonBox;
     Gtk::Button quitButton;
     Table table;
     StringEntry eName;
@@ -233,8 +239,43 @@ public:
     virtual Settings::Property<int>* windowSettingHeight() { return &Settings::singleton()->mainWindowH; }
 
 protected:
+#if USE_GTKMM_BUILDER
+    Glib::RefPtr<Gio::SimpleActionGroup> m_actionGroup;
+    Glib::RefPtr<Gtk::Builder> m_uiManager;
+#else
     Glib::RefPtr<Gtk::ActionGroup> actionGroup;
     Glib::RefPtr<Gtk::UIManager> uiManager;
+#endif
+
+#if USE_GLIB_ACTION
+    Glib::RefPtr<Gio::SimpleAction> m_actionMIDIRules;
+
+    Glib::RefPtr<Gio::SimpleAction> m_actionCopyDimRgn;
+    Glib::RefPtr<Gio::SimpleAction> m_actionPasteDimRgn;
+    Glib::RefPtr<Gio::SimpleAction> m_actionAdjustClipboard;
+
+    Glib::RefPtr<Gio::SimpleAction> m_actionSampleProperties;
+    Glib::RefPtr<Gio::SimpleAction> m_actionAddSample;
+    Glib::RefPtr<Gio::SimpleAction> m_actionRemoveSample;
+    Glib::RefPtr<Gio::SimpleAction> m_actionViewSampleRefs;
+    Glib::RefPtr<Gio::SimpleAction> m_actionReplaceSample;
+    Glib::RefPtr<Gio::SimpleAction> m_actionAddSampleGroup;
+
+    Glib::RefPtr<Gio::SimpleAction> m_actionAddScriptGroup;
+    Glib::RefPtr<Gio::SimpleAction> m_actionAddScript;
+    Glib::RefPtr<Gio::SimpleAction> m_actionEditScript;
+    Glib::RefPtr<Gio::SimpleAction> m_actionRemoveScript;
+
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleCopySampleUnity;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleCopySampleTune;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleCopySampleLoop;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleStatusBar;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleRestoreWinDim;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleSaveWithTempFile;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleWarnOnExtensions;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleSyncSamplerSelection;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleMoveRootNoteWithRegion;
+#endif
 
     Gtk::Statusbar m_StatusBar;
     Gtk::Label     m_AttachedStateLabel;
@@ -276,7 +317,9 @@ protected:
 
     sigc::signal<void, gig::Instrument*> switch_sampler_instrument_signal;
 
+#if !USE_GTKMM_BUILDER
     void on_instrument_selection_change(Gtk::RadioMenuItem* item);
+#endif
     void on_sel_change();
     void region_changed();
     void dimreg_changed();
@@ -317,7 +360,7 @@ protected:
         Gtk::TreeModelColumn<Glib::ustring> m_col_scripts;
     } m_Columns;
 
-    Gtk::VBox m_VBox;
+    VBox m_VBox;
     Gtk::HPaned m_HPaned;
 
     Gtk::ScrolledWindow m_ScrolledWindow;
@@ -326,7 +369,11 @@ protected:
     Glib::RefPtr<Gtk::ListStore> m_refTreeModel;
     Glib::RefPtr<Gtk::TreeModelFilter> m_refTreeModelFilter; //FIXME: I really would love to get rid of TreeModelFilter, because it causes behavior conflicts with get_model() all over the place (see the respective comments regarding get_model()), however I found no other way to filter a treeview effectively.
 
-    Gtk::Menu* instrument_menu;
+#if USE_GTKMM_BUILDER
+    Gtk::Menu* menuMacro;
+#else
+    Gtk::Menu* instrument_menu; // kept for GTKMM 2 version only, will be completely removed in future
+#endif
     Gtk::Menu* assign_scripts_menu;
 
     std::map<gig::Sample*,int> sample_ref_count;
@@ -387,14 +434,14 @@ protected:
     Gtk::TreeView m_TreeViewScripts;
     Glib::RefPtr<ScriptsTreeStore> m_refScriptsTreeModel;
 
-    Gtk::VBox dimreg_vbox;
-    Gtk::HBox dimreg_hbox;
+    VBox dimreg_vbox;
+    HBox dimreg_hbox;
     Gtk::Label dimreg_label;
     Gtk::CheckButton dimreg_all_regions;
     Gtk::CheckButton dimreg_all_dimregs;
     Gtk::CheckButton dimreg_stereo;
 
-    Gtk::HBox legend_hbox;
+    HBox legend_hbox;
     Gtk::Label labelLegend;
     Gtk::Image imageNoSample;
     Gtk::Label labelNoSample;
@@ -406,9 +453,9 @@ protected:
     Gtk::Label labelSomeLoops;
     DimRegionEdit dimreg_edit;
 
-    Gtk::VBox m_left_vbox;
+    VBox m_left_vbox;
     Gtk::Notebook m_TreeViewNotebook;
-    Gtk::HBox m_searchField;
+    HBox m_searchField;
     Gtk::Label m_searchLabel;
     Gtk::Entry m_searchText;
 
@@ -444,7 +491,11 @@ protected:
     void on_notebook_tab_switched(void* page, guint page_num);
 
     // sample right-click popup actions
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool on_sample_treeview_button_release(Gdk::EventButton& button);
+#else
     void on_sample_treeview_button_release(GdkEventButton* button);
+#endif
     void on_action_sample_properties();
     void on_action_add_group();
     void on_action_add_sample();
@@ -454,7 +505,11 @@ protected:
     void on_action_remove_unused_samples();
 
     // script right-click popup actions
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool on_script_treeview_button_release(Gdk::EventButton& button);
+#else
     void on_script_treeview_button_release(GdkEventButton* button);
+#endif
     void on_action_add_script_group();
     void on_action_add_script();
     void on_action_edit_script();
@@ -490,16 +545,22 @@ protected:
     void adjust_clipboard_content();
     void updateClipboardCopyAvailable();
     void updateClipboardPasteAvailable();
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    void on_clipboard_owner_change(Gdk::EventOwnerChange& event);
+#else
     void on_clipboard_owner_change(GdkEventOwnerChange* event);
+#endif
     void on_clipboard_get(Gtk::SelectionData& selection_data, guint info);
     void on_clipboard_clear();
     void on_clipboard_received(const Gtk::SelectionData& selection_data);
     void on_clipboard_received_targets(const std::vector<Glib::ustring>& targets);
 
     void add_instrument(gig::Instrument* instrument);
+#if !USE_GTKMM_BUILDER
     Gtk::RadioMenuItem* add_instrument_to_menu(const Glib::ustring& name,
                                                int position = -1);
     void remove_instrument_from_menu(int index);
+#endif
 
     ProgressDialog* progress_dialog;
     Loader* loader;
@@ -521,7 +582,11 @@ protected:
     bool file_save_as();
     bool check_if_savable();
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool on_button_release(Gdk::EventButton& button);
+#else
     void on_button_release(GdkEventButton* button);
+#endif
     void on_instruments_treeview_drag_begin(const Glib::RefPtr<Gdk::DragContext>& context);
     void on_instruments_treeview_drag_data_get(const Glib::RefPtr<Gdk::DragContext>&,
                                                Gtk::SelectionData& selection_data, guint, guint);
@@ -572,6 +637,10 @@ protected:
     bool leaving_shared_mode_dialog();
 
     Gtk::Menu* popup_menu;
+#if USE_GTKMM_BUILDER
+    Gtk::Menu* sample_popup;
+    Gtk::Menu* script_popup;
+#endif
 
     bool on_delete_event(GdkEventAny* event);
 

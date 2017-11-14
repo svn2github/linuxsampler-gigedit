@@ -22,11 +22,18 @@
 
 #include <vector>
 
+#include "compat.h"
+
 #include <gtkmm/box.h>
 #include <gtkmm/drawingarea.h>
-#include <gtkmm/uimanager.h>
 #include <gdkmm/window.h>
 #include <gtkmm/menu.h>
+
+#if USE_GTKMM_BUILDER
+# include <gtkmm/builder.h>
+#else
+# include <gtkmm/uimanager.h> // deprecated in gtkmm >= 3.21.4
+#endif
 
 #include "dimensionmanager.h"
 #include "paramedit.h"
@@ -88,7 +95,7 @@ public:
     void on_note_on_event(int key, int velocity);
     void on_note_off_event(int key, int velocity);
 
-    Gtk::HBox m_VirtKeybPropsBox;
+    HBox m_VirtKeybPropsBox;
 
 protected:
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
@@ -189,8 +196,12 @@ protected:
     void on_dimension_manager_changed();
     int new_region_pos;
 
-    Glib::RefPtr<Gtk::ActionGroup> actionGroup;
+    Glib::RefPtr<ActionGroup> actionGroup;
+#if USE_GTKMM_BUILDER
+    Glib::RefPtr<Gtk::Builder> uiManager;
+#else
     Glib::RefPtr<Gtk::UIManager> uiManager;
+#endif
 
     // properties of the virtual keyboard
     ChoiceEntry<virt_keyboard_mode_t> m_VirtKeybModeChoice;

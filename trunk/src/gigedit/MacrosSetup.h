@@ -16,13 +16,21 @@
 # include <Serialization.h>
 #endif
 
-#include <gtkmm.h>
 #if HAVE_CONFIG_H
 # include <config.h>
 #endif
 #include "compat.h"
-#include <gtkmm/uimanager.h>
-#include <gtkmm/actiongroup.h>
+
+#if USE_GTKMM_BUILDER
+# include <gtkmm/builder.h>
+#else
+# include <gtkmm/uimanager.h> // deprecated in gtkmm >= 3.21.4
+#endif
+#include <gtkmm/treeview.h>
+#include <gtkmm/treestore.h>
+#include <gtkmm/scrolledwindow.h>
+#include <gtkmm/textview.h>
+
 #include "wrapLabel.hh"
 #include "ManagedWindow.h"
 
@@ -56,15 +64,15 @@ protected:
 
     sigc::signal<void, const std::vector<Serialization::Archive>& > m_macros_changed;
 
-    Gtk::VBox m_vbox;
-    Gtk::HBox m_addHBox;
-    Gtk::HBox m_mainHBox;
-    Gtk::VBox m_rvbox;
-    Gtk::HButtonBox m_detailsButtonBox;
-    Gtk::HBox m_footerHBox;
-    Gtk::HBox m_statusHBox;
-    Gtk::HButtonBox m_buttonBoxL;
-    Gtk::HButtonBox m_buttonBox;
+    VBox m_vbox;
+    HBox m_addHBox;
+    HBox m_mainHBox;
+    VBox m_rvbox;
+    HButtonBox m_detailsButtonBox;
+    HBox m_footerHBox;
+    HBox m_statusHBox;
+    HButtonBox m_buttonBoxL;
+    HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
 #if GTKMM_MAJOR_VERSION < 3
     view::WrapLabel m_labelIntro;
@@ -138,12 +146,19 @@ protected:
     void onButtonCancel();
     void onButtonApply();
     void onWindowHide();
-    bool onWindowDelete(GdkEventAny* e);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool onWindowDelete(Gdk::Event& e);
+#endif
+    bool onWindowDeleteP(GdkEventAny* e);
     void updateStatus();
     void updateStatusBar();
     void reloadTreeView();
     void onTreeViewSelectionChanged();
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool onMacroTreeViewKeyRelease(Gdk::EventKey& button);
+#else
     void onMacroTreeViewKeyRelease(GdkEventKey* button);
+#endif
     void onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
                                         const Gtk::TreeModel::iterator& iter);
     void onMacroEditorAppliedChanges();
@@ -151,8 +166,13 @@ protected:
     void inverseDeleteSelectedRows();
     void deleteRows(const std::vector<Gtk::TreeModel::Path>& rows);
     void duplicateRows(const std::vector<Gtk::TreeModel::Path>& rows);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool onKeyPressed(Gdk::EventKey& key);
+    bool onKeyReleased(Gdk::EventKey& key);
+#else
     bool onKeyPressed(GdkEventKey* key);
     bool onKeyReleased(GdkEventKey* key);
+#endif
 };
 
 #endif // GIGEDIT_MACROSSETUP_H

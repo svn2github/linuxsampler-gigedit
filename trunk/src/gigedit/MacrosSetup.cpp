@@ -6,11 +6,14 @@
 */
 
 #include "MacrosSetup.h"
+#include "compat.h"
 #include "global.h"
 #include <assert.h>
 #include <set>
 #include <math.h>
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include "MacroEditor.h"
 
 MacrosSetup::MacrosSetup() :
@@ -18,16 +21,27 @@ MacrosSetup::MacrosSetup() :
     m_clipboardContent(NULL),
     m_addFromClipboardButton("  " + Glib::ustring(_("From Clipboard")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + "B"),
     m_addFromSelectionButton("  " + Glib::ustring(_("From Selection")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + "S"),
+#if HAS_GTKMM_STOCK
     m_buttonUp(Gtk::Stock::GO_UP),
     m_buttonDown(Gtk::Stock::GO_DOWN),
     m_buttonEdit(Gtk::Stock::EDIT),
+#else
+    m_buttonUp(_("Up"), true),
+    m_buttonDown(_("Down"), true),
+    m_buttonEdit(_("Edit"), true),
+#endif
     m_buttonDuplicate(_("Duplicate")),
     m_statusLabel("",  Gtk::ALIGN_START),
     m_labelComment(_("Comment"), Gtk::ALIGN_START),
     m_deleteButton("  " + Glib::ustring(_("Delete")) + "  " + UNICODE_PRIMARY_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
     m_inverseDeleteButton("  " + Glib::ustring(_("Inverse Delete")) + "  " + UNICODE_ALT_KEY_SYMBOL + UNICODE_ERASE_KEY_SYMBOL),
+#if HAS_GTKMM_STOCK
     m_applyButton(Gtk::Stock::APPLY),
     m_cancelButton(Gtk::Stock::CANCEL),
+#else
+    m_applyButton(_("Apply"), true),
+    m_cancelButton(_("_Cancel"), true),
+#endif
     m_altKeyDown(false),
     m_primaryKeyDown(false)
 {
@@ -35,12 +49,25 @@ MacrosSetup::MacrosSetup() :
 
     set_title(_("Setup Macros"));
 
+#if !HAS_GTKMM_STOCK
+    // see : https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
+    m_buttonUp.set_icon_name("go-up");
+    m_buttonDown.set_icon_name("go-down");
+    m_buttonEdit.set_icon_name("insert-text");
+#endif
+
     if (!Settings::singleton()->autoRestoreWindowDimension) {
         set_default_size(680, 500);
         set_position(Gtk::WIN_POS_CENTER);
     }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION >= 12)
+    m_labelIntro.set_margin_start(10);
+    m_labelIntro.set_margin_end(10);
+#else
     m_labelIntro.set_padding(10, 10);
+#endif
+
 #if GTKMM_MAJOR_VERSION >= 3
     m_labelIntro.set_line_wrap();
 #endif
@@ -54,6 +81,7 @@ MacrosSetup::MacrosSetup() :
     );
     m_vbox.pack_start(m_labelIntro, Gtk::PACK_SHRINK);
 
+#if HAS_GTKMM_STOCK
     m_addFromClipboardButton.set_image(
         *new Gtk::Image(Gtk::Stock::ADD, Gtk::ICON_SIZE_BUTTON)
     );
@@ -69,6 +97,14 @@ MacrosSetup::MacrosSetup() :
     m_inverseDeleteButton.set_image(
         *new Gtk::Image(Gtk::Stock::DELETE, Gtk::ICON_SIZE_BUTTON)
     );
+#else // since GTKMM 3.90 ...
+    // see : https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
+    m_addFromClipboardButton.set_icon_name("list-add");
+    m_addFromSelectionButton.set_icon_name("list-add");
+    m_buttonDuplicate.set_icon_name("edit-copy");
+    m_deleteButton.set_icon_name("edit-delete");
+    m_inverseDeleteButton.set_icon_name("edit-delete");
+#endif
     m_addFromClipboardButton.set_tooltip_text(_("Create a new macro from the content currently available on the clipboard."));
     m_addFromSelectionButton.set_tooltip_text(_("Create a new macro from the currently selected dimension region's parameters currently shown on the main window."));
     m_buttonDuplicate.set_tooltip_text(_("Duplicate the selected macro(s). The new macro(s) will be appended to the end of the list."));
@@ -129,7 +165,11 @@ MacrosSetup::MacrosSetup() :
     m_treeViewMacros.get_selection()->signal_changed().connect(
         sigc::mem_fun(*this, &MacrosSetup::onTreeViewSelectionChanged)
     );
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    m_treeViewMacros.signal_key_release_event().connect(
+#else
     m_treeViewMacros.signal_key_release_event().connect_notify(
+#endif
         sigc::mem_fun(*this, &MacrosSetup::onMacroTreeViewKeyRelease)
     );
     m_treeStoreMacros->signal_row_changed().connect(
@@ -186,15 +226,20 @@ MacrosSetup::MacrosSetup() :
     m_applyButton.set_sensitive(false);
     m_applyButton.grab_focus();
 
-#if GTKMM_MAJOR_VERSION >= 3
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION >= 12)
+    m_statusLabel.set_margin_start(6);
+    m_statusLabel.set_margin_end(6);
+#elif GTKMM_MAJOR_VERSION >= 3
     m_statusLabel.set_margin_left(6);
     m_statusLabel.set_margin_right(6);
 #else
-    m_statusHBox.set_spacing(6);
+    m_statusLabel.set_spacing(6);
 #endif
 
     m_statusHBox.pack_start(m_statusLabel);
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     m_statusHBox.show_all_children();
+#endif
 
     m_footerHBox.pack_start(m_buttonBoxL, Gtk::PACK_SHRINK);
     m_footerHBox.pack_start(m_statusHBox);
@@ -251,7 +296,11 @@ MacrosSetup::MacrosSetup() :
     );
 
     signal_delete_event().connect(
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
         sigc::mem_fun(*this, &MacrosSetup::onWindowDelete)
+#else
+        sigc::mem_fun(*this, &MacrosSetup::onWindowDeleteP)
+#endif
     );
 
     signal_key_press_event().connect(
@@ -261,7 +310,9 @@ MacrosSetup::MacrosSetup() :
         sigc::mem_fun(*this, &MacrosSetup::onKeyReleased)
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
     updateStatus();
 }
 
@@ -506,7 +557,12 @@ static const guint primaryKeyR =
     GDK_KEY_Control_R;
     #endif
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacrosSetup::onKeyPressed(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool MacrosSetup::onKeyPressed(GdkEventKey* key) {
+#endif
     //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = true;
@@ -515,7 +571,12 @@ bool MacrosSetup::onKeyPressed(GdkEventKey* key) {
     return false;
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacrosSetup::onKeyReleased(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool MacrosSetup::onKeyReleased(GdkEventKey* key) {
+#endif
     //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = false;
@@ -528,13 +589,21 @@ bool MacrosSetup::onKeyReleased(GdkEventKey* key) {
     return false;
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacrosSetup::onMacroTreeViewKeyRelease(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 void MacrosSetup::onMacroTreeViewKeyRelease(GdkEventKey* key) {
+#endif
     if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete) {
         if (m_altKeyDown)
             inverseDeleteSelectedRows();
         else if (m_primaryKeyDown)
             deleteSelectedRows();
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return false;
+#endif
 }
 
 void MacrosSetup::onMacroTreeViewRowValueChanged(const Gtk::TreeModel::Path& path,
@@ -669,8 +738,14 @@ sigc::signal<void, const std::vector<Serialization::Archive>& >& MacrosSetup::si
 {
     return m_macros_changed;
 }
+    
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacrosSetup::onWindowDelete(Gdk::Event& e) {
+    return onWindowDeleteP(NULL);
+}
+#endif
 
-bool MacrosSetup::onWindowDelete(GdkEventAny* e) {
+bool MacrosSetup::onWindowDeleteP(GdkEventAny* /*e*/) {
     //printf("onWindowDelete\n");
 
     if (!isModified()) return false; // propagate event further (which will close this window)
@@ -721,7 +796,7 @@ bool MacrosSetup::isModified() const {
 }
 
 void MacrosSetup::onButtonCancel() {
-    bool dropEvent = onWindowDelete(NULL);
+    bool dropEvent = onWindowDeleteP(NULL);
     if (dropEvent) return;
     hide();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2015 Andreas Persson
+ * Copyright (C) 2006-2017 Andreas Persson
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -139,7 +139,11 @@ LabelWidget::LabelWidget(const char* labelText, Gtk::Widget& widget) :
     label(Glib::ustring(labelText) + ":"),
     widget(widget)
 {
+#if HAS_GTKMM_ALIGNMENT
     label.set_alignment(Gtk::ALIGN_START);
+#else
+    label.set_halign(Gtk::Align::START);
+#endif
 }
 
 void LabelWidget::set_sensitive(bool sensitive)
@@ -151,13 +155,23 @@ void LabelWidget::set_sensitive(bool sensitive)
 ReadOnlyLabelWidget::ReadOnlyLabelWidget(const char* leftHandText)
     : LabelWidget(leftHandText, text)
 {
+#if HAS_GTKMM_ALIGNMENT
     text.set_alignment(Gtk::ALIGN_START, Gtk::ALIGN_START);
+#else
+    label.set_halign(Gtk::Align::START);
+    label.set_valign(Gtk::Align::START);
+#endif
 }
 
 ReadOnlyLabelWidget::ReadOnlyLabelWidget(const char* leftHandText, const char* rightHandText)
    : LabelWidget(leftHandText, text)
 {
+#if HAS_GTKMM_ALIGNMENT
     text.set_alignment(Gtk::ALIGN_START, Gtk::ALIGN_START);
+#else
+    text.set_halign(Gtk::Align::START);
+    text.set_valign(Gtk::Align::START);
+#endif
     text.set_text(rightHandText);
 }
 
@@ -308,7 +322,12 @@ namespace {
                 return true;
             }
         }
+
+#if HAS_GTKMM_CPP11_ENUMS
+        return Gtk::SpinButton::INPUT_ERROR;
+#else
         return Gtk::INPUT_ERROR;
+#endif
     }
 }
 
@@ -328,9 +347,15 @@ Glib::ustring note_str(int note)
 
 namespace {
     // Convert the Entry text to a number
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    int on_input(double& new_value, Gtk::SpinButton* spinbutton) {
+        return note_value(spinbutton->get_text(), &new_value);
+    }
+#else
     int on_input(double* new_value, Gtk::SpinButton* spinbutton) {
         return note_value(spinbutton->get_text(), new_value);
     }
+#endif
 
     // Convert the Adjustment position to text
     bool on_output(Gtk::SpinButton* spinbutton) {
@@ -352,8 +377,12 @@ void spin_button_show_notes(Gtk::SpinButton& spin_button)
 }
 
 ChoiceEntryLeverageCtrl::ChoiceEntryLeverageCtrl(const char* labelText) :
+#if HAS_GTKMM_ALIGNMENT
     LabelWidget(labelText, align),
     align(0, 0, 0, 0)
+#else
+    LabelWidget(labelText, combobox)
+#endif
 {
     for (int i = 0 ; i < controlChangeTextsSize ; i++) {
         if (controlChangeTexts[i].txt) {
@@ -370,7 +399,12 @@ ChoiceEntryLeverageCtrl::ChoiceEntryLeverageCtrl(const char* labelText) :
     }
     combobox.signal_changed().connect(
         sigc::mem_fun(*this, &ChoiceEntryLeverageCtrl::value_changed));
+#if HAS_GTKMM_ALIGNMENT
     align.add(combobox);
+#else
+    combobox.set_halign(Gtk::Align::FILL);
+    combobox.set_valign(Gtk::Align::FILL);
+#endif
     value.type = gig::leverage_ctrl_t::type_none;
     value.controller_number = 0;
 }
@@ -503,27 +537,49 @@ void StringEntryMultiLine::set_value(const gig::String& value)
 }
 
 
-Table::Table(int x, int y) : Gtk::Table(x, y), rowno(0) {  }
+Table::Table(int x, int y) :
+#if USE_GTKMM_GRID
+    Gtk::Grid(),
+    cols(x),
+#else
+    Gtk::Table(x, y),
+#endif
+    rowno(0)
+{
+}
 
 void Table::add(BoolEntry& boolentry)
 {
+#if USE_GTKMM_GRID
+    attach(boolentry.widget, 0, rowno, 2);
+#else
     attach(boolentry.widget, 0, 2, rowno, rowno + 1,
            Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
 void Table::add(BoolEntryPlus6& boolentry)
 {
+#if USE_GTKMM_GRID
+    attach(boolentry.widget, 0, rowno, 2);
+#else
     attach(boolentry.widget, 0, 2, rowno, rowno + 1,
            Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
 void Table::add(LabelWidget& prop)
 {
+#if USE_GTKMM_GRID
+    attach(prop.label, 1, rowno);
+    attach(prop.widget, 2, rowno);
+#else
     attach(prop.label, 1, 2, rowno, rowno + 1,
            Gtk::FILL, Gtk::SHRINK);
     attach(prop.widget, 2, 3, rowno, rowno + 1,
            Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }

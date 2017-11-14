@@ -17,7 +17,7 @@
  * 02110-1301 USA.
  */
 
-#include <glibmmconfig.h>
+#include "compat.h"
 // threads.h must be included first to be able to build with
 // G_DISABLE_DEPRECATED
 #if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
@@ -27,7 +27,6 @@
 
 #include "gigedit.h"
 
-#include <gtkmmconfig.h>
 #if GTKMM_MAJOR_VERSION < 3
 #include <gdkmm/region.h>
 #endif
@@ -317,13 +316,23 @@ GigEdit::GigEdit() {
 int GigEdit::run(int argc, char* argv[]) {
     init_app();
 
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION < 89 || (GTKMM_MINOR_VERSION == 89 && GTKMM_MICRO_VERSION < 4))) // GTKMM < 3.89.4
     Gtk::Main kit(argc, argv);
+#else
+    Glib::RefPtr<Gtk::Application> app =
+        Gtk::Application::create("org.linuxsampler.gigedit");
+#endif
     init_app_after_gtk_init();
 
     MainWindow window;
     connect_signals(this, &window);
     if (argc >= 2) window.load_file(argv[1]);
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION < 89 || (GTKMM_MINOR_VERSION == 89 && GTKMM_MICRO_VERSION < 4))) // GTKMM < 3.89.4
     kit.run(window);
+#else
+    app->run(window, argc, argv);
+#endif
+    
     return 0;
 }
 
@@ -439,14 +448,20 @@ void GigEditState::main_loop_run(Cond* initialized) {
     int argc = 1;
     const char* argv_c[] = { "gigedit" };
     char** argv = const_cast<char**>(argv_c);
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION < 89 || (GTKMM_MINOR_VERSION == 89 && GTKMM_MICRO_VERSION < 4))) // GTKMM < 3.89.4
     Gtk::Main main_loop(argc, argv);
+#endif
     init_app_after_gtk_init();
 
     dispatcher = new Glib::Dispatcher();
     dispatcher->connect(sigc::ptr_fun(&GigEditState::open_window_static));
     initialized->signal();
 
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION < 89 || (GTKMM_MINOR_VERSION == 89 && GTKMM_MICRO_VERSION < 4))) // GTKMM < 3.89.4
     main_loop.run();
+#else
+    Gtk::Main::run();
+#endif
 }
 
 #if defined(__APPLE__)

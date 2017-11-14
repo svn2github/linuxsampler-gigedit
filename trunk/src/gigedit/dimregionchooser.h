@@ -21,7 +21,6 @@
 #define GIGEDIT_DIMREGIONCHOOSER_H
 
 #include <gtkmm/drawingarea.h>
-#include <gtkmm/uimanager.h>
 #include <gtkmm/menu.h>
 #include <gdkmm/window.h>
 
@@ -31,6 +30,12 @@
 # include LIBGIG_HEADER_FILE(gig.h)
 #else
 # include <gig.h>
+#endif
+
+#if USE_GTKMM_BUILDER
+# include <gtkmm/builder.h>
+#else
+# include <gtkmm/uimanager.h> // deprecated in gtkmm >= 3.21.4
 #endif
 
 #include <set>
@@ -74,8 +79,13 @@ protected:
     virtual bool on_button_release_event(GdkEventButton* event);
     virtual bool on_motion_notify_event(GdkEventMotion* event);
     virtual bool on_focus(Gtk::DirectionType direction);
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool onKeyPressed(Gdk::EventKey& key);
+    bool onKeyReleased(Gdk::EventKey& key);
+#else
     bool onKeyPressed(GdkEventKey* key);
     bool onKeyReleased(GdkEventKey* key);
+#endif
     void refresh_all();
     void split_dimension_zone();
     void delete_dimension_zone();
@@ -145,14 +155,18 @@ protected:
 
     int h;
 
-    Glib::RefPtr<Gtk::ActionGroup> actionGroup;
+    Glib::RefPtr<ActionGroup> actionGroup;
+#if USE_GTKMM_BUILDER
+    Glib::RefPtr<Gtk::Builder> uiManager;
+#else
     Glib::RefPtr<Gtk::UIManager> uiManager;
+#endif
     Gtk::Menu* popup_menu_inside_dimregion;
     Gtk::Menu* popup_menu_outside_dimregion;
 
 private:
-    Glib::RefPtr<Gtk::Action> actionDeleteDimZone;
-    Glib::RefPtr<Gtk::Action> actionSplitDimZone;
+    Glib::RefPtr<Action> actionDeleteDimZone;
+    Glib::RefPtr<Action> actionSplitDimZone;
 };
 
 #endif

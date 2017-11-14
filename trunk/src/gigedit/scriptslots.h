@@ -14,7 +14,11 @@
 # include <gig.h>
 #endif
 
-#include <gtkmm.h>
+#ifdef GTKMM_HEADER_FILE
+# include GTKMM_HEADER_FILE(gtkmm.h)
+#else
+# include <gtkmm.h>
+#endif
 #include "compat.h"
 #include <vector>
 #include "Settings.h"
@@ -37,7 +41,7 @@ public:
 protected:
     struct Row {
         int id;
-        Gtk::HBox*   hbox;
+        HBox*        hbox;
         Gtk::Label*  label;
         Gtk::Button* upButton;
         Gtk::Button* downButton;
@@ -47,11 +51,11 @@ protected:
 
     sigc::signal<void, gig::Instrument*> script_slots_changed_signal;
 
-    Gtk::VBox m_vbox;
+    VBox m_vbox;
     Gtk::Label m_generalInfoLabel;
-    Gtk::HButtonBox m_buttonBox;
+    HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
-    Gtk::VBox m_vboxSlots;
+    VBox m_vboxSlots;
     Gtk::Label m_dragHintLabel;
     Gtk::Button m_closeButton;
 

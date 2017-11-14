@@ -22,8 +22,17 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * *************************************************************************/
 
-#include <wrapLabel.hh>
+#include "wrapLabel.hh"
+#ifdef PANGOMM_HEADER_FILE
+# include PANGOMM_HEADER_FILE(pangomm.h)
+# include PANGOMM_HEADER_FILE(pangommconfig.h)
+#else
+# include <pangomm/pangomm.h>
+# include <pangommconfig.h>
+#endif
 
+// we don't need this WrapLabel helper class on GTKMM 3 and higher
+#if GTKMM_MAJOR_VERSION < 3
 
 /*
  * wrapLabel.cc --
@@ -55,7 +64,12 @@ WrapLabel::WrapLabel(const Glib::ustring &text) // IN: The label text
    : mWrapWidth(0),
      mWrapHeight(0)
 {
+   // pangomm >= 2.35.1
+#if PANGOMM_MAJOR_VERSION > 2 || (PANGOMM_MAJOR_VERSION == 2 && (PANGOMM_MINOR_VERSION > 35 || (PANGOMM_MINOR_VERSION == 35 && PANGOMM_MICRO_VERSION >= 1)))
+   get_layout()->set_wrap(Pango::WrapMode::WORD_CHAR);
+#else
    get_layout()->set_wrap(Pango::WRAP_WORD_CHAR);
+#endif
    set_alignment(0.0, 0.0);
    set_text(text);
 }
@@ -211,3 +225,5 @@ WrapLabel::SetWrapWidth(int width) // IN: The wrap width
 
 
 }; /* namespace view */
+
+#endif // GTKMM_MAJOR_VERSION < 3

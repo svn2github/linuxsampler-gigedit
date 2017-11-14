@@ -7,7 +7,11 @@
 
 #include "global.h"
 #include "Settings.h"
-#include <glib.h>
+#ifdef GLIB_HEADER_FILE
+# include GLIB_HEADER_FILE(glib.h)
+#else
+# include <glib.h>
+#endif
 #include <glibmm/keyfile.h>
 #include <iostream>
 #include <stdio.h>

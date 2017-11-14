@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Christian Schoenebeck
+    Copyright (c) 2016 - 2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -8,7 +8,11 @@
 #include "global.h"
 #include "ManagedWindow.h"
 #include <typeinfo>
-#include <glib.h>
+#ifdef GLIB_HEADER_FILE
+# include GLIB_HEADER_FILE(glib.h)
+#else
+# include <glib.h>
+#endif
 
 ///////////////////////////////////////////////////////////////////////////
 // class 'ManagedWindow'
@@ -29,7 +33,12 @@ ManagedWindow::ManagedWindow() : m_listenOnConfigureEvents(false)
     );
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool ManagedWindow::on_configure_event(Gdk::EventConfigure& event) {
+    GdkEventConfigure* e = event.gobj();
+#else
 bool ManagedWindow::on_configure_event(GdkEventConfigure* e) {
+#endif
     //printf("on_configure_event x=%d y=%d w=%d h=%d\n", e->x, e->y, e->width, e->height);
     if (m_listenOnConfigureEvents) {
         //printf("reset event throttle timer\n");
@@ -54,7 +63,11 @@ bool ManagedWindow::on_configure_event(GdkEventConfigure* e) {
         );
         m_eventThrottleTimer->attach(Glib::MainContext::get_default());
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return Gtk::Window::on_configure_event(event);
+#else
     return Gtk::Window::on_configure_event(e);
+#endif
 }
 
 bool ManagedWindow::saveWindowDimensions(int x, int y, int w, int h) {
@@ -118,7 +131,12 @@ void ManagedDialog::initManagedDialog() {
     );
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool ManagedDialog::on_configure_event(Gdk::EventConfigure& event) {
+    GdkEventConfigure* e = event.gobj();
+#else
 bool ManagedDialog::on_configure_event(GdkEventConfigure* e) {
+#endif
     //printf("on_configure_event x=%d y=%d w=%d h=%d\n", e->x, e->y, e->width, e->height);
     if (m_listenOnConfigureEvents) {
         //printf("reset event throttle timer\n");
@@ -143,7 +161,11 @@ bool ManagedDialog::on_configure_event(GdkEventConfigure* e) {
         );
         m_eventThrottleTimer->attach(Glib::MainContext::get_default());
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return Gtk::Dialog::on_configure_event(event);
+#else
     return Gtk::Dialog::on_configure_event(e);
+#endif
 }
 
 bool ManagedDialog::saveWindowDimensions(int x, int y, int w, int h) {

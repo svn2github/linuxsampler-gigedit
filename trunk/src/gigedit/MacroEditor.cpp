@@ -26,7 +26,12 @@ MacroEditor::MacroEditor() :
         set_position(Gtk::WIN_POS_MOUSE);
     }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION >= 12)
+    m_labelIntro.set_margin_start(10);
+    m_labelIntro.set_margin_end(10);
+#else
     m_labelIntro.set_padding(10, 10);
+#endif
 #if GTKMM_MAJOR_VERSION >= 3
     m_labelIntro.set_line_wrap();
 #endif
@@ -83,7 +88,11 @@ MacroEditor::MacroEditor() :
     m_treeViewMacro.get_selection()->signal_changed().connect(
         sigc::mem_fun(*this, &MacroEditor::onTreeViewSelectionChanged)
     );
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    m_treeViewMacro.signal_key_release_event().connect(
+#else
     m_treeViewMacro.signal_key_release_event().connect_notify(
+#endif
         sigc::mem_fun(*this, &MacroEditor::onMacroTreeViewKeyRelease)
     );
     m_treeStoreMacro->signal_row_changed().connect(
@@ -108,7 +117,10 @@ MacroEditor::MacroEditor() :
     m_applyButton.set_sensitive(false);
     m_applyButton.grab_focus();
 
-#if GTKMM_MAJOR_VERSION >= 3
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION >= 12)
+    m_labelIntro.set_margin_start(6);
+    m_labelIntro.set_margin_end(6);
+#elif GTKMM_MAJOR_VERSION >= 3
     m_statusLabel.set_margin_left(6);
     m_statusLabel.set_margin_right(6);
 #else
@@ -116,7 +128,9 @@ MacroEditor::MacroEditor() :
 #endif
 
     m_statusHBox.pack_start(m_statusLabel);
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     m_statusHBox.show_all_children();
+#endif
 
     m_footerHBox.pack_start(m_buttonBoxL, Gtk::PACK_SHRINK);
     m_footerHBox.pack_start(m_statusHBox);
@@ -145,7 +159,11 @@ MacroEditor::MacroEditor() :
     );
 
     signal_delete_event().connect(
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
         sigc::mem_fun(*this, &MacroEditor::onWindowDelete)
+#else
+        sigc::mem_fun(*this, &MacroEditor::onWindowDeleteP)
+#endif
     );
 
     signal_key_press_event().connect(
@@ -158,7 +176,9 @@ MacroEditor::MacroEditor() :
     m_deleteButton.set_tooltip_text(_("Delete the selected parameters from this macro."));
     m_inverseDeleteButton.set_tooltip_text(_("Delete all parameters from this macro except the selected ones."));
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
     updateStatus();
 }
 
@@ -211,7 +231,15 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
     for (int iMember = 0; iMember < parentObject.members().size(); ++iMember) {
         const Serialization::Member& member = parentObject.members()[iMember];
         const Serialization::Object& object = m_macro.objectByUID(member.uid());
+        
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+        //HACK: on GTKMM 3.9x append() below requires TreeNodeChildren, parentRow.children() returns TreeNodeConstChildren though, probably going to be fixed before final GTKMM4 release though.
+        const Gtk::TreeNodeConstChildren& children = parentRow.children();
+        Gtk::TreeNodeChildren* const pChildren = (Gtk::TreeNodeChildren* const) &children;
+        Gtk::TreeModel::iterator iterRow = m_treeStoreMacro->append(*pChildren);
+#else
         Gtk::TreeModel::iterator iterRow = m_treeStoreMacro->append(parentRow.children());
+#endif
         Gtk::TreeModel::Row row = *iterRow;
         row[m_treeModelMacro.m_col_name] = gig_to_utf8(member.name());
         row[m_treeModelMacro.m_col_type] = gig_to_utf8(member.type().asLongDescr());
@@ -293,7 +321,12 @@ static const guint primaryKeyR =
     GDK_KEY_Control_R;
     #endif
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacroEditor::onKeyPressed(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool MacroEditor::onKeyPressed(GdkEventKey* key) {
+#endif
     //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = true;
@@ -302,7 +335,12 @@ bool MacroEditor::onKeyPressed(GdkEventKey* key) {
     return false;
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacroEditor::onKeyReleased(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool MacroEditor::onKeyReleased(GdkEventKey* key) {
+#endif
     //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Alt_L || key->keyval == GDK_KEY_Alt_R)
         m_altKeyDown = false;
@@ -311,13 +349,21 @@ bool MacroEditor::onKeyReleased(GdkEventKey* key) {
     return false;
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacroEditor::onMacroTreeViewKeyRelease(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 void MacroEditor::onMacroTreeViewKeyRelease(GdkEventKey* key) {
+#endif
     if (key->keyval == GDK_KEY_BackSpace || key->keyval == GDK_KEY_Delete) {
         if (m_altKeyDown)
             inverseDeleteSelectedRows();
         else if (m_primaryKeyDown)
             deleteSelectedRows();
     }
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    return true;
+#endif
 }
 
 void MacroEditor::onValueCellEdited(const Glib::ustring& sPath, const Glib::ustring& text) {
@@ -445,7 +491,13 @@ void MacroEditor::updateStatusBar() {
     m_statusLabel.set_markup(txt);
 }
 
-bool MacroEditor::onWindowDelete(GdkEventAny* e) {
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool MacroEditor::onWindowDelete(Gdk::Event& e) {
+    return onWindowDeleteP(NULL);
+}
+#endif
+
+bool MacroEditor::onWindowDeleteP(GdkEventAny* /*e*/) {
     //printf("onWindowDelete\n");
 
     if (!isModified()) return false; // propagate event further (which will close this window)
@@ -488,7 +540,7 @@ bool MacroEditor::isModified() const {
 }
 
 void MacroEditor::onButtonCancel() {
-    bool dropEvent = onWindowDelete(NULL);
+    bool dropEvent = onWindowDeleteP(NULL);
     if (dropEvent) return;
     hide();
 }

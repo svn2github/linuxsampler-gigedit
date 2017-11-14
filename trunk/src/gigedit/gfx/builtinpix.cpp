@@ -1,4 +1,5 @@
 #include "builtinpix.h"
+#include "../compat.h"
 
 Glib::RefPtr<Gdk::Pixbuf> redDot;
 Glib::RefPtr<Gdk::Pixbuf> yellowDot;
@@ -42,9 +43,19 @@ void loadBuiltInPix() {
     if (*builtInPixMap[0].pixbuf) return;
     const int n = sizeof(builtInPixMap) / sizeof(_BuiltInPixMap);
     for (int i = 0; i < n; ++i) {
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 89 || (GTKMM_MINOR_VERSION == 89 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.89.2
+        GdkPixbuf* pPixbuf = gdk_pixbuf_new_from_inline(
+            builtInPixMap[i].size,
+            builtInPixMap[i].raw,
+            false,
+            NULL
+        );
+        *builtInPixMap[i].pixbuf = Glib::wrap(pPixbuf);
+#else
         *builtInPixMap[i].pixbuf = Gdk::Pixbuf::create_from_inline(
             builtInPixMap[i].size,
             builtInPixMap[i].raw
         );
+#endif
     }
 }

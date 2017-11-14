@@ -14,13 +14,19 @@
 # include <gig.h>
 #endif
 
+#include "compat.h"
+
 #include <gtkmm/buttonbox.h>
 #include <gtkmm/window.h>
 #include <gtkmm/dialog.h>
 #include <gtkmm/treeview.h>
 #include <gtkmm/liststore.h>
 #include <gtkmm/iconview.h>
-#include <gtkmm/table.h>
+#if USE_GTKMM_GRID
+# include <gtkmm/grid.h>
+#else
+# include <gtkmm/table.h>
+#endif
 #include <gtkmm/comboboxtext.h>
 #include <gtkmm/scrolledwindow.h>
 
@@ -57,7 +63,7 @@ protected:
     bool m_fileWasChanged;
     gig::Instrument* m_newCombinedInstrument;
 
-    Gtk::HButtonBox m_buttonBox;
+    HButtonBox m_buttonBox;
     Gtk::ScrolledWindow m_scrolledWindow;
     Gtk::TreeView   m_treeView;
     Gtk::IconView   m_iconView;
@@ -68,7 +74,11 @@ protected:
 #else
     Gtk::Label      m_descriptionLabel;
 #endif
+#if USE_GTKMM_GRID
+    Gtk::Grid       m_tableDimCombo;
+#else
     Gtk::Table      m_tableDimCombo;
+#endif
     Gtk::ComboBox   m_comboDimType;
     Gtk::Label      m_labelDimType;
     Gtk::Label      m_labelOrder;

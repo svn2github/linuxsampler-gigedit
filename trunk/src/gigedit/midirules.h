@@ -47,7 +47,7 @@
 #include "compat.h"
 #include "ManagedWindow.h"
 
-class MidiRuleCtrlTrigger : public Gtk::VBox,
+class MidiRuleCtrlTrigger : public VBox,
                             public PropEditor<gig::MidiRuleCtrlTrigger> {
 public:
     MidiRuleCtrlTrigger();
@@ -101,7 +101,7 @@ protected:
     Table table;
     NumEntryTemp<uint8_t> eControllerNumber;
 
-    Gtk::VBox vbox;
+    VBox vbox;
     Glib::RefPtr<Gtk::ListStore> list_store;
     Gtk::TreeView tree_view;
     Gtk::ScrolledWindow scrolled_window;
@@ -163,18 +163,18 @@ protected:
         NUMBER_OF_RULES
     };
 
-    Gtk::VBox vbox;
+    VBox vbox;
 
     Gtk::Label label;
     Gtk::ComboBoxText combo;
-    Gtk::HBox hbox;
+    HBox hbox;
 
-    Gtk::HBox box;
+    HBox box;
 
     MidiRuleCtrlTrigger ctrl_trigger;
     MidiRuleLegato legato;
 
-    Gtk::HButtonBox button_box;
+    HButtonBox button_box;
     Gtk::Button quit_button;
 
     const Glib::ustring unknown;

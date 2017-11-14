@@ -22,6 +22,12 @@
 
 #include "compat.h"
 
+#if USE_GTKMM_GRID
+# include <gtkmm/grid.h>
+#else
+# include <gtkmm/table.h>
+#endif
+
 VelocityCurve::VelocityCurve(double (gig::DimensionRegion::*getter)(uint8_t)) :
     getter(getter), dimreg(0) {
     set_size_request(80, 80);
@@ -437,8 +443,14 @@ DimRegionEdit::DimRegionEdit() :
     );
 
     for (int i = 0 ; i < 7 ; i++) {
+#if USE_GTKMM_GRID
+        table[i] = new Gtk::Grid;
+        table[i]->set_column_spacing(7);
+#else
         table[i] = new Gtk::Table(3, 1);
         table[i]->set_col_spacings(7);
+#endif
+
     }
 
     // set tooltips
@@ -623,8 +635,12 @@ DimRegionEdit::DimRegionEdit() :
 
     Gtk::Frame* frame = new Gtk::Frame;
     frame->add(crossfade_curve);
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*frame, 1, rowno, 2);
+#else
     table[pageno]->attach(*frame, 1, 3, rowno, rowno + 1,
                           Gtk::SHRINK, Gtk::SHRINK);
+#endif
     rowno++;
 
     eCrossfade_in_start.signal_value_changed().connect(
@@ -698,8 +714,12 @@ DimRegionEdit::DimRegionEdit() :
 
     frame = new Gtk::Frame;
     frame->add(cutoff_curve);
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*frame, 1, rowno, 2);
+#else
     table[pageno]->attach(*frame, 1, 3, rowno, rowno + 1,
                           Gtk::SHRINK, Gtk::SHRINK);
+#endif
     rowno++;
 
     addProp(eVCFResonance);
@@ -800,8 +820,12 @@ DimRegionEdit::DimRegionEdit() :
 
     frame = new Gtk::Frame;
     frame->add(velocity_curve);
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*frame, 1, rowno, 2);
+#else
     table[pageno]->attach(*frame, 1, 3, rowno, rowno + 1,
                           Gtk::SHRINK, Gtk::SHRINK);
+#endif
     rowno++;
 
     addHeader(_("Release Velocity Response"));
@@ -816,8 +840,12 @@ DimRegionEdit::DimRegionEdit() :
         sigc::mem_fun(release_curve, &VelocityCurve::queue_draw));
     frame = new Gtk::Frame;
     frame->add(release_curve);
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*frame, 1, rowno, 2);
+#else
     table[pageno]->attach(*frame, 1, 3, rowno, rowno + 1,
                           Gtk::SHRINK, Gtk::SHRINK);
+#endif
     rowno++;
 
     addProp(eReleaseTriggerDecay);
@@ -912,15 +940,27 @@ void DimRegionEdit::addString(const char* labelText, Gtk::Label*& label,
                               Gtk::Entry*& widget)
 {
     label = new Gtk::Label(Glib::ustring(labelText) + ":");
+#if HAS_GTKMM_ALIGNMENT
     label->set_alignment(Gtk::ALIGN_START);
+#else
+    label->set_halign(Gtk::Align::START);
+#endif
 
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*label, 1, rowno);
+#else
     table[pageno]->attach(*label, 1, 2, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
 
     widget = new Gtk::Entry();
 
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*widget, 2, rowno);
+#else
     table[pageno]->attach(*widget, 2, 3, rowno, rowno + 1,
                           Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+#endif
 
     rowno++;
 }
@@ -929,20 +969,32 @@ void DimRegionEdit::addString(const char* labelText, Gtk::Label*& label,
                               Gtk::Entry*& widget, Gtk::Button*& button)
 {
     label = new Gtk::Label(Glib::ustring(labelText) + ":");
+#if HAS_GTKMM_ALIGNMENT
     label->set_alignment(Gtk::ALIGN_START);
+#else
+    label->set_halign(Gtk::Align::START);
+#endif
 
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*label, 1, rowno);
+#else
     table[pageno]->attach(*label, 1, 2, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
 
     widget = new Gtk::Entry();
     button = new Gtk::Button();
 
-    Gtk::HBox* hbox = new Gtk::HBox;
+    HBox* hbox = new HBox;
     hbox->pack_start(*widget);
     hbox->pack_start(*button, Gtk::PACK_SHRINK);
 
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*hbox, 2, rowno);
+#else
     table[pageno]->attach(*hbox, 2, 3, rowno, rowno + 1,
                           Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+#endif
 
     rowno++;
 }
@@ -952,17 +1004,29 @@ Gtk::Label* DimRegionEdit::addHeader(const char* text)
     if (firstRowInBlock < rowno - 1)
     {
         Gtk::Label* filler = new Gtk::Label("    ");
+#if USE_GTKMM_GRID
+        table[pageno]->attach(*filler, 0, firstRowInBlock);
+#else
         table[pageno]->attach(*filler, 0, 1, firstRowInBlock, rowno,
                               Gtk::FILL, Gtk::SHRINK);
+#endif
     }
     Glib::ustring str = "<b>";
     str += text;
     str += "</b>";
     Gtk::Label* label = new Gtk::Label(str);
     label->set_use_markup();
+#if HAS_GTKMM_ALIGNMENT
     label->set_alignment(Gtk::ALIGN_START);
+#else
+    label->set_halign(Gtk::Align::START);
+#endif
+#if USE_GTKMM_GRID
+    table[pageno]->attach(*label, 0, rowno, 3);
+#else
     table[pageno]->attach(*label, 0, 3, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
     firstRowInBlock = rowno;
     return label;
@@ -973,8 +1037,12 @@ void DimRegionEdit::nextPage()
     if (firstRowInBlock < rowno - 1)
     {
         Gtk::Label* filler = new Gtk::Label("    ");
+#if USE_GTKMM_GRID
+        table[pageno]->attach(*filler, 0, firstRowInBlock);
+#else
         table[pageno]->attach(*filler, 0, 1, firstRowInBlock, rowno,
                               Gtk::FILL, Gtk::SHRINK);
+#endif
     }
     pageno++;
     rowno = 0;
@@ -983,38 +1051,59 @@ void DimRegionEdit::nextPage()
 
 void DimRegionEdit::addProp(BoolEntry& boolentry)
 {
+#if USE_GTKMM_GRID
+    table[pageno]->attach(boolentry.widget, 1, rowno, 2);
+#else
     table[pageno]->attach(boolentry.widget, 1, 3, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
 void DimRegionEdit::addProp(BoolEntryPlus6& boolentry)
 {
+#if USE_GTKMM_GRID
+    table[pageno]->attach(boolentry.widget, 1, rowno, 2);
+#else
     table[pageno]->attach(boolentry.widget, 1, 3, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
 void DimRegionEdit::addProp(LabelWidget& prop)
 {
+#if USE_GTKMM_GRID
+    table[pageno]->attach(prop.label, 1, rowno);
+    table[pageno]->attach(prop.widget, 2, rowno);
+#else
     table[pageno]->attach(prop.label, 1, 2, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
     table[pageno]->attach(prop.widget, 2, 3, rowno, rowno + 1,
                           Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
-void DimRegionEdit::addLine(Gtk::HBox& line)
+void DimRegionEdit::addLine(HBox& line)
 {
+#if USE_GTKMM_GRID
+    table[pageno]->attach(line, 1, rowno, 2);
+#else
     table[pageno]->attach(line, 1, 3, rowno, rowno + 1,
                           Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 
 void DimRegionEdit::addRightHandSide(Gtk::Widget& widget)
 {
+#if USE_GTKMM_GRID
+    table[pageno]->attach(widget, 2, rowno);
+#else
     table[pageno]->attach(widget, 2, 3, rowno, rowno + 1,
                           Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+#endif
     rowno++;
 }
 

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Christian Schoenebeck
+    Copyright (c) 2016 - 2017 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -8,8 +8,12 @@
 #ifndef MANAGED_WINDOW_H
 #define MANAGED_WINDOW_H
 
+#include "compat.h"
 #include <glibmm/object.h>
 #include <gtkmm/window.h>
+#if USE_GTKMM_BUILDER
+# include <gtkmm/applicationwindow.h>
+#endif
 #include <gtkmm/dialog.h>
 #include <glibmm/main.h>
 #include "Settings.h"
@@ -26,7 +30,13 @@
  * user moves or resizes the window. And it automatically restores the window's
  * position and size when it is created.
  */
-class ManagedWindow : public Gtk::Window {
+class ManagedWindow :
+#if USE_GTKMM_BUILDER
+    public Gtk::ApplicationWindow
+#else
+    public Gtk::Window
+#endif
+{
 public:
     ManagedWindow();
 
@@ -37,7 +47,11 @@ public:
     virtual Settings::Property<int>* windowSettingHeight() = 0;
 
 protected:
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool on_configure_event(Gdk::EventConfigure& event);
+#else
     bool on_configure_event(GdkEventConfigure* e);
+#endif
     void enableListeningConfigureEvents() { m_listenOnConfigureEvents = true; }
     bool saveWindowDimensions(int x, int y, int w, int h);
     void restoreWindowDimensions();
@@ -72,7 +86,11 @@ public:
     virtual Settings::Property<int>* windowSettingHeight() = 0;
 
 protected:
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+    bool on_configure_event(Gdk::EventConfigure& event);
+#else
     bool on_configure_event(GdkEventConfigure* e);
+#endif
     void enableListeningConfigureEvents() { m_listenOnConfigureEvents = true; }
     bool saveWindowDimensions(int x, int y, int w, int h);
     void restoreWindowDimensions();

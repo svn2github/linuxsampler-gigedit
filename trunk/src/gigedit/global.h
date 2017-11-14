@@ -27,7 +27,11 @@
 #include <cstring>
 #include <algorithm>
 
-#include <glibmmconfig.h>
+#ifdef GLIBMM_HEADER_FILE
+# include GLIBMM_HEADER_FILE(glibmmconfig.h)
+#else
+# include <glibmmconfig.h>
+#endif
 // threads.h must be included first to be able to build with
 // G_DISABLE_DEPRECATED
 #if (GLIBMM_MAJOR_VERSION == 2 && GLIBMM_MINOR_VERSION == 31 && GLIBMM_MICRO_VERSION >= 2) || \
@@ -52,7 +56,9 @@
 #endif
 
 //FIXME: for some reason AC GETTEXT check fails on the Mac cross compiler?
-#if (HAVE_GETTEXT || defined(__APPLE__))
+#ifdef GETTEXT_HEADER_FILE
+# include GETTEXT_HEADER_FILE(libintl.h)
+#elif (HAVE_GETTEXT || defined(__APPLE__))
 # include <libintl.h>
 # define _(String) gettext(String)
 #else

@@ -33,7 +33,11 @@
 #include "../gigedit/global.h"
 
 #include <iostream>
-#include <sigc++/bind.h>
+#ifdef SIGCPP_HEADER_FILE
+# include SIGCPP_HEADER_FILE(bind.h)
+#else
+# include <sigc++/bind.h>
+#endif
 #include <glibmm/main.h>
 #include <set>
 

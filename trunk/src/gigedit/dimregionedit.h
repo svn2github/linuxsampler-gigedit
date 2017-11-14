@@ -26,13 +26,19 @@
 # include <gig.h>
 #endif
 
+#include "compat.h"
+
 #include <cairomm/context.h>
 #include <gtkmm/box.h>
 #include <gtkmm/drawingarea.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/label.h>
 #include <gtkmm/notebook.h>
-#include <gtkmm/table.h>
+#if USE_GTKMM_GRID
+# include <gtkmm/grid.h>
+#else
+# include <gtkmm/table.h>
+#endif
 
 #include <set>
 
@@ -75,7 +81,7 @@ private:
                         bool sensitive);
 };
 
-class EGStateOptions : public Gtk::HBox {
+class EGStateOptions : public HBox {
 public:
     Gtk::Label label;
     BoolBox checkBoxAttack;
@@ -130,7 +136,11 @@ protected:
     Gtk::Tooltips tooltips;
 #endif
 
+#if USE_GTKMM_GRID
+    Gtk::Grid* table[7];
+#else
     Gtk::Table* table[7];
+#endif
 
     Gtk::Label* lSample;
 
@@ -246,7 +256,7 @@ protected:
     void addProp(BoolEntry& boolentry);
     void addProp(BoolEntryPlus6& boolentry);
     void addProp(LabelWidget& labelwidget);
-    void addLine(Gtk::HBox& line);
+    void addLine(HBox& line);
     void addString(const char* labelText, Gtk::Label*& label,
                    Gtk::Entry*& widget);
     void addString(const char* labelText, Gtk::Label*& label,

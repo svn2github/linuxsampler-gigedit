@@ -18,14 +18,20 @@
  */
 
 #include "global.h"
+#include "compat.h"
 #include <gtkmm/box.h>
 #include "dimregionchooser.h"
 #include <cairomm/context.h>
 #include <cairomm/surface.h>
 #include <gdkmm/cursor.h>
 #include <gdkmm/general.h>
+#if HAS_GDKMM_SEAT
+# include <gdkmm/seat.h>
+#endif
 #include <glibmm/stringutils.h>
-#include <gtkmm/stock.h>
+#if HAS_GTKMM_STOCK
+# include <gtkmm/stock.h>
+#endif
 #include <glibmm/ustring.h>
 #include <gtkmm/messagedialog.h>
 #include <assert.h>
@@ -104,10 +110,18 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         }
 
         Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+#if HAS_CAIROMM_CPP11_ENUMS
+            this->blueHatchedPatternARGB->get_pixels(), Cairo::Surface::Format::ARGB32, width, height, stride
+#else
             this->blueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+#endif
         );
         this->blueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+#if HAS_CAIROMM_CPP11_ENUMS
+        this->blueHatchedSurfacePattern->set_extend(Cairo::Pattern::Extend::REPEAT);
+#else
         this->blueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+#endif
     }
 
     // create blue hatched pattern 2
@@ -134,10 +148,18 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         }
 
         Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+#if HAS_CAIROMM_CPP11_ENUMS
+            this->blueHatchedPattern2ARGB->get_pixels(), Cairo::Surface::Format::ARGB32, width, height, stride
+#else
             this->blueHatchedPattern2ARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+#endif
         );
         this->blueHatchedSurfacePattern2 = Cairo::SurfacePattern::create(imageSurface);
+#if HAS_CAIROMM_CPP11_ENUMS
+        this->blueHatchedSurfacePattern2->set_extend(Cairo::Pattern::Extend::REPEAT);
+#else
         this->blueHatchedSurfacePattern2->set_extend(Cairo::EXTEND_REPEAT);
+#endif
     }
 
     // create gray blue hatched pattern
@@ -164,10 +186,18 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         }
 
         Cairo::RefPtr<Cairo::ImageSurface> imageSurface = Cairo::ImageSurface::create(
+#if HAS_CAIROMM_CPP11_ENUMS
+            this->grayBlueHatchedPatternARGB->get_pixels(), Cairo::Surface::Format::ARGB32, width, height, stride
+#else
             this->grayBlueHatchedPatternARGB->get_pixels(), Cairo::FORMAT_ARGB32, width, height, stride
+#endif
         );
         this->grayBlueHatchedSurfacePattern = Cairo::SurfacePattern::create(imageSurface);
+#if HAS_CAIROMM_CPP11_ENUMS
+        this->grayBlueHatchedSurfacePattern->set_extend(Cairo::Pattern::Extend::REPEAT);
+#else
         this->grayBlueHatchedSurfacePattern->set_extend(Cairo::EXTEND_REPEAT);
+#endif
     }
 
     instrument = 0;
@@ -187,8 +217,17 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
     const Glib::ustring txtUseCheckBoxAllRegions =
         _("Use checkbox 'all regions' to control whether this should apply to all regions.");
 
-    actionGroup = Gtk::ActionGroup::create();
-    actionSplitDimZone = Gtk::Action::create("SplitDimZone", _("Split Dimensions Zone"), txtUseCheckBoxAllRegions);
+    actionGroup = ActionGroup::create();
+#if USE_GLIB_ACTION
+    actionSplitDimZone = actionGroup->add_action(
+        "SplitDimZone", sigc::mem_fun(*this, &DimRegionChooser::split_dimension_zone)
+    );
+    actionDeleteDimZone = actionGroup->add_action(
+         "DeleteDimZone", sigc::mem_fun(*this, &DimRegionChooser::delete_dimension_zone)
+     );
+    insert_action_group("PopupMenuInsideDimRegion", actionGroup);
+#else
+    actionSplitDimZone = Action::create("SplitDimZone", _("Split Dimensions Zone"), txtUseCheckBoxAllRegions);
     actionSplitDimZone->set_tooltip(txtUseCheckBoxAllRegions); //FIXME: doesn't work? why???
     actionGroup->add(
         actionSplitDimZone,
@@ -200,7 +239,33 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         actionDeleteDimZone,
         sigc::mem_fun(*this, &DimRegionChooser::delete_dimension_zone)
     );
+#endif
 
+#if USE_GTKMM_BUILDER
+    uiManager = Gtk::Builder::create();
+    Glib::ustring ui_info =
+        "<interface>"
+        "  <menu id='menu-PopupMenuInsideDimRegion'>"
+        "    <section>"
+        "      <item id='item-split'>"
+        "        <attribute name='label' translatable='yes'>Split Dimensions Zone</attribute>"
+        "        <attribute name='action'>PopupMenuInsideDimRegion.SplitDimZone</attribute>"
+        "      </item>"
+        "      <item id='item-delete'>"
+        "        <attribute name='label' translatable='yes'>Delete Dimension Zone</attribute>"
+        "        <attribute name='action'>PopupMenuInsideDimRegion.DeleteDimZone</attribute>"
+        "      </item>"
+        "    </section>"
+        "  </menu>"
+        "</interface>";
+    uiManager->add_from_string(ui_info);
+
+    popup_menu_inside_dimregion = new Gtk::Menu(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            uiManager->get_object("menu-PopupMenuInsideDimRegion")
+        )
+    );
+#else
     uiManager = Gtk::UIManager::create();
     uiManager->insert_action_group(actionGroup);
     Glib::ustring ui_info =
@@ -220,8 +285,16 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
 //     popup_menu_outside_dimregion = dynamic_cast<Gtk::Menu*>(
 //         uiManager->get_widget("/PopupMenuOutsideDimRegion"));
 
+#endif // USE_GTKMM_BUILDER
+
+
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# warning GTKMM4 event registration code missing for dimregionchooser!
+    //add_events(Gdk::EventMask::BUTTON_PRESS_MASK);
+#else
     add_events(Gdk::BUTTON_PRESS_MASK | Gdk::POINTER_MOTION_MASK |
                Gdk::POINTER_MOTION_HINT_MASK);
+#endif
 
     labels_changed = true;
 
@@ -257,8 +330,19 @@ void DimRegionChooser::setModifyAllDimensionRegions(bool b) {
 void DimRegionChooser::setModifyAllRegions(bool b) {
     modifyallregions = b;
 
+#if USE_GTKMM_BUILDER
+    auto menuItemSplit = Glib::RefPtr<Gio::MenuItem>::cast_dynamic(
+        uiManager->get_object("item-split")
+    );
+    auto menuItemDelete = Glib::RefPtr<Gio::MenuItem>::cast_dynamic(
+        uiManager->get_object("item-delete")
+    );
+    menuItemDelete->set_label(b ? _("Delete Dimension Zone [ALL REGIONS]") : _("Delete Dimension Zone"));
+    menuItemSplit->set_label(b ? _("Split Dimensions Zone [ALL REGIONS]") : _("Split Dimensions Zone"));
+#else
     actionDeleteDimZone->set_label(b ? _("Delete Dimension Zone [ALL REGIONS]") : _("Delete Dimension Zone"));
     actionSplitDimZone->set_label(b ? _("Split Dimensions Zone [ALL REGIONS]") : _("Split Dimensions Zone"));
+#endif
 
     // redraw required parts
     queue_draw();
@@ -434,7 +518,11 @@ bool DimRegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr)
                     const Gdk::Color fg = get_style()->get_fg(get_state());
 #else
                     const Gdk::RGBA fg =
+# if GTKMM_MAJOR_VERSION >= 3
+                        get_style_context()->get_color();
+# else
                         get_style_context()->get_color(get_state_flags());
+# endif
 #endif
                     Gdk::Cairo::set_source_rgba(cr, fg);
                     cr->move_to(4, int(y + (h - text_h) / 2 + 0.5));
@@ -919,7 +1007,11 @@ bool DimRegionChooser::on_button_release_event(GdkEventButton* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         get_window()->pointer_ungrab(event->time);
 #else
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
         Glib::wrap(event->device, true)->ungrab(event->time);
+# else
+        gdk_device_ungrab(Glib::wrap(event->device, true)->gobj(), event->time);
+# endif
 #endif
         resize.active = false;
 
@@ -948,6 +1040,7 @@ bool DimRegionChooser::on_button_press_event(GdkEventButton* event)
                                        Gdk::Cursor(Gdk::SB_H_DOUBLE_ARROW),
                                        event->time);
 #else
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
             Glib::wrap(event->device, true)->grab(get_window(),
                                                   Gdk::OWNERSHIP_NONE,
                                                   false,
@@ -956,6 +1049,21 @@ bool DimRegionChooser::on_button_press_event(GdkEventButton* event)
                                                   Gdk::POINTER_MOTION_HINT_MASK,
                                                   Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW),
                                                   event->time);
+# else
+            gdk_device_grab(
+                Glib::wrap(event->device, true)->gobj(),
+                get_window()->gobj(),
+                GDK_OWNERSHIP_NONE,
+                false,
+                GdkEventMask(GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
+                             GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON1_MOTION_MASK),
+                Gdk::Cursor::create(
+                    Glib::wrap(event->device, true)->get_seat()->get_display(),
+                    Gdk::SB_H_DOUBLE_ARROW
+                )->gobj(),
+                event->time
+            );
+# endif
 #endif
             resize.active = true;
         } else {
@@ -1048,8 +1156,14 @@ bool DimRegionChooser::on_motion_notify_event(GdkEventMotion* event)
 {
     Glib::RefPtr<Gdk::Window> window = get_window();
     int x, y;
+#if HAS_GDKMM_SEAT
+    x = event->x;
+    y = event->y;
+    Gdk::ModifierType state = Gdk::ModifierType(event->state);
+#else
     Gdk::ModifierType state = Gdk::ModifierType(0);
     window->get_pointer(x, y, state);
+#endif
 
     if (resize.active) {
         int w = get_width();
@@ -1085,7 +1199,16 @@ bool DimRegionChooser::on_motion_notify_event(GdkEventMotion* event)
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
                 window->set_cursor(Gdk::Cursor(Gdk::SB_H_DOUBLE_ARROW));
 #else
-                window->set_cursor(Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW));
+                window->set_cursor(
+# if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
+                    Gdk::Cursor::create(Gdk::SB_H_DOUBLE_ARROW)
+# else
+                    Gdk::Cursor::create(
+                        Glib::wrap(event->device, true)->get_seat()->get_display(),
+                        Gdk::SB_H_DOUBLE_ARROW
+                    )
+# endif
+                );
 #endif
                 cursor_is_resize = true;
             }
@@ -1359,7 +1482,12 @@ static const guint primaryKeyR =
     GDK_KEY_Control_R;
     #endif
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool DimRegionChooser::onKeyPressed(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool DimRegionChooser::onKeyPressed(GdkEventKey* key) {
+#endif
     //printf("key down 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = true;
@@ -1380,7 +1508,12 @@ bool DimRegionChooser::onKeyPressed(GdkEventKey* key) {
     return false;
 }
 
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool DimRegionChooser::onKeyReleased(Gdk::EventKey& _key) {
+    GdkEventKey* key = _key.gobj();
+#else
 bool DimRegionChooser::onKeyReleased(GdkEventKey* key) {
+#endif
     //printf("key up 0x%x\n", key->keyval);
     if (key->keyval == GDK_KEY_Control_L || key->keyval == GDK_KEY_Control_R)
         multiSelectKeyDown = false;

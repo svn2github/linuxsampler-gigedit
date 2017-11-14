@@ -20,6 +20,7 @@
 #ifndef GIGEDIT_DIMENSIONMANAGER_H
 #define GIGEDIT_DIMENSIONMANAGER_H
 
+#include "compat.h"
 #include <glibmm/property.h>
 #include <gtkmm/box.h>
 #include <gtkmm/window.h>
@@ -94,8 +95,8 @@ public:
     
 protected:
     gig::Region* region;
-    Gtk::VBox vbox;
-    Gtk::HButtonBox buttonBox;
+    VBox vbox;
+    HButtonBox buttonBox;
     Gtk::ScrolledWindow scrolledWindow;
     Gtk::TreeView treeView;
     Gtk::Button addButton;

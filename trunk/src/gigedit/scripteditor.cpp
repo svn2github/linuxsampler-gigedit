@@ -7,6 +7,7 @@
 
 #include "scripteditor.h"
 #include "global.h"
+#include "compat.h"
 #include <gtk/gtkwidget.h> // for gtk_widget_modify_*()
 #if defined(__APPLE__)
 # include "MacHelper.h"
@@ -65,8 +66,13 @@ static Glib::RefPtr<Gdk::Pixbuf> createIcon(std::vector<std::string> alternative
 
 ScriptEditor::ScriptEditor() :
     m_statusLabel("",  Gtk::ALIGN_START),
+#if HAS_GTKMM_STOCK
     m_applyButton(Gtk::Stock::APPLY),
     m_cancelButton(Gtk::Stock::CANCEL)
+#else
+    m_applyButton(_("_Apply"), true),
+    m_cancelButton(_("_Cancel"), true)
+#endif
 {
     m_script = NULL;
 #if USE_LS_SCRIPTVM
@@ -161,6 +167,56 @@ ScriptEditor::ScriptEditor() :
     m_tagTable->add(m_lineNrTag);
 
     // create menu
+#if USE_GTKMM_BUILDER
+    m_actionGroup = Gio::SimpleActionGroup::create();
+    m_actionGroup->add_action(
+        "Apply", sigc::mem_fun(*this, &ScriptEditor::onButtonApply)
+    );
+    m_actionGroup->add_action(
+        "Close", sigc::mem_fun(*this, &ScriptEditor::onButtonCancel)
+    );
+    m_actionGroup->add_action(
+        "ChangeFont", sigc::mem_fun(*this, &ScriptEditor::onMenuChangeFontSize)
+    );
+    insert_action_group("ScriptEditor", m_actionGroup);
+
+    m_uiManager = Gtk::Builder::create();
+    Glib::ustring ui_info =
+        "<interface>"
+        "  <menubar id='MenuBar'>"
+        "    <menu id='MenuScript'>"
+        "      <section>"
+        "        <item id='Apply'>"
+        "          <attribute name='label' translatable='yes'>_Apply</attribute>"
+        "          <attribute name='action'>ScriptEditor.Apply</attribute>"
+        "          <attribute name='accel'>&lt;Primary&gt;s</attribute>"
+        "        </item>"
+        "      </section>"
+        "      <section>"
+        "        <item id='Close'>"
+        "          <attribute name='label' translatable='yes'>_Close</attribute>"
+        "          <attribute name='action'>ScriptEditor.Close</attribute>"
+        "          <attribute name='accel'>&lt;Primary&gt;q</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "    <menu id='MenuEditor'>"
+        "      <section>"
+        "        <item id='ChangeFont'>"
+        "          <attribute name='label' translatable='yes'>_Font Size ...</attribute>"
+        "          <attribute name='action'>ScriptEditor.ChangeFont</attribute>"
+        "        </item>"
+        "      </section>"
+        "    </menu>"
+        "  </menubar>"
+        "</interface>";
+    m_uiManager->add_from_string(ui_info);
+    /*{
+        auto object = uiManager->get_object("MenuBar");
+        auto gmenu = Glib::RefPtr<Gio::Menu>::cast_dynamic(object);
+        set_menubar(gmenu);
+    }*/
+#else
     m_actionGroup = Gtk::ActionGroup::create();
     m_actionGroup->add(Gtk::Action::create("MenuScript", _("_Script")));
     m_actionGroup->add(Gtk::Action::create("Apply", _("_Apply")),
@@ -189,6 +245,7 @@ ScriptEditor::ScriptEditor() :
         "  </menubar>"
         "</ui>"
     );
+#endif
 
     m_lineNrBuffer = Gtk::TextBuffer::create(m_tagTable);
     m_lineNrView.set_buffer(m_lineNrBuffer);
@@ -196,18 +253,30 @@ ScriptEditor::ScriptEditor() :
     m_lineNrView.set_right_margin(3);
     m_lineNrTextViewSpacer.set_size_request(5);
     {
+#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color color;
+#else
+        Gdk::RGBA color;
+#endif
         color.set("#F5F5F5");
         GtkWidget* widget = (GtkWidget*) m_lineNrView.gobj();
+#if GTK_MAJOR_VERSION < 3
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
+#endif
     }
     {
+#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color color;
+#else
+        Gdk::RGBA color;
+#endif
         color.set("#EEEEEE");
         GtkWidget* widget = (GtkWidget*) m_lineNrTextViewSpacer.gobj();
+#if GTK_MAJOR_VERSION < 3
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
+#endif
     }
     m_textBuffer = Gtk::TextBuffer::create(m_tagTable);
     m_textView.set_buffer(m_textBuffer);
@@ -219,7 +288,16 @@ ScriptEditor::ScriptEditor() :
     m_scrolledWindow.add(m_textViewHBox);
     m_scrolledWindow.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
+#if USE_GTKMM_BUILDER
+    Gtk::Widget* menuBar = new Gtk::MenuBar(
+        Glib::RefPtr<Gio::Menu>::cast_dynamic(
+            m_uiManager->get_object("MenuBar")
+        )
+    );
+#else
     Gtk::Widget* menuBar = m_uiManager->get_widget("/MenuBar");
+#endif
+
     m_vbox.pack_start(*menuBar, Gtk::PACK_SHRINK);
     m_vbox.pack_start(m_scrolledWindow);
 
@@ -230,16 +308,21 @@ ScriptEditor::ScriptEditor() :
     m_applyButton.set_sensitive(false);
     m_applyButton.grab_focus();
 
-#if GTKMM_MAJOR_VERSION >= 3
+#if GTKMM_MAJOR_VERSION < 3
+    m_statusHBox.set_spacing(6);
+#elif GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 12
     m_statusImage.set_margin_left(6);
     m_statusImage.set_margin_right(6);
 #else
-    m_statusHBox.set_spacing(6);
+    m_statusImage.set_margin_start(6);
+    m_statusImage.set_margin_end(6);
 #endif
 
     m_statusHBox.pack_start(m_statusImage, Gtk::PACK_SHRINK);
     m_statusHBox.pack_start(m_statusLabel);
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     m_statusHBox.show_all_children();
+#endif
 
     m_footerHBox.pack_start(m_statusHBox);
     m_footerHBox.pack_start(m_buttonBox, Gtk::PACK_SHRINK);
@@ -271,10 +354,16 @@ ScriptEditor::ScriptEditor() :
     );
 
     signal_delete_event().connect(
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
         sigc::mem_fun(*this, &ScriptEditor::onWindowDelete)
+#else
+        sigc::mem_fun(*this, &ScriptEditor::onWindowDeleteP)
+#endif
     );
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
+#endif
 }
 
 ScriptEditor::~ScriptEditor() {
@@ -297,24 +386,39 @@ int ScriptEditor::currentFontSize() const {
 
 void ScriptEditor::setFontSize(int size, bool save) {
     //printf("setFontSize(%d,%d)\n", size, save);
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
     Pango::FontDescription fdesc;
     fdesc.set_family("monospace");
-#if defined(__APPLE__)
+# if defined(__APPLE__)
     // fixes poor readability of default monospace font on Macs
     if (macIsMinMac10_6())
         fdesc.set_family("Menlo");
-#endif
+# endif
     fdesc.set_size(size * PANGO_SCALE);
-    /*Glib::RefPtr<Pango::Context> context = m_textView.get_pango_context();
-    Cairo::FontOptions options;
-    options.set_antialias(Cairo::ANTIALIAS_NONE);
-    context->set_cairo_font_options(options);*/
-#if GTKMM_MAJOR_VERSION < 3
+# if GTKMM_MAJOR_VERSION < 3
     m_lineNrView.modify_font(fdesc);
     m_textView.modify_font(fdesc);
-#else
+# else
     m_lineNrView.override_font(fdesc);
     m_textView.override_font(fdesc);
+# endif
+#else
+    Glib::ustring family = "monospace";
+# if defined(__APPLE__)
+    // fixes poor readability of default monospace font on Macs
+    if (macIsMinMac10_6())
+        family = "Menlo";
+# endif
+    if (!m_css) {
+        m_css = Gtk::CssProvider::create();
+        m_lineNrView.get_style_context()->add_provider(m_css, GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
+        m_textView.get_style_context()->add_provider(m_css, GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
+    }
+    m_css->load_from_data(
+        "* {"
+        "  font: " + ToString(size) + " " + family + ";"
+        "}"
+    );
 #endif
     if (save) Settings::singleton()->scriptEditorFontSize = size;
 }
@@ -638,13 +742,18 @@ bool ScriptEditor::on_motion_notify_event(GdkEventMotion* e) {
     //TODO: event throttling would be a good idea here
     updateIssueTooltip(e);
 #endif
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION <= 22)
     return ManagedWindow::on_motion_notify_event(e);
+#else
+    Gdk::EventMotion em = Glib::wrap(e, true);
+    return ManagedWindow::on_motion_notify_event(em);
+#endif
 }
 
 void ScriptEditor::onMenuChangeFontSize() {
     //TODO: for GTKMM >= 3.2 class Gtk::FontChooser could be used instead
     Gtk::Dialog dialog(_("Font Size"), true /*modal*/);
-    Gtk::HBox hbox;
+    HBox hbox;
     hbox.set_spacing(6);
 
     Gtk::Label label(_("Editor's Font Size:"), Gtk::ALIGN_START);
@@ -656,11 +765,17 @@ void ScriptEditor::onMenuChangeFontSize() {
     spinButton.set_value(currentFontSize());
     hbox.pack_start(spinButton);
 
+#if USE_GTKMM_BOX
+    dialog.get_content_area()->pack_start(hbox);
+#else
     dialog.get_vbox()->pack_start(hbox);
+#endif
     dialog.add_button(_("_OK"), 0);
     dialog.add_button(_("_Cancel"), 1);
 
+#if HAS_GTKMM_SHOW_ALL_CHILDREN
     dialog.show_all_children();
+#endif
 
     if (!dialog.run()) { // OK selected ...
         const int newFontSize = spinButton.get_value_as_int();
@@ -669,7 +784,13 @@ void ScriptEditor::onMenuChangeFontSize() {
     }
 }
 
-bool ScriptEditor::onWindowDelete(GdkEventAny* e) {
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 91 || (GTKMM_MINOR_VERSION == 91 && GTKMM_MICRO_VERSION >= 2))) // GTKMM >= 3.91.2
+bool ScriptEditor::onWindowDelete(Gdk::Event& e) {
+    return onWindowDeleteP(NULL);
+}
+#endif
+
+bool ScriptEditor::onWindowDeleteP(GdkEventAny* /*e*/) {
     //printf("onWindowDelete\n");
 
     if (!isModified()) return false; // propagate event further (which will close this window)
@@ -718,7 +839,7 @@ void ScriptEditor::onModifiedChanged() {
 }
 
 void ScriptEditor::onButtonCancel() {
-    bool dropEvent = onWindowDelete(NULL);
+    bool dropEvent = onWindowDeleteP(NULL);
     if (dropEvent) return;
     hide();
 }

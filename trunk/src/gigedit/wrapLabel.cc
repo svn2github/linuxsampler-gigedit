@@ -27,7 +27,7 @@
 # include PANGOMM_HEADER_FILE(pangomm.h)
 # include PANGOMM_HEADER_FILE(pangommconfig.h)
 #else
-# include <pangomm/pangomm.h>
+# include <pangomm.h>
 # include <pangommconfig.h>
 #endif
 

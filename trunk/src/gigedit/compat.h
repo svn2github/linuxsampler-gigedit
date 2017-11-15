@@ -156,7 +156,9 @@ public:
     HScale(const Glib::RefPtr<Gtk::Adjustment>& adjustment) : Gtk::Scale(adjustment, Gtk::Orientation::HORIZONTAL) {}
 };
 #else
-# include <gtkmm/hvbox.h>
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && (GTKMM_MINOR_VERSION > 1 || (GTKMM_MINOR_VERSION == 1 && GTKMM_MICRO_VERSION >= 6))) // GTKMM >= 3.1.6
+#  include <gtkmm/hvbox.h>
+#endif
 typedef Gtk::HBox HBox;
 typedef Gtk::VBox VBox;
 typedef Gtk::HButtonBox HButtonBox;

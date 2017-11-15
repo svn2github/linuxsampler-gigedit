@@ -233,7 +233,7 @@ MacrosSetup::MacrosSetup() :
     m_statusLabel.set_margin_left(6);
     m_statusLabel.set_margin_right(6);
 #else
-    m_statusLabel.set_spacing(6);
+    m_statusHBox.set_spacing(6);
 #endif
 
     m_statusHBox.pack_start(m_statusLabel);

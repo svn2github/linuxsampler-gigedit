@@ -451,6 +451,16 @@ DimRegionEdit::DimRegionEdit() :
         table[i]->set_col_spacings(7);
 #endif
 
+// on Gtk 3 there is absolutely no margin by default
+#if GTKMM_MAJOR_VERSION >= 3
+# if GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 12
+        table[i]->set_margin_left(12);
+        table[i]->set_margin_right(12);
+# else
+        table[i]->set_margin_start(12);
+        table[i]->set_margin_end(12);
+# endif
+#endif
     }
 
     // set tooltips
@@ -635,6 +645,11 @@ DimRegionEdit::DimRegionEdit() :
 
     Gtk::Frame* frame = new Gtk::Frame;
     frame->add(crossfade_curve);
+    // on Gtk 3 there is no margin at all by default
+#if GTKMM_MAJOR_VERSION >= 3
+    frame->set_margin_top(12);
+    frame->set_margin_bottom(12);
+#endif
 #if USE_GTKMM_GRID
     table[pageno]->attach(*frame, 1, rowno, 2);
 #else
@@ -714,6 +729,11 @@ DimRegionEdit::DimRegionEdit() :
 
     frame = new Gtk::Frame;
     frame->add(cutoff_curve);
+    // on Gtk 3 there is no margin at all by default
+#if GTKMM_MAJOR_VERSION >= 3
+    frame->set_margin_top(12);
+    frame->set_margin_bottom(12);
+#endif
 #if USE_GTKMM_GRID
     table[pageno]->attach(*frame, 1, rowno, 2);
 #else
@@ -820,6 +840,11 @@ DimRegionEdit::DimRegionEdit() :
 
     frame = new Gtk::Frame;
     frame->add(velocity_curve);
+    // on Gtk 3 there is no margin at all by default
+#if GTKMM_MAJOR_VERSION >= 3
+    frame->set_margin_top(12);
+    frame->set_margin_bottom(12);
+#endif
 #if USE_GTKMM_GRID
     table[pageno]->attach(*frame, 1, rowno, 2);
 #else
@@ -840,6 +865,11 @@ DimRegionEdit::DimRegionEdit() :
         sigc::mem_fun(release_curve, &VelocityCurve::queue_draw));
     frame = new Gtk::Frame;
     frame->add(release_curve);
+    // on Gtk 3 there is no margin at all by default
+#if GTKMM_MAJOR_VERSION >= 3
+    frame->set_margin_top(12);
+    frame->set_margin_bottom(12);
+#endif
 #if USE_GTKMM_GRID
     table[pageno]->attach(*frame, 1, rowno, 2);
 #else
@@ -1020,6 +1050,11 @@ Gtk::Label* DimRegionEdit::addHeader(const char* text)
     label->set_alignment(Gtk::ALIGN_START);
 #else
     label->set_halign(Gtk::Align::START);
+#endif
+    // on GTKMM 3 there is absolutely no margin by default
+#if GTKMM_MAJOR_VERSION >= 3
+    label->set_margin_top(18);
+    label->set_margin_bottom(13);
 #endif
 #if USE_GTKMM_GRID
     table[pageno]->attach(*label, 0, rowno, 3);

@@ -101,7 +101,11 @@ MainWindow::MainWindow() :
 //    set_border_width(5);
 
     if (!Settings::singleton()->autoRestoreWindowDimension) {
+#if GTKMM_MAJOR_VERSION >= 3
+        set_default_size(895, 600);
+#else
         set_default_size(800, 600);
+#endif
         set_position(Gtk::WIN_POS_CENTER);
     }
 
@@ -132,8 +136,9 @@ MainWindow::MainWindow() :
     m_ScrolledWindowScripts.add(m_TreeViewScripts);
     m_ScrolledWindowScripts.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
-
+#if GTKMM_MAJOR_VERSION < 3
     m_TreeViewNotebook.set_size_request(300);
+#endif
 
     m_searchLabel.set_text(Glib::ustring(" ") + _("Filter:"));
     m_searchField.pack_start(m_searchLabel, Gtk::PACK_SHRINK);

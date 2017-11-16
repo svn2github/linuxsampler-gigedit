@@ -253,27 +253,27 @@ ScriptEditor::ScriptEditor() :
     m_lineNrView.set_right_margin(3);
     m_lineNrTextViewSpacer.set_size_request(5);
     {
-#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
+#if 1 //(GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color color;
 #else
         Gdk::RGBA color;
 #endif
         color.set("#F5F5F5");
         GtkWidget* widget = (GtkWidget*) m_lineNrView.gobj();
-#if GTK_MAJOR_VERSION < 3
+#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 22)
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
 #endif
     }
     {
-#if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
+#if 1 //(GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color color;
 #else
         Gdk::RGBA color;
 #endif
         color.set("#EEEEEE");
         GtkWidget* widget = (GtkWidget*) m_lineNrTextViewSpacer.gobj();
-#if GTK_MAJOR_VERSION < 3
+#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 22)
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
 #endif
@@ -384,8 +384,15 @@ int ScriptEditor::currentFontSize() const {
     return fontSize;
 }
 
-void ScriptEditor::setFontSize(int size, bool save) {
+void ScriptEditor::setFontSize(int sizePt, bool save) {
     //printf("setFontSize(%d,%d)\n", size, save);
+
+    // make sure the real size on the screen for the editor's font is consistent
+    // on all screens (which otherwise may vary between models and DPI settings)
+    const double referenceDPI = 96;
+    double dpi = Gdk::Screen::get_default()->get_resolution();
+    double sizePx = sizePt * dpi / referenceDPI;
+
 #if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION < 20)
     Pango::FontDescription fdesc;
     fdesc.set_family("monospace");
@@ -394,7 +401,7 @@ void ScriptEditor::setFontSize(int size, bool save) {
     if (macIsMinMac10_6())
         fdesc.set_family("Menlo");
 # endif
-    fdesc.set_size(size * PANGO_SCALE);
+    fdesc.set_size(sizePx * PANGO_SCALE);
 # if GTKMM_MAJOR_VERSION < 3
     m_lineNrView.modify_font(fdesc);
     m_textView.modify_font(fdesc);
@@ -416,11 +423,11 @@ void ScriptEditor::setFontSize(int size, bool save) {
     }
     m_css->load_from_data(
         "* {"
-        "  font: " + ToString(size) + " " + family + ";"
+        "  font: " + ToString(sizePt) + "pt " + family + ";"
         "}"
     );
 #endif
-    if (save) Settings::singleton()->scriptEditorFontSize = size;
+    if (save) Settings::singleton()->scriptEditorFontSize = sizePt;
 }
 
 void ScriptEditor::setScript(gig::Script* script) {

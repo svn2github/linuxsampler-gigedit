@@ -149,6 +149,8 @@ Version SVN HEAD (?)
     down to GTKMM 2).
   * Re-merged r2845 to compile now with and without Gtk "Stock ID" API
     (see also r3158).
+  * Visual cosmetics on Gtk 3.
+  * Script Editor: Use consistent font size on all screens and DPI settings.
 
 Version 1.0.0 (2015-07-17)
 

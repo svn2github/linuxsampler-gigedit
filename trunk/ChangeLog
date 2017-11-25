@@ -1,4 +1,4 @@
-Version SVN HEAD (?)
+Version 1.1.0 (2017-11-25)
 
   * allow building with G/GDK/GTK_DISABLE_DEPRECATED
   * fixed building without linuxsampler on Mac

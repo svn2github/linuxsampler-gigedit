@@ -1,3 +1,110 @@
+Version 1.1.0 (2017-11-25)
+
+  This release adds various improvements for the NKSP real-time instrument
+  script editor of gigedit. LinuxSampler's NKSP script editor API is now
+  used by gigedit to visualize all issues of scripts (errors and warnings)
+  in real-time while you are typing with the script editor. The respective
+  locations of script errors / warnings are automatically highlighted in
+  red and yellow color respectively and when the mouse pointer is moved
+  over those code locations, then the precise error / warning message is
+  displayed as tooltip. And since gigedit's script editor is now tightly
+  coupled with the sampler's script engine this way, all the heavy work of
+  handling all aspects of the script language is now performed by the actual
+  sampler's script engine and thus you can now be sure and immediately see
+  whether there are any issues with your scripts with any character you are
+  typing, and if yes what kind of issues exactly, and that without
+  requiring to actually load the script into the sampler. To use these
+  features, gigedit must be compiled and linked against liblinuxsampler.
+  If gigedit is not compiled with liblinuxsampler support then the old hand
+  written, error prone and very feature limited script editor implementation
+  is used instead. Needless to say that compiling gigedit without
+  liblinuxsampler support is discouraged. Additionally when clicking on the
+  script editor's "Apply" button or using Ctrl+S keyboard shortcut, then
+  the script is automatically reloaded by the sampler. So you no longer
+  have to reload the respective instrument manually while you are
+  developing instrument scripts. There are also visual enhancements for the
+  script editor, for example the line numbers are now shown on the left,
+  the font size can be altered by the user, and unused code portions (i.e.
+  disabled by NKSP preprocessor statements) are automatically striked
+  through.
+
+  Another major new feature in this release are macros. A macro is a set of
+  changes that should be applied to currently selected instrument. Such
+  macros can be reviewed and edited, and they can be saved permanently for
+  example as templates for common instrument creation tasks. Macros can be
+  assigned to F keys on the keyboard so that they can be quickly triggered,
+  you can transfer them over the OS clipboard and you can write comments
+  to your macros so that you never forget what kind of purpose you had in
+  mind for them. The macro features are based on libgig's new
+  "Serialization" framework and accordingly you need at least libgig 4.1.0
+  for using these macro features.
+
+  All user settings of gigedit are now persistently saved and automatically
+  restored. This also includes gigedit's windows' dimensions and positions.
+
+  Multi-row selection has been added to all list views now, so you can now
+  more efficiently apply actions to multiple samples, instruments or scripts
+  simultaneously at once, instead of requesting those actions for each item
+  individually.
+
+  Also modifying key features of several dimension region zones
+  simultaneously is now supported. That means you can now delete, split and
+  resize multiple dimension region zones at once.
+
+  You will also note that there are now icons displayed on the individual
+  regions and dimension region zones. Those icons visualize common key
+  features of regions and dimension region zones. For example if you forgot
+  to assign any sample to one of them, then you will see a red dot on the
+  respective region or dimension region zone. Another icon type is showing
+  you whether a region or dimension region zone uses a sample loop. This way
+  you can immediately see and control the key features of all regions
+  and their dimension region zones, without requiring to browse through all
+  of them individually.
+
+  Various new keyboard shortcuts have been added so you can work more
+  efficiently on your sounds. For example you can now use Ctrl+Left and
+  Ctrl+Right to navigate through all regions of the currently selected
+  instrument, and likewise you can use Alt+Left, Alt+Right, Alt+Up and
+  Alt+Down to navigate through all dimension region zones of the currently
+  selected region. Since there are many actions that can be either applied
+  on instrument level, or on region level, or on dimension region level, as
+  a general rule, for all keyboard shortcuts the Alt key is used by gigedit
+  for actions on dimension region level, whereas the Ctrl key is used on
+  region level and the Shift key is used for actions on instrument level.
+  So as another example you may copy all parameters of the currently
+  selected dimension region zone by hitting Alt+C, then you might select
+  another dimension region zone, or another instrument and then use Alt+V
+  to apply the parameters from the clipboard. While the parameters are
+  (as macro actually) on the clipboard you can also review, edit and
+  delete the individual parameters before applying them. As a final
+  example for new important shortcuts you may now use Shift+Up and
+  Shift+Down for switching between instruments.
+
+  Also the Combine Tool has been improved. You can now simply select the
+  (multiple) instruments you want to combine directly from the applications
+  main window, i.e. by Ctrl or Shift clicking them from the instruments
+  list view, and then right click to call the combine tool on that
+  selection. The Combine Tool now also shows you as preview the order in
+  which the selected instruments are going to be combined. This is
+  especially useful when combining instruments with certain dimension
+  types where the order matters for the actual resulting sound; for example
+  when using the velocity dimension. Simply use drag n drop to reorder
+  the previously selected instruments before combining.
+
+  Since LinuxSampler 2.1.0 added a Giga format extension which allows to
+  control the envelope generators' state machines more precisely; new
+  options have been added to gigedit to control these new EG features.
+  For example there are new check box which you can use to define for
+  each envelope whether the individual EG stages should still be completed
+  or rather aborted if a note-off was received. These new EG settings matter
+  a lot for certain instrument types like percussive instruments.
+
+  And last but not least a filter option field had been added to the
+  instruments list and samples list, which allows you to find specific
+  samples and instruments very quickly by typing search key words, which is
+  especially very helpful in case you are working on gig files which contain
+  a very large amount of samples or instruments in a single gig file.
+
 Version 1.0.0 (2015-07-17)
 
   With this release we added support for new GigaStudio 4 features, for

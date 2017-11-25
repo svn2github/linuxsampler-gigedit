@@ -1,3 +1,10 @@
+gigedit (1.1.0-1) unstable; urgency=low
+
+  * Added build dependency to liblinuxsampler-dev (>= 2.1.0).
+  * New release.
+
+ -- Christian Schoenebeck <cuse@users.sourceforge.net>  Sat, 25 Nov 2017 23:15:15 +0100
+
 gigedit (1.0.0-1+svn62) unreleased; urgency=low
 
   * Raised Debian compatibility level to Debian 9 "Stretch".

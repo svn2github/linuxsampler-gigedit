@@ -248,10 +248,15 @@ ScriptEditor::ScriptEditor() :
 #endif
 
     m_lineNrBuffer = Gtk::TextBuffer::create(m_tagTable);
+    m_lineNrView.set_size_request(22,14);
     m_lineNrView.set_buffer(m_lineNrBuffer);
     m_lineNrView.set_left_margin(3);
     m_lineNrView.set_right_margin(3);
-    m_lineNrTextViewSpacer.set_size_request(5);
+    m_lineNrView.property_editable() = false;
+    m_lineNrView.property_sensitive() = false;
+    m_lineNrTextViewSpacer.set_size_request(5,14);
+    m_lineNrTextViewSpacer.property_editable() = false;
+    m_lineNrTextViewSpacer.property_sensitive() = false;
     {
 #if 1 //(GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
         Gdk::Color color;
@@ -443,12 +448,17 @@ void ScriptEditor::setScript(gig::Script* script) {
     //printf("text : '%s'\n", txt.c_str());
     m_textBuffer->set_text(txt);
     m_textBuffer->set_modified(false);
+
+    // on Gtk 3 the respective text change callback would not be called, so force this update here
+    if (txt.empty())
+        updateLineNumbers();
 }
 
 void ScriptEditor::updateLineNumbers() {
-    const int n = m_textBuffer->get_line_count();
-    const int old = m_lineNrBuffer->get_line_count();
-    if (n == old) return;
+    int n = m_textBuffer->get_line_count();
+    int old = m_lineNrBuffer->get_line_count();
+    if (n == old && old > 1) return;
+    if (n < 1) n = 1;
     const int digits = log10(n) + 1;
     const int bufSz = digits + 2;
     char* buf = new char[bufSz];

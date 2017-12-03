@@ -1,3 +1,8 @@
+Version SVN trunk (?)
+
+  * Script Editor: Fixed some minor issues with vertical line number bar
+    (which was editable, selectable and incorrectly displayed on new scripts).
+
 Version 1.1.0 (2017-11-25)
 
   * allow building with G/GDK/GTK_DISABLE_DEPRECATED

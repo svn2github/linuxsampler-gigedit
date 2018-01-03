@@ -1,4 +1,6 @@
 src/gigedit/CombineInstrumentsDialog.cpp
+src/gigedit/MacroEditor.cpp
+src/gigedit/MacrosSetup.cpp
 src/gigedit/mainwindow.cpp
 src/gigedit/dimregionedit.cpp
 src/gigedit/regionchooser.cpp

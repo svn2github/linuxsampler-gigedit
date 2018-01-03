@@ -2,6 +2,8 @@ Version SVN trunk (?)
 
   * Script Editor: Fixed some minor issues with vertical line number bar
     (which was editable, selectable and incorrectly displayed on new scripts).
+  * Translation Fix: MacroEditor.cpp and MacrosSetup.cpp were not under
+    translation control.
 
 Version 1.1.0 (2017-11-25)
 

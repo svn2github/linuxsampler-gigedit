@@ -4,6 +4,7 @@ Version SVN trunk (?)
     (which was editable, selectable and incorrectly displayed on new scripts).
   * Translation Fix: MacroEditor.cpp and MacrosSetup.cpp were not under
     translation control.
+  * Spelling fixes (patch provided by Debian maintainer Jaromír Mikeš).
 
 Version 1.1.0 (2017-11-25)
 

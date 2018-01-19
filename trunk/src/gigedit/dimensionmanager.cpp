@@ -353,7 +353,7 @@ struct _DimDef {
 };
 typedef std::map<gig::dimension_t, _DimDef> _Dimensions;
 
-// update all GUI elements according to current gig::Region informations
+// update all GUI elements according to current gig::Region information
 void DimensionManager::refreshManager() {
     set_sensitive(false);
     refTableModel->clear();

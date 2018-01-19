@@ -279,7 +279,7 @@ DimRegionEdit::DimRegionEdit() :
     eGain(_("Gain"), -96, 0, 2, -655360),
     eGainPlus6(_("Gain +6dB"), eGain, 6 * -655360),
     eSampleLoopEnabled(_("Enabled")),
-    eSampleLoopStart(_("Loop start positon")),
+    eSampleLoopStart(_("Loop start position")),
     eSampleLoopLength(_("Loop size")),
     eSampleLoopType(_("Loop type")),
     eSampleLoopInfinite(_("Infinite loop")),

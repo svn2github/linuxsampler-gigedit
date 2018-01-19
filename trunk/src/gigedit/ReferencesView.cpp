@@ -54,7 +54,7 @@ ReferencesView::ReferencesView(Gtk::Window& parent) :
     m_refTreeModel = RefsTreeStore::create(m_columns);
     m_treeView.set_model(m_refTreeModel);
     m_treeView.set_tooltip_text(_(
-        "Amount of times the selected sample in question is referenced. Click "
+        "Number of times the selected sample in question is referenced. Click "
         "to jump to the specific reference."
     ));
     m_treeView.append_column(_("Name"), m_columns.m_col_name);

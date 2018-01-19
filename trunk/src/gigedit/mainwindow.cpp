@@ -1237,7 +1237,7 @@ MainWindow::MainWindow() :
     {
         Gtk::MenuItem* item = dynamic_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuEdit/CopySampleLoop"));
-        item->set_tooltip_text(_("Used when dragging a sample to a region's sample reference field. You may disable this for example if you want to replace an existing sample in a region with a new sample, but don't want that the region's current loop informations to be altered by this action."));
+        item->set_tooltip_text(_("Used when dragging a sample to a region's sample reference field. You may disable this for example if you want to replace an existing sample in a region with a new sample, but don't want that the region's current loop information to be altered by this action."));
     }
     {
         Gtk::MenuItem* item = dynamic_cast<Gtk::MenuItem*>(
@@ -1252,7 +1252,7 @@ MainWindow::MainWindow() :
     {
         Gtk::MenuItem* item = dynamic_cast<Gtk::MenuItem*>(
             uiManager->get_widget("/MenuBar/MenuSettings/MoveRootNoteWithRegionMoved"));
-        item->set_tooltip_text(_("If checked, and when a region is moved by dragging it around on the virtual keyboard, the keybord position dependent pitch will move exactly with the amount of semi tones the region was moved around."));
+        item->set_tooltip_text(_("If checked, and when a region is moved by dragging it around on the virtual keyboard, the keyboard position dependent pitch will move exactly with the amount of semi tones the region was moved around."));
     }
     {
         Gtk::MenuItem* item = dynamic_cast<Gtk::MenuItem*>(
@@ -3988,7 +3988,7 @@ void MainWindow::add_or_replace_sample(bool replace) {
         for (std::vector<std::string>::iterator iter = filenames.begin();
              iter != filenames.end(); ++iter) {
             printf("Adding sample %s\n",(*iter).c_str());
-            // use libsndfile to retrieve file informations
+            // use libsndfile to retrieve file information
             SF_INFO info;
             info.format = 0;
             SNDFILE* hFile = sf_open((*iter).c_str(), SFM_READ, &info);

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2017 Christian Schoenebeck
+    Copyright (c) 2014-2018 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -127,6 +127,7 @@ public:
     Property<bool> moveRootNoteWithRegionMoved; ///< if enabled, the root note(s) of regions are automatically moving when the user drags a region around at the virtual keyboard
     Property<bool> autoRestoreWindowDimension;
     Property<bool> saveWithTemporaryFile; ///< If enabled and the user selects "Save" from the main menu, then the file is first saved as separate temporary file and after the save operation completed the temporary file is moved over the original file.
+    Property<bool> showTooltips; ///< Whether tooltips specifically intended for newbies should be displayed throughout the application (default: yes).
 
     // settings of "MainWindow" group
     Property<int> mainWindowX;

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2017 Christian Schoenebeck
+    Copyright (c) 2014-2018 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -966,6 +966,11 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     show_all_children();
 #endif
 
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(*this, &CombineInstrumentsDialog::on_show_tooltips_changed)
+    );
+    on_show_tooltips_changed();
+
     // show a warning to user if he uses a .gig in v2 format
     if (gig->pVersion->major < 3) {
         Glib::ustring txt = _(
@@ -1247,6 +1252,15 @@ void CombineInstrumentsDialog::onSelectionChanged() {
             rowOrder[m_orderColumns.m_col_markup] = markup;
         }
     }
+}
+
+void CombineInstrumentsDialog::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    m_treeView.set_has_tooltip(b);
+    m_iconView.set_has_tooltip(b);
+
+    set_has_tooltip(b);
 }
 
 bool CombineInstrumentsDialog::fileWasChanged() const {

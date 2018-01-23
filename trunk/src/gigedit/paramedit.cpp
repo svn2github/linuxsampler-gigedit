@@ -23,6 +23,7 @@
 #include "compat.h"
 #include "Settings.h"
 
+#include <glibmm/glibmm.h>
 #include <gtkmm/messagedialog.h>
 
 namespace {
@@ -144,6 +145,23 @@ LabelWidget::LabelWidget(const char* labelText, Gtk::Widget& widget) :
 #else
     label.set_halign(Gtk::Align::START);
 #endif
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(this, &LabelWidget::on_show_tooltips_changed)
+    );
+
+    // workaround for a crash with certain gtkmm versions: postpone calling
+    // on_show_tooltips_changed() because widget.gobj() might be uninitialized
+    // at this point yet
+    Glib::signal_idle().connect_once( // timeout starts given amount of ms after the main loop became idle again ...
+        sigc::mem_fun(*this, &LabelWidget::on_show_tooltips_changed),
+        300
+    );
+}
+
+void LabelWidget::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+    label.set_has_tooltip(b);
+    widget.set_has_tooltip(b);
 }
 
 void LabelWidget::set_sensitive(bool sensitive)
@@ -195,6 +213,14 @@ NumEntry::NumEntry(const char* labelText, double lower, double upper,
     box.add(scale);
 }
 
+void NumEntry::on_show_tooltips_changed() {
+    LabelWidget::on_show_tooltips_changed();
+
+    const bool b = Settings::singleton()->showTooltips;
+    spinbutton.set_has_tooltip(b);
+    scale.set_has_tooltip(b);
+}
+
 NumEntryGain::NumEntryGain(const char* labelText,
 			   double lower, double upper,
 			   int decimals, double coeff) :
@@ -243,6 +269,12 @@ BoolEntryPlus6::BoolEntryPlus6(const char* labelText, NumEntryGain& eGain, int32
 {
     checkbutton.signal_toggled().connect(
         sigc::mem_fun(*this, &BoolEntryPlus6::value_changed));
+}
+
+void BoolEntryPlus6::on_show_tooltips_changed() {
+    LabelWidget::on_show_tooltips_changed();
+
+    eGain.on_show_tooltips_changed();
 }
 
 void BoolEntryPlus6::value_changed()
@@ -376,6 +408,13 @@ void spin_button_show_notes(Gtk::SpinButton& spin_button)
         sigc::bind(sigc::ptr_fun(&on_output), &spin_button));
 }
 
+void ChoiceEntryBase::on_show_tooltips_changed() {
+    LabelWidget::on_show_tooltips_changed();
+
+    const bool b = Settings::singleton()->showTooltips;
+    combobox.set_has_tooltip(b);
+}
+
 ChoiceEntryLeverageCtrl::ChoiceEntryLeverageCtrl(const char* labelText) :
 #if HAS_GTKMM_ALIGNMENT
     LabelWidget(labelText, align),
@@ -407,6 +446,13 @@ ChoiceEntryLeverageCtrl::ChoiceEntryLeverageCtrl(const char* labelText) :
 #endif
     value.type = gig::leverage_ctrl_t::type_none;
     value.controller_number = 0;
+}
+
+void ChoiceEntryLeverageCtrl::on_show_tooltips_changed() {
+    LabelWidget::on_show_tooltips_changed();
+
+    const bool b = Settings::singleton()->showTooltips;
+    combobox.set_has_tooltip(b);
 }
 
 void ChoiceEntryLeverageCtrl::value_changed()
@@ -487,6 +533,20 @@ void ChoiceEntryLeverageCtrl::set_value(gig::leverage_ctrl_t value)
 }
 
 
+BoolBox::BoolBox(const char* labelText) : Gtk::CheckButton(labelText) {
+    signal_toggled().connect(sig_changed.make_slot());
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(this, &BoolBox::on_show_tooltips_changed)
+    );
+    on_show_tooltips_changed();
+}
+
+void BoolBox::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+    set_has_tooltip(b);
+}
+
+
 BoolEntry::BoolEntry(const char* labelText) :
     LabelWidget(labelText, checkbutton),
     checkbutton(labelText)
@@ -534,6 +594,13 @@ void StringEntryMultiLine::set_value(const gig::String& value)
     for (int i = 0 ; (i = text.find("\x0d\x0a", i, 2)) >= 0 ; i++)
         text.replace(i, 2, "\x0a");
     text_buffer->set_text(text);
+}
+
+void StringEntryMultiLine::on_show_tooltips_changed() {
+    LabelWidget::on_show_tooltips_changed();
+
+    const bool b = Settings::singleton()->showTooltips;
+    text_view.set_has_tooltip(b);
 }
 
 

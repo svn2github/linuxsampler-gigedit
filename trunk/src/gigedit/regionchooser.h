@@ -141,6 +141,7 @@ protected:
     void update_after_resize();
     void update_after_move(int pos);
     void invalidate_key(int key);
+    void on_show_tooltips_changed();
 
     // returns the leftmost pixel of a key
     int key_to_x(double k, int w) const {

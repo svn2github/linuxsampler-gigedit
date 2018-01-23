@@ -19,6 +19,7 @@
 
 #include "global.h"
 #include "compat.h"
+#include "Settings.h"
 #include <gtkmm/box.h>
 #include "dimregionchooser.h"
 #include <cairomm/context.h>
@@ -302,6 +303,11 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
         "Right click here for options on altering dimension zones. Press and "
         "hold CTRL key for selecting multiple dimension zones simultaniously."
     ));
+
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(*this, &DimRegionChooser::on_show_tooltips_changed)
+    );
+    on_show_tooltips_changed();
     
     window.signal_key_press_event().connect(
         sigc::mem_fun(*this, &DimRegionChooser::onKeyPressed)
@@ -313,6 +319,12 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
 
 DimRegionChooser::~DimRegionChooser()
 {
+}
+
+void DimRegionChooser::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    set_has_tooltip(b);
 }
 
 void DimRegionChooser::setModifyBothChannels(bool b) {

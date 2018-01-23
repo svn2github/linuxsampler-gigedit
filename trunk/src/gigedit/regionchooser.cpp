@@ -295,10 +295,22 @@ RegionChooser::RegionChooser() :
         sigc::mem_fun(*this, &RegionChooser::on_note_off_event)
     );
     set_tooltip_text(_("Right click here for adding new region. Use mouse pointer for moving (dragging) or resizing existing regions (by pointing at region's boundary). Right click on an existing region for more actions."));
+
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(*this, &RegionChooser::on_show_tooltips_changed)
+    );
+
+    on_show_tooltips_changed();
 }
 
 RegionChooser::~RegionChooser()
 {
+}
+
+void RegionChooser::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    set_has_tooltip(b);
 }
 
 void RegionChooser::setModifyAllRegions(bool b) {

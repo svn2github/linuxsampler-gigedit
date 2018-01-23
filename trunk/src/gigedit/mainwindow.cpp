@@ -457,6 +457,10 @@ MainWindow::MainWindow() :
         m_actionGroup->add_action_bool("Statusbar", sigc::mem_fun(*this, &MainWindow::on_action_view_status_bar), true);
     m_actionToggleRestoreWinDim =
         m_actionGroup->add_action_bool("AutoRestoreWinDim", sigc::mem_fun(*this, &MainWindow::on_auto_restore_win_dim), Settings::singleton()->autoRestoreWindowDimension);
+    m_actionToggleShowTooltips = m_actionGroup->add_action_bool(
+        "ShowTooltips", sigc::mem_fun(*this, &MainWindow::on_action_show_tooltips),
+        Settings::singleton()->showTooltips
+    );
     m_actionToggleSaveWithTempFile =
         m_actionGroup->add_action_bool("SaveWithTemporaryFile", sigc::mem_fun(*this, &MainWindow::on_save_with_temporary_file), Settings::singleton()->saveWithTemporaryFile);
     m_actionGroup->add_action("RefreshAll", sigc::mem_fun(*this, &MainWindow::on_action_refresh_all));
@@ -478,6 +482,14 @@ MainWindow::MainWindow() :
     actionGroup->add(toggle_action,
                      sigc::mem_fun(
                          *this, &MainWindow::on_auto_restore_win_dim));
+
+    toggle_action =
+        Gtk::ToggleAction::create("ShowTooltips", _("Tooltips for Beginners"));
+    toggle_action->set_active(Settings::singleton()->showTooltips);
+    actionGroup->add(
+        toggle_action,
+        sigc::mem_fun(*this, &MainWindow::on_action_show_tooltips)
+    );
 
     toggle_action =
         Gtk::ToggleAction::create("SaveWithTemporaryFile", _("Save with _temporary file"));
@@ -921,6 +933,10 @@ MainWindow::MainWindow() :
         "          <attribute name='label' translatable='yes'>Statusbar</attribute>"
         "          <attribute name='action'>AppMenu.Statusbar</attribute>"
         "        </item>"
+        "        <item id='ShowTooltips'>"
+        "          <attribute name='label' translatable='yes'>Tooltips for Beginners</attribute>"
+        "          <attribute name='action'>AppMenu.ShowTooltips</attribute>"
+        "        </item>"
         "        <item id='AutoRestoreWinDim'>"
         "          <attribute name='label' translatable='yes'>Auto restore Window Dimensions</attribute>"
         "          <attribute name='action'>AppMenu.AutoRestoreWinDim</attribute>"
@@ -1151,6 +1167,7 @@ MainWindow::MainWindow() :
         "    </menu>"
         "    <menu action='MenuView'>"
         "      <menuitem action='Statusbar'/>"
+        "      <menuitem action='ShowTooltips'/>"
         "      <menuitem action='AutoRestoreWinDim'/>"
         "      <separator/>"
         "      <menuitem action='RefreshAll'/>"
@@ -1606,6 +1623,8 @@ MainWindow::MainWindow() :
         Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
         assign_scripts_menu->set_accel_group(accelGroup);
     }
+
+    on_show_tooltips_changed();
 
     Glib::signal_idle().connect_once(
         sigc::mem_fun(*this, &MainWindow::bringToFront),
@@ -2587,6 +2606,27 @@ void MainWindow::on_action_file_properties()
 void MainWindow::on_action_warn_user_on_extensions() {
     Settings::singleton()->warnUserOnExtensions =
         !Settings::singleton()->warnUserOnExtensions;
+}
+
+void MainWindow::on_action_show_tooltips() {
+    Settings::singleton()->showTooltips =
+        !Settings::singleton()->showTooltips;
+
+    on_show_tooltips_changed();
+}
+
+void MainWindow::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    dimreg_label.set_has_tooltip(b);
+    dimreg_all_regions.set_has_tooltip(b);
+    dimreg_all_dimregs.set_has_tooltip(b);
+    dimreg_stereo.set_has_tooltip(b);
+    m_TreeView.set_has_tooltip(b);
+    m_TreeViewSamples.set_has_tooltip(b);
+    m_TreeViewScripts.set_has_tooltip(b);
+
+    set_has_tooltip(b);
 }
 
 void MainWindow::on_action_sync_sampler_instrument_selection() {

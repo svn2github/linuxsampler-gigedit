@@ -87,6 +87,7 @@ protected:
     bool onKeyReleased(GdkEventKey* key);
 #endif
     void refresh_all();
+    void on_show_tooltips_changed();
     void split_dimension_zone();
     void delete_dimension_zone();
     void resetSelectedZones();

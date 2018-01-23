@@ -28,6 +28,8 @@
 # include <gtkmm/table.h>
 #endif
 
+#include "Settings.h"
+
 VelocityCurve::VelocityCurve(double (gig::DimensionRegion::*getter)(uint8_t)) :
     getter(getter), dimreg(0) {
     set_size_request(80, 80);
@@ -185,6 +187,16 @@ EGStateOptions::EGStateOptions() : HBox(),
     checkBoxRelease.set_tooltip_text(_(
         "If checked: a note-on reverts back from the 'release' stage."
     ));
+}
+
+void EGStateOptions::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    checkBoxAttack.set_has_tooltip(b);
+    checkBoxAttackHold.set_has_tooltip(b);
+    checkBoxDecay1.set_has_tooltip(b);
+    checkBoxDecay2.set_has_tooltip(b);
+    checkBoxRelease.set_has_tooltip(b);
 }
 
 
@@ -960,6 +972,12 @@ DimRegionEdit::DimRegionEdit() :
     append_page(*table[4], _("Filter (2)"));
     append_page(*table[5], _("Pitch"));
     append_page(*table[6], _("Misc"));
+
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(*this, &DimRegionEdit::on_show_tooltips_changed)
+    );
+
+    on_show_tooltips_changed();
 }
 
 DimRegionEdit::~DimRegionEdit()
@@ -1065,6 +1083,19 @@ Gtk::Label* DimRegionEdit::addHeader(const char* text)
     rowno++;
     firstRowInBlock = rowno;
     return label;
+}
+
+void DimRegionEdit::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    buttonSelectSample.set_has_tooltip(b);
+    buttonNullSampleReference->set_has_tooltip(b);
+    wSample->set_has_tooltip(b);
+
+    eEG1StateOptions.on_show_tooltips_changed();
+    eEG2StateOptions.on_show_tooltips_changed();
+
+    set_has_tooltip(b);
 }
 
 void DimRegionEdit::nextPage()

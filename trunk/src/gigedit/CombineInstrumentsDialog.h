@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2017 Christian Schoenebeck
+    Copyright (c) 2014-2018 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -133,6 +133,7 @@ protected:
         const Glib::RefPtr<Gdk::DragContext>& context, int x, int y,
         const Gtk::SelectionData& selection_data, guint, guint time
     );
+    void on_show_tooltips_changed();
 };
 
 #endif // GIGEDIT_COMBINEINSTRUMENTSDIALOG

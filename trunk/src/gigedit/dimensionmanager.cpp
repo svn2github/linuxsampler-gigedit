@@ -325,6 +325,20 @@ DimensionManager::DimensionManager() :
 #if HAS_GTKMM_SHOW_ALL_CHILDREN
     show_all_children();
 #endif
+
+    Settings::singleton()->showTooltips.get_proxy().signal_changed().connect(
+        sigc::mem_fun(*this, &DimensionManager::on_show_tooltips_changed)
+    );
+    on_show_tooltips_changed();
+}
+
+void DimensionManager::on_show_tooltips_changed() {
+    const bool b = Settings::singleton()->showTooltips;
+
+    treeView.set_has_tooltip(b);
+    allRegionsCheckBox.set_has_tooltip(b);
+
+    set_has_tooltip(b);
 }
 
 bool DimensionManager::allRegions() const {

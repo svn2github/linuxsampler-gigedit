@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2014-2017 Christian Schoenebeck
+    Copyright (c) 2014-2018 Christian Schoenebeck
     
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -86,6 +86,7 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     moveRootNoteWithRegionMoved(*this, GLOBAL, "moveRootNoteWithRegionMoved", true),
     autoRestoreWindowDimension(*this, GLOBAL, "autoRestoreWindowDimension", false),
     saveWithTemporaryFile(*this, GLOBAL, "saveWithTemporaryFile", false),
+    showTooltips(*this, GLOBAL, "showNewbieTooltips", true),
     mainWindowX(*this, MAIN_WINDOW, "x", -1),
     mainWindowY(*this, MAIN_WINDOW, "y", -1),
     mainWindowW(*this, MAIN_WINDOW, "w", -1),
@@ -138,6 +139,7 @@ Settings::Settings() : Glib::ObjectBase(typeid(Settings)),
     m_boolProps.push_back(&moveRootNoteWithRegionMoved);
     m_boolProps.push_back(&autoRestoreWindowDimension);
     m_boolProps.push_back(&saveWithTemporaryFile);
+    m_boolProps.push_back(&showTooltips);
     m_intProps.push_back(&mainWindowX);
     m_intProps.push_back(&mainWindowY);
     m_intProps.push_back(&mainWindowW);

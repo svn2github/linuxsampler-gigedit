@@ -91,6 +91,7 @@ public:
     BoolBox checkBoxRelease;
 
     EGStateOptions();
+    void on_show_tooltips_changed();
 };
 
 class DimRegionEdit : public Gtk::Notebook
@@ -285,6 +286,7 @@ protected:
     void loop_length_changed();
     void loop_infinite_toggled();
     void nullOutSampleReference();
+    void on_show_tooltips_changed();
 
     int update_model;
 

@@ -140,6 +140,7 @@ protected:
     bool ignoreColumnClicked; //HACK: Prevents that onColumnClicked() gets called multiple times or at times where it is not desired
 
     void onAllRegionsCheckBoxToggled();
+    void on_show_tooltips_changed();
     void onColumnClicked();
     void refreshManager();
     void addDimension();

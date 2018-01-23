@@ -273,6 +273,7 @@ protected:
     Glib::RefPtr<Gio::SimpleAction> m_actionToggleRestoreWinDim;
     Glib::RefPtr<Gio::SimpleAction> m_actionToggleSaveWithTempFile;
     Glib::RefPtr<Gio::SimpleAction> m_actionToggleWarnOnExtensions;
+    Glib::RefPtr<Gio::SimpleAction> m_actionToggleShowTooltips;
     Glib::RefPtr<Gio::SimpleAction> m_actionToggleSyncSamplerSelection;
     Glib::RefPtr<Gio::SimpleAction> m_actionToggleMoveRootNoteWithRegion;
 #endif
@@ -484,6 +485,8 @@ protected:
     void on_save_with_temporary_file();
     void on_action_refresh_all();
     void on_action_warn_user_on_extensions();
+    void on_action_show_tooltips();
+    void on_show_tooltips_changed();
     void on_action_sync_sampler_instrument_selection();
     void on_action_move_root_note_with_region_moved();
     void on_action_help_about();

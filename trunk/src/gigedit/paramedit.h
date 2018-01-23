@@ -70,6 +70,7 @@ public:
         return sig_changed;
     }
 protected:
+    virtual void on_show_tooltips_changed();
 #ifdef OLD_TOOLTIPS
     Gtk::Tooltips tooltips;
 #endif
@@ -98,6 +99,7 @@ protected:
     static int round_to_int(double x) {
         return int(x < 0.0 ? x - 0.5 : x + 0.5);
     }
+
 public:
     NumEntry(const char* labelText, double lower = 0, double upper = 127,
              int decimals = 0);
@@ -115,6 +117,7 @@ public:
         adjust->set_upper(upper);
 #endif
     }
+    void on_show_tooltips_changed();
 };
 
 class NumEntryGain : public NumEntry {
@@ -202,11 +205,16 @@ public:
     void set_value(uint16_t value);
 };
 
+class ChoiceEntryBase : public LabelWidget {
+protected:
+    ChoiceEntryBase(const char* labelText, Gtk::Widget& widget) : LabelWidget(labelText, widget) {};
+    Gtk::ComboBoxText combobox;
+    void on_show_tooltips_changed();
+};
 
 template<typename T>
-class ChoiceEntry : public LabelWidget {
+class ChoiceEntry : public ChoiceEntryBase {
 private:
-    Gtk::ComboBoxText combobox;
 #if HAS_GTKMM_ALIGNMENT
     Gtk::Alignment align;
 #endif
@@ -229,10 +237,10 @@ public:
 template<typename T>
 ChoiceEntry<T>::ChoiceEntry(const char* labelText) :
 #if HAS_GTKMM_ALIGNMENT
-    LabelWidget(labelText, align),
+    ChoiceEntryBase(labelText, align),
     align(0, 0, 0, 0),
 #else
-    LabelWidget(labelText, combobox),
+    ChoiceEntryBase(labelText, combobox),
 #endif
     values(0)
 {
@@ -282,6 +290,8 @@ private:
     Gtk::Alignment align;
 #endif
     void value_changed();
+protected:
+    void on_show_tooltips_changed();
 public:
     ChoiceEntryLeverageCtrl(const char* labelText);
     gig::leverage_ctrl_t get_value() const { return value; }
@@ -311,13 +321,13 @@ public:
 
 class BoolBox : public Gtk::CheckButton {
 public:
-    BoolBox(const char* labelText) : Gtk::CheckButton(labelText) {
-        signal_toggled().connect(sig_changed.make_slot());
-    }
+    BoolBox(const char* labelText);
     bool get_value() const { return get_active(); }
     void set_value(bool value) { set_active(value); }
     sigc::signal<void>& signal_value_changed() { return sig_changed; }
 protected:
+    void on_show_tooltips_changed();
+
     sigc::signal<void> sig_changed;
 };
 
@@ -328,6 +338,8 @@ private:
     void value_changed();
     NumEntryGain& eGain;
     int32_t plus6value;
+protected:
+    void on_show_tooltips_changed();
 public:
     BoolEntryPlus6(const char* labelText, NumEntryGain& eGain, int32_t plus6value);
     int32_t get_value() const;
@@ -350,6 +362,8 @@ private:
     Gtk::TextView text_view;
     Glib::RefPtr<Gtk::TextBuffer> text_buffer;
     Gtk::Frame frame;
+protected:
+    void on_show_tooltips_changed();
 public:
     StringEntryMultiLine(const char* labelText);
     gig::String get_value() const;

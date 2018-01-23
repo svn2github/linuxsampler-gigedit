@@ -23,7 +23,12 @@
 #include "compat.h"
 #include "Settings.h"
 
-#include <glibmm/glibmm.h>
+#ifdef GLIBMM_HEADER_FILE
+# include GLIBMM_HEADER_FILE(glibmm.h)
+#else
+# include <glibmm.h>
+#endif
+
 #include <gtkmm/messagedialog.h>
 
 namespace {

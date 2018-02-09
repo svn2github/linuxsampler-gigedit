@@ -1597,6 +1597,13 @@ MainWindow::MainWindow() :
         Gtk::AccelMap::add_entry("<Macros>/macro_9", GDK_KEY_F10, noModifier);
         Gtk::AccelMap::add_entry("<Macros>/macro_10", GDK_KEY_F11, noModifier);
         Gtk::AccelMap::add_entry("<Macros>/macro_11", GDK_KEY_F12, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_12", GDK_KEY_F13, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_13", GDK_KEY_F14, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_14", GDK_KEY_F15, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_15", GDK_KEY_F16, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_16", GDK_KEY_F17, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_17", GDK_KEY_F18, noModifier);
+        Gtk::AccelMap::add_entry("<Macros>/macro_18", GDK_KEY_F19, noModifier);
         Gtk::AccelMap::add_entry("<Macros>/SetupMacros", 'm', primaryModifierKey);
 
         Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
@@ -1619,6 +1626,13 @@ MainWindow::MainWindow() :
         Gtk::AccelMap::add_entry("<Scripts>/script_9", GDK_KEY_F10, Gdk::SHIFT_MASK);
         Gtk::AccelMap::add_entry("<Scripts>/script_10", GDK_KEY_F11, Gdk::SHIFT_MASK);
         Gtk::AccelMap::add_entry("<Scripts>/script_11", GDK_KEY_F12, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_12", GDK_KEY_F13, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_13", GDK_KEY_F14, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_14", GDK_KEY_F15, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_15", GDK_KEY_F16, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_16", GDK_KEY_F17, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_17", GDK_KEY_F18, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/script_18", GDK_KEY_F19, Gdk::SHIFT_MASK);
 
         Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
         assign_scripts_menu->set_accel_group(accelGroup);

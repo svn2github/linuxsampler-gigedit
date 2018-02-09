@@ -7,6 +7,7 @@ Version SVN trunk (?)
   * Spelling fixes (patch provided by Debian maintainer Jaromír Mikeš).
   * Added new main menu item "View" -> "Tooltips for Beginners" which allows
     to disable tooltips intended for newbies only (default: on).
+  * Extended support for keyboard function keys up to F19.
 
 Version 1.1.0 (2017-11-25)
 

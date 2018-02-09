@@ -1,5 +1,5 @@
 /*
-    Copyright (c) MMXVII Christian Schoenebeck
+    Copyright (c) MMXVII - MMXVIII Christian Schoenebeck
 
     This file is part of "gigedit" and released under the terms of the
     GNU General Public License version 2.
@@ -457,7 +457,7 @@ Serialization::Archive* MacrosSetup::getSelectedMacro() {
 }
 
 static Glib::ustring indexToAccKey(uint index) {
-    if (index >= 12) return "";
+    if (index >= 19) return "";
     return "F" + ToString(index+1);
 }
 

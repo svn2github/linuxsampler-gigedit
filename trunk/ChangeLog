@@ -8,6 +8,8 @@ Version SVN trunk (?)
   * Added new main menu item "View" -> "Tooltips for Beginners" which allows
     to disable tooltips intended for newbies only (default: on).
   * Extended support for keyboard function keys up to F19.
+  * List assigned scripts as colored tooltip when hovering mouse over the
+    "Scripts" column in the instruments list.
 
 Version 1.1.0 (2017-11-25)
 

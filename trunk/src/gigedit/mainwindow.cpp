@@ -1356,7 +1356,10 @@ MainWindow::MainWindow() :
     m_TreeView.set_model(m_refTreeModelFilter);
 
     m_TreeView.get_selection()->set_mode(Gtk::SELECTION_MULTIPLE);
-    m_TreeView.set_tooltip_text(_("Right click here for actions on instruments & MIDI Rules. Drag & drop to change the order of instruments."));
+    m_TreeView.set_has_tooltip(true);
+    m_TreeView.signal_query_tooltip().connect(
+        sigc::mem_fun(*this, &MainWindow::onQueryTreeViewTooltip)
+    );
     instrument_name_connection = m_refTreeModel->signal_row_changed().connect(
         sigc::mem_fun(*this, &MainWindow::instrument_name_changed)
     );
@@ -2636,7 +2639,10 @@ void MainWindow::on_show_tooltips_changed() {
     dimreg_all_regions.set_has_tooltip(b);
     dimreg_all_dimregs.set_has_tooltip(b);
     dimreg_stereo.set_has_tooltip(b);
-    m_TreeView.set_has_tooltip(b);
+
+    // Not doing this here, we let onQueryTreeViewTooltip() handle this per cell
+    //m_TreeView.set_has_tooltip(b);
+
     m_TreeViewSamples.set_has_tooltip(b);
     m_TreeViewScripts.set_has_tooltip(b);
 
@@ -2988,6 +2994,53 @@ void MainWindow::updateSampleRefCountMap(gig::File* gig) {
     }
 }
 
+bool MainWindow::onQueryTreeViewTooltip(int x, int y, bool keyboardTip, const Glib::RefPtr<Gtk::Tooltip>& tooltip) {
+    Gtk::TreeModel::iterator iter;
+    m_TreeView.get_tooltip_context_iter(x, y, keyboardTip, iter);
+    Gtk::TreeModel::Path path(iter);
+    Gtk::TreeModel::Row row = *iter;
+    Gtk::TreeViewColumn* pointedColumn = NULL;
+    // resolve the precise table column the mouse points to
+    {
+        Gtk::TreeModel::Path path; // unused
+        int cellX, cellY; // unused
+        m_TreeView.get_path_at_pos(x, y, path, pointedColumn, cellX, cellY);
+    }
+    Gtk::TreeViewColumn* scriptsColumn = m_TreeView.get_column(2);
+    if (pointedColumn == scriptsColumn) { // mouse hovers scripts column ...
+        // show the script(s) assigned to the hovered instrument as tooltip
+        tooltip->set_markup( row[m_Columns.m_col_tooltip] );
+        m_TreeView.set_tooltip_cell(tooltip, &path, scriptsColumn, NULL);
+    } else {
+        // if beginners' tooltips is disabled then don't show the following one
+        if (!Settings::singleton()->showTooltips)
+            return false;
+        // yeah, a beginners tooltip
+        tooltip->set_text(_(
+            "Right click here for actions on instruments & MIDI Rules. "
+            "Drag & drop to change the order of instruments."
+        ));
+        m_TreeView.set_tooltip_cell(tooltip, &path, pointedColumn, NULL);
+    }
+    return true;
+}
+
+static Glib::ustring scriptTooltipFor(gig::Instrument* instrument, int index) {
+    Glib::ustring name(gig_to_utf8(instrument->pInfo->Name));
+    const int iScriptSlots = instrument->ScriptSlotCount();
+    Glib::ustring tooltip = "<u>(" + ToString(index) + ") „"  + name + "”</u>\n\n";
+    if (!iScriptSlots)
+        tooltip += "<span foreground='red'><i>No script assigned</i></span>";
+    else {
+        for (int i = 0; i < iScriptSlots; ++i) {
+            tooltip += "• " + ToString(i+1) + ". Script:  „<span foreground='#46DEFF'><b>" +
+                       instrument->GetScriptOfSlot(i)->Name + "</b></span>”";
+            if (i + 1 < iScriptSlots) tooltip += "\n\n";
+        }
+    }
+    return tooltip;
+}
+
 void MainWindow::load_gig(gig::File* gig, const char* filename, bool isSharedInstrument)
 {
     file = 0;
@@ -3017,6 +3070,7 @@ void MainWindow::load_gig(gig::File* gig, const char* filename, bool isSharedIns
         row[m_Columns.m_col_name] = name;
         row[m_Columns.m_col_instr] = instrument;
         row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
+        row[m_Columns.m_col_tooltip] = scriptTooltipFor(instrument, index);
 
 #if !USE_GTKMM_BUILDER
         add_instrument_to_menu(name);
@@ -3134,7 +3188,10 @@ void MainWindow::instr_name_changed_by_instr_props(Gtk::TreeModel::iterator& it)
     gig::Instrument* instrument = row[m_Columns.m_col_instr];
     Glib::ustring gigname(gig_to_utf8(instrument->pInfo->Name));
     if (gigname != name) {
+        Gtk::TreeModel::Path path(*it);
+        const int index = path[0];
         row[m_Columns.m_col_name] = gigname;
+        row[m_Columns.m_col_tooltip] = scriptTooltipFor(instrument, index);
     }
 }
 
@@ -3180,6 +3237,7 @@ void MainWindow::onScriptSlotsModified(gig::Instrument* pInstrument) {
         Gtk::TreeModel::Row row = model->children()[i];
         if (row[m_Columns.m_col_instr] != pInstrument) continue;
         row[m_Columns.m_col_scripts] = iScriptSlots ? ToString(iScriptSlots) : "";
+        row[m_Columns.m_col_tooltip] = scriptTooltipFor(pInstrument, i);
         break;
     }
 
@@ -3693,10 +3751,12 @@ void MainWindow::add_instrument(gig::Instrument* instrument) {
     instrument_name_connection.block();
     Gtk::TreeModel::iterator iterInstr = m_refTreeModel->append();
     Gtk::TreeModel::Row rowInstr = *iterInstr;
-    rowInstr[m_Columns.m_col_nr] = m_refTreeModel->children().size() - 1;
+    const int index = m_refTreeModel->children().size() - 1;
+    rowInstr[m_Columns.m_col_nr] = index;
     rowInstr[m_Columns.m_col_name] = name;
     rowInstr[m_Columns.m_col_instr] = instrument;
     rowInstr[m_Columns.m_col_scripts] = "";
+    rowInstr[m_Columns.m_col_tooltip] = scriptTooltipFor(instrument, index);
     instrument_name_connection.unblock();
 
 #if !USE_GTKMM_BUILDER
@@ -3783,7 +3843,9 @@ void MainWindow::on_action_remove_instrument() {
                      it != m_refTreeModel->children().end(); ++it, ++index)
                 {
                     Gtk::TreeModel::Row row = *it;
+                    gig::Instrument* instrument = row[m_Columns.m_col_instr];
                     row[m_Columns.m_col_nr] = index;
+                    row[m_Columns.m_col_tooltip] = scriptTooltipFor(instrument, index);
                 }
             }
 

@@ -353,12 +353,14 @@ protected:
           add(m_col_name);
           add(m_col_instr);
           add(m_col_scripts);
+          add(m_col_tooltip);
         }
 
         Gtk::TreeModelColumn<int> m_col_nr;
         Gtk::TreeModelColumn<Glib::ustring> m_col_name;
         Gtk::TreeModelColumn<gig::Instrument*> m_col_instr;
         Gtk::TreeModelColumn<Glib::ustring> m_col_scripts;
+        Gtk::TreeModelColumn<Glib::ustring> m_col_tooltip;
     } m_Columns;
 
     VBox m_VBox;
@@ -564,6 +566,7 @@ protected:
                                                int position = -1);
     void remove_instrument_from_menu(int index);
 #endif
+    bool onQueryTreeViewTooltip(int x, int y, bool keyboardTip, const Glib::RefPtr<Gtk::Tooltip>& tooltip);
 
     ProgressDialog* progress_dialog;
     Loader* loader;

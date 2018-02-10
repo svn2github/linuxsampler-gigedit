@@ -638,6 +638,7 @@ protected:
     void __refreshEntireGUI();
     void updateScriptListOfMenu();
     void assignScript(gig::Script* pScript);
+    void dropAllScriptSlots();
 
     bool close_confirmation_dialog();
     bool leaving_shared_mode_dialog();

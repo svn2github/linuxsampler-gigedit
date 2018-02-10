@@ -10,6 +10,8 @@ Version SVN trunk (?)
   * Extended support for keyboard function keys up to F19.
   * List assigned scripts as colored tooltip when hovering mouse over the
     "Scripts" column in the instruments list.
+  * Added global keyboard accelerator Shift + Backspace for dropping all script
+    slots from an instrument.
 
 Version 1.1.0 (2017-11-25)
 

@@ -1636,6 +1636,7 @@ MainWindow::MainWindow() :
         Gtk::AccelMap::add_entry("<Scripts>/script_16", GDK_KEY_F17, Gdk::SHIFT_MASK);
         Gtk::AccelMap::add_entry("<Scripts>/script_17", GDK_KEY_F18, Gdk::SHIFT_MASK);
         Gtk::AccelMap::add_entry("<Scripts>/script_18", GDK_KEY_F19, Gdk::SHIFT_MASK);
+        Gtk::AccelMap::add_entry("<Scripts>/DropAllScriptSlots", GDK_KEY_BackSpace, Gdk::SHIFT_MASK);
 
         Glib::RefPtr<Gtk::AccelGroup> accelGroup = this->get_accel_group();
         assign_scripts_menu->set_accel_group(accelGroup);
@@ -3263,6 +3264,20 @@ void MainWindow::assignScript(gig::Script* pScript) {
     onScriptSlotsModified(pInstrument);
 }
 
+void MainWindow::dropAllScriptSlots() {
+    gig::Instrument* pInstrument = get_instrument();
+    if (!pInstrument) {
+        printf("!instrument\n");
+        return;
+    }
+
+    const int iScriptSlots = pInstrument->ScriptSlotCount();
+    for (int i = iScriptSlots - 1; i >= 0; --i)
+        pInstrument->RemoveScriptSlot(i);
+
+    onScriptSlotsModified(pInstrument);
+}
+
 void MainWindow::on_action_refresh_all() {
     __refreshEntireGUI();
 }
@@ -3701,6 +3716,18 @@ void MainWindow::updateScriptListOfMenu() {
         Gtk::MenuItem* item = new Gtk::MenuItem(_("No Scripts"));
         item->set_sensitive(false);
         assign_scripts_menu->append(*item);
+    }
+
+    // add separator line to menu
+    assign_scripts_menu->append(*new Gtk::SeparatorMenuItem);
+
+    {
+        Gtk::MenuItem* item = new Gtk::MenuItem(_("Unassign All Scripts"));
+        item->signal_activate().connect(
+            sigc::mem_fun(*this, &MainWindow::dropAllScriptSlots)
+        );
+        assign_scripts_menu->append(*item);
+        item->set_accel_path("<Scripts>/DropAllScriptSlots");
     }
 
 #if HAS_GTKMM_SHOW_ALL_CHILDREN

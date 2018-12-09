@@ -253,6 +253,7 @@ ChoiceEntry<T>::ChoiceEntry(const char* labelText) :
 template<typename T>
 void ChoiceEntry<T>::set_choices(const char** texts, const T* values)
 {
+    combobox.remove_all();
     for (int i = 0 ; texts[i] ; i++) {
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 24) || GTKMM_MAJOR_VERSION < 2
         combobox.append_text(texts[i]);

@@ -12,6 +12,8 @@ Version SVN trunk (?)
     "Scripts" column in the instruments list.
   * Added global keyboard accelerator Shift + Backspace for dropping all script
     slots from an instrument.
+  * Added option to save as gig v4 file (File -> Properties).
+  * Fixed duplicate items in File -> Properties -> "File Format" combo box.
 
 Version 1.1.0 (2017-11-25)
 

@@ -272,6 +272,8 @@ DimRegionEdit::DimRegionEdit() :
     eCrossfade_out_start(_("Crossfade-out start")),
     eCrossfade_out_end(_("Crossfade-out end")),
     ePitchTrack(_("Pitch track")),
+    eSustainReleaseTrigger(_("Sustain Release Trigger")),
+    eNoNoteOffReleaseTrigger(_("No note-off release trigger")),
     eDimensionBypass(_("Dimension bypass")),
     ePan(_("Pan"), -64, 63),
     eSelfMask(_("Kill lower velocity voices (a.k.a \"Self mask\")")),
@@ -427,6 +429,8 @@ DimRegionEdit::DimRegionEdit() :
     connect(eCrossfade_out_start, &DimRegionEdit::set_Crossfade_out_start);
     connect(eCrossfade_out_end, &DimRegionEdit::set_Crossfade_out_end);
     connect(ePitchTrack, &gig::DimensionRegion::PitchTrack);
+    connect(eSustainReleaseTrigger, &gig::DimensionRegion::SustainReleaseTrigger);
+    connect(eNoNoteOffReleaseTrigger, &gig::DimensionRegion::NoNoteOffReleaseTrigger);
     connect(eDimensionBypass, &gig::DimensionRegion::DimensionBypass);
     connect(ePan, &gig::DimensionRegion::Pan);
     connect(eSelfMask, &gig::DimensionRegion::SelfMask);
@@ -892,6 +896,21 @@ DimRegionEdit::DimRegionEdit() :
 
     addProp(eReleaseTriggerDecay);
     {
+        const char* choices[] = { _("off"), _("on (max. velocity)"), _("on (key velocity)"), 0 };
+        static const gig::sust_rel_trg_t values[] = {
+            gig::sust_rel_trg_none,
+            gig::sust_rel_trg_maxvelocity,
+            gig::sust_rel_trg_keyvelocity
+        };
+        eSustainReleaseTrigger.set_choices(choices, values);
+    }
+    eSustainReleaseTrigger.set_tip(_(
+        "By default release trigger samples are played on note-off events only. "
+        "This option allows to play release trigger sample on sustain pedal up "
+        "events as well. NOTE: This is a format extension!"
+    ));
+    addProp(eSustainReleaseTrigger);
+    {
         const char* choices[] = { _("none"), _("effect4depth"), _("effect5depth"), 0 };
         static const gig::dim_bypass_ctrl_t values[] = {
             gig::dim_bypass_ctrl_none,
@@ -900,6 +919,12 @@ DimRegionEdit::DimRegionEdit() :
         };
         eDimensionBypass.set_choices(choices, values);
     }
+    eNoNoteOffReleaseTrigger.set_tip(_(
+        "By default release trigger samples are played on note-off events only. "
+        "If this option is checked, then no release trigger sample is played "
+        "when releasing a note. NOTE: This is a format extension!"
+    ));
+    addProp(eNoNoteOffReleaseTrigger);
     addProp(eDimensionBypass);
     eSelfMask.widget.set_tooltip_text(_(
         "If enabled: new notes with higher velocity value will stop older "
@@ -1263,6 +1288,8 @@ void DimRegionEdit::set_dim_region(gig::DimensionRegion* d)
     eCrossfade_out_start.set_value(d->Crossfade.out_start);
     eCrossfade_out_end.set_value(d->Crossfade.out_end);
     ePitchTrack.set_value(d->PitchTrack);
+    eSustainReleaseTrigger.set_value(d->SustainReleaseTrigger);
+    eNoNoteOffReleaseTrigger.set_value(d->NoNoteOffReleaseTrigger);
     eDimensionBypass.set_value(d->DimensionBypass);
     ePan.set_value(d->Pan);
     eSelfMask.set_value(d->SelfMask);

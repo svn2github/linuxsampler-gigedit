@@ -220,6 +220,8 @@ protected:
     NumEntryTemp<uint8_t> eCrossfade_out_start;
     NumEntryTemp<uint8_t> eCrossfade_out_end;
     BoolEntry ePitchTrack;
+    ChoiceEntry<gig::sust_rel_trg_t> eSustainReleaseTrigger;
+    BoolEntry eNoNoteOffReleaseTrigger;
     ChoiceEntry<gig::dim_bypass_ctrl_t> eDimensionBypass;
     NumEntryTemp<int8_t> ePan;
     BoolEntry eSelfMask;

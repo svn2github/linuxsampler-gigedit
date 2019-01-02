@@ -289,7 +289,7 @@ DimRegionChooser::DimRegionChooser(Gtk::Window& window) :
 #endif // USE_GTKMM_BUILDER
 
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 # warning GTKMM4 event registration code missing for dimregionchooser!
     //add_events(Gdk::EventMask::BUTTON_PRESS_MASK);
 #else

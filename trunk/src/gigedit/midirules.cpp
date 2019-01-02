@@ -40,7 +40,7 @@ MidiRules::MidiRules() :
     }
 
     set_title(_("Midi Rules"));
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     set_margin(6);
 #else
     set_border_width(6);
@@ -48,7 +48,7 @@ MidiRules::MidiRules() :
 
     add(vbox);
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     hbox.set_margin(6);
 #else
     hbox.set_border_width(6);
@@ -69,14 +69,14 @@ MidiRules::MidiRules() :
         sigc::mem_fun(*this, &MidiRules::combo_changed));
     vbox.pack_start(hbox, Gtk::PACK_SHRINK);
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     box.set_margin(6);
 #else
     box.set_border_width(6);
 #endif
     vbox.pack_start(box);
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     button_box.set_margin(6);
 #else
     button_box.set_border_width(6);

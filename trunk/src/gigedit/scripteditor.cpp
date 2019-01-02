@@ -265,7 +265,7 @@ ScriptEditor::ScriptEditor() :
 #endif
         color.set("#F5F5F5");
         GtkWidget* widget = (GtkWidget*) m_lineNrView.gobj();
-#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 22)
+#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 24)
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
 #endif
@@ -278,7 +278,7 @@ ScriptEditor::ScriptEditor() :
 #endif
         color.set("#EEEEEE");
         GtkWidget* widget = (GtkWidget*) m_lineNrTextViewSpacer.gobj();
-#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 22)
+#if GTK_MAJOR_VERSION < 3 || (GTK_MAJOR_VERSION == 3 && GTK_MINOR_VERSION <= 24)
         gtk_widget_modify_base(widget, GTK_STATE_NORMAL, color.gobj());
         gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, color.gobj());
 #endif
@@ -759,7 +759,7 @@ bool ScriptEditor::on_motion_notify_event(GdkEventMotion* e) {
     //TODO: event throttling would be a good idea here
     updateIssueTooltip(e);
 #endif
-#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION <= 22)
+#if GTKMM_MAJOR_VERSION < 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION <= 24)
     return ManagedWindow::on_motion_notify_event(e);
 #else
     Gdk::EventMotion em = Glib::wrap(e, true);

@@ -61,7 +61,7 @@
 // Gtk::UIManager had been replaced by Gtk::Builder in GTKMM 3 and removed in GTKMM 4
 // Gtk::ActionGroup had been replaced by Gio::ActionGroup in GTKMM 3 and removed in GTKMM 4
 #if !defined(USE_GTKMM_BUILDER) || !defined(USE_GLIB_ACTION) // gtkmm > 3.22 :
-# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 #  define USE_GTKMM_BUILDER 1
 #  define USE_GLIB_ACTION 1
 # else
@@ -79,7 +79,7 @@
 #endif
 
 #ifndef HAS_GTKMM_CPP11_ENUMS // gtkmm > 3.22
-# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 #  define HAS_GTKMM_CPP11_ENUMS 1
 # else
 #  define HAS_GTKMM_CPP11_ENUMS 0
@@ -88,7 +88,7 @@
 
 // alignment.h had been removed in GTKMM 4
 #ifndef HAS_GTKMM_ALIGNMENT // gtkmm > 3.22 :
-# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 #  define HAS_GTKMM_ALIGNMENT 0
 # else
 #  define HAS_GTKMM_ALIGNMENT 1
@@ -99,7 +99,7 @@
 // stock.h had been removed in GTKMM 4
 // Gtk::VBox, Gtk::HBox and Gtk::HButtonBox had been replaced by Gtk::Box in GTKMM 3 and removed in GTKMM 4
 #if !defined(USE_GTKMM_GRID) || !defined(HAS_GTKMM_STOCK) || !defined(USE_GTKMM_BOX) || !defined(USE_GTKMM_PANED) // gtkmm > 3.22 :
-# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+# if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 #  define USE_GTKMM_GRID 1
 #  define HAS_GTKMM_STOCK 0
 #  define USE_GTKMM_BOX 1

@@ -232,7 +232,7 @@ void MacroEditor::buildTreeView(const Gtk::TreeModel::Row& parentRow, const Seri
         const Serialization::Member& member = parentObject.members()[iMember];
         const Serialization::Object& object = m_macro.objectByUID(member.uid());
         
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
         //HACK: on GTKMM 3.9x append() below requires TreeNodeChildren, parentRow.children() returns TreeNodeConstChildren though, probably going to be fixed before final GTKMM4 release though.
         const Gtk::TreeNodeConstChildren& children = parentRow.children();
         Gtk::TreeNodeChildren* const pChildren = (Gtk::TreeNodeChildren* const) &children;

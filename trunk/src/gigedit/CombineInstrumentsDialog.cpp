@@ -941,7 +941,7 @@ CombineInstrumentsDialog::CombineInstrumentsDialog(Gtk::Window& parent, gig::Fil
     }
 
     m_buttonBox.set_layout(Gtk::BUTTONBOX_END);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     m_buttonBox.set_margin(5);
 #else
     m_buttonBox.set_border_width(5);

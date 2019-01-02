@@ -2765,7 +2765,7 @@ PropDialog::PropDialog()
 #endif
 
     add(vbox);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     table.set_margin(5);
 #else
     table.set_border_width(5);
@@ -2773,7 +2773,7 @@ PropDialog::PropDialog()
     vbox.add(table);
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     buttonBox.set_margin(5);
 #else
     buttonBox.set_border_width(5);
@@ -2925,7 +2925,7 @@ InstrumentProps::InstrumentProps() :
     table.add(eDimensionKeyRangeHigh);
 
     add(vbox);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     table.set_margin(5);
 #else
     table.set_border_width(5);
@@ -2934,7 +2934,7 @@ InstrumentProps::InstrumentProps() :
     table.show();
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     buttonBox.set_margin(5);
 #else
     buttonBox.set_border_width(5);
@@ -3453,7 +3453,7 @@ void MainWindow::select_instrument(gig::Instrument* instrument) {
             show_intruments_tab();
             m_TreeView.get_selection()->unselect_all();
             
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
             auto iterSel = model->children()[i].get_iter();
             m_TreeView.get_selection()->select(iterSel);
 #else
@@ -3483,7 +3483,7 @@ bool MainWindow::select_dimension_region(gig::DimensionRegion* dimRgn) {
             // select and show the respective instrument in the list view
             show_intruments_tab();
             m_TreeView.get_selection()->unselect_all();
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
             auto iterSel = model->children()[i].get_iter();
             m_TreeView.get_selection()->select(iterSel);
 #else
@@ -3519,7 +3519,7 @@ void MainWindow::select_sample(gig::Sample* sample) {
             if (rowSample[m_SamplesModel.m_col_sample] == sample) {
                 show_samples_tab();
                 m_TreeViewSamples.get_selection()->unselect_all();
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
                 auto iterSel = rowGroup.children()[s].get_iter();
                 m_TreeViewSamples.get_selection()->select(iterSel);
 #else
@@ -4794,7 +4794,7 @@ bool MainWindow::instrument_row_visible(const Gtk::TreeModel::const_iterator& it
     trim(pattern);
     if (pattern.empty()) return true;
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     //HACK: on GTKMM4 development branch const_iterator cannot be easily converted to iterator, probably going to be fixed before final GTKMM4 release though.
     Gtk::TreeModel::Row row = **(Gtk::TreeModel::iterator*)(&iter);
 #else

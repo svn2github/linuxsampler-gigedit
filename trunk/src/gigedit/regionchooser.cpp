@@ -269,7 +269,7 @@ RegionChooser::RegionChooser() :
 
 #endif // USE_GTKMM_BUILDER
 
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
 # warning GTKMM4 event registration code missing for regionchooser!
     //add_events(Gdk::EventMask::BUTTON_PRESS_MASK);
 #else
@@ -366,7 +366,7 @@ bool RegionChooser::on_draw(const Cairo::RefPtr<Cairo::Context>& cr) {
 #if (GTKMM_MAJOR_VERSION == 2 && GTKMM_MINOR_VERSION < 90) || GTKMM_MAJOR_VERSION < 2
     const Gdk::Color bg = get_style()->get_bg(Gtk::STATE_NORMAL);
 #else
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     GdkRGBA gdkBgRGBA;
     gtk_style_context_get_background_color(get_style_context()->gobj(), &gdkBgRGBA);
     const Gdk::RGBA bg = Glib::wrap(&gdkBgRGBA, true);

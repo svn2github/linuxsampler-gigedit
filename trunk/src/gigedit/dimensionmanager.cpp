@@ -278,7 +278,7 @@ DimensionManager::DimensionManager() :
     scrolledWindow.show();
     vbox.pack_start(buttonBox, Gtk::PACK_SHRINK);
     buttonBox.set_layout(Gtk::BUTTONBOX_END);
-#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 22)
+#if GTKMM_MAJOR_VERSION > 3 || (GTKMM_MAJOR_VERSION == 3 && GTKMM_MINOR_VERSION > 24)
     buttonBox.set_margin(5);
 #else
     buttonBox.set_border_width(5);
